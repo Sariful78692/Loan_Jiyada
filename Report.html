@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reports - Loan Manager</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/table.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    .export-btns { margin-bottom: 15px; display: flex; gap: 10px; }
+    .export-btns button { padding: 10px 15px; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold; }
+    .btn-excel { background-color: #16a34a; }
+    .btn-print { background-color: #2563eb; }
+    @media print { .sidebar, .export-btns { display: none !important; } .main-content { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <h2>Loan Manager</h2>
+      </div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="Dashboard.html" class="nav-link">
+            <i class="fa-solid fa-chart-line"></i> Dashboard
+          </a>
+        </li>
+        
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle">
+            <i class="fa-solid fa-users"></i> Customer Information <i class="fa-solid fa-chevron-down arrow"></i>
+          </a>
+          <ul class="submenu">
+            <li><a href="CustomerEntry.html">Customer Entry</a></li>
+            <li><a href="CustomerDetails.html">Customer Details</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle">
+            <i class="fa-solid fa-hand-holding-dollar"></i> Loan Type <i class="fa-solid fa-chevron-down arrow"></i>
+          </a>
+          <!-- id="sidebar-loan-list" দেওয়া হয়েছে যাতে JS দিয়ে নতুন লোন এখানে ঢোকানো যায় -->
+          <ul class="submenu" id="sidebar-loan-list">
+            <li><a href="CustomerDetails.html?loan=RD Loan">RD Loan</a></li>
+            <li><a href="CustomerDetails.html?loan=Group Loan">Group Loan</a></li>
+            <li><a href="CustomerDetails.html?loan=Gold Loan">Gold Loan</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item">
+          <a href="Report.html" class="nav-link">
+            <i class="fa-solid fa-file-invoice"></i> Reports
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <section class="content-section">
+        <h1>All Loans Report</h1>
+        <div class="export-btns">
+          <button class="btn-excel" onclick="exportToExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button class="btn-print" onclick="printReport()"><i class="fa-solid fa-print"></i> Print</button>
+        </div>
+        <div class="table-responsive">
+          <table id="report-table">
+            <thead>
+              <tr><th>Name</th><th>Mobile</th><th>Loan Type</th><th>Amount</th><th>Interest</th></tr>
+            </thead>
+            <tbody id="report-table-body">
+              <tr><td colspan="5" class="text-center">Loading Report...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="js/common.js"></script>
+  <script src="js/report.js"></script>
+</body>
+</html>

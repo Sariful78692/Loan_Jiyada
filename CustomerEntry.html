@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Entry - Loan Manager</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/customer.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar -->
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <h2>Loan Manager</h2>
+      </div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="Dashboard.html" class="nav-link">
+            <i class="fa-solid fa-chart-line"></i> Dashboard
+          </a>
+        </li>
+        
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle">
+            <i class="fa-solid fa-users"></i> Customer Information <i class="fa-solid fa-chevron-down arrow"></i>
+          </a>
+          <ul class="submenu">
+            <li><a href="CustomerEntry.html">Customer Entry</a></li>
+            <li><a href="CustomerDetails.html">Customer Details</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle">
+            <i class="fa-solid fa-hand-holding-dollar"></i> Loan Type <i class="fa-solid fa-chevron-down arrow"></i>
+          </a>
+          <!-- id="sidebar-loan-list" দেওয়া হয়েছে যাতে JS দিয়ে নতুন লোন এখানে ঢোকানো যায় -->
+          <ul class="submenu" id="sidebar-loan-list">
+            <li><a href="CustomerDetails.html?loan=RD Loan">RD Loan</a></li>
+            <li><a href="CustomerDetails.html?loan=Group Loan">Group Loan</a></li>
+            <li><a href="CustomerDetails.html?loan=Gold Loan">Gold Loan</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item">
+          <a href="Report.html" class="nav-link">
+            <i class="fa-solid fa-file-invoice"></i> Reports
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <section id="customer-entry-section" class="content-section">
+        <h1 id="form-title">Customer Entry Form</h1>
+        <form id="customer-form">
+          <input type="hidden" id="edit-customer-id" value="">
+          <input type="hidden" id="existing-photo-url" value="">
+
+          <!-- Personal Details -->
+          <div class="form-card">
+            <h3>Personal Details</h3>
+            <div class="form-grid">
+              
+              <div class="form-group">
+                <label>Customer Name *</label>
+                <input type="text" id="customerName" required>
+              </div>
+              <div class="form-group">
+                <label>Guardian Type *</label>
+                <select id="guardianType" required>
+                  <option value="">Select Relation</option>
+                  <option value="Father's Name">Father's Name</option>
+                  <option value="Mother's Name">Mother's Name</option>
+                  <option value="Husband's Name">Husband's Name</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Guardian Name *</label>
+                <input type="text" id="guardianName" required>
+              </div>
+              <div class="form-group">
+                <label>Gender *</label>
+                <select id="gender" required>
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>DOB *</label>
+                <input type="date" id="dob" required>
+              </div>
+              <div class="form-group">
+                <label>Religion</label>
+                <input type="text" id="religion">
+              </div>
+              <div class="form-group">
+                <label>Aadhaar No *</label>
+                <input type="text" id="aadhaarNo" maxlength="12" required>
+              </div>
+              <div class="form-group">
+                <label>Mobile No *</label>
+                <input type="tel" id="mobileNo" maxlength="10" required>
+              </div>
+              <div class="form-group">
+                <label>Photo (Max 50 KB)</label>
+                <input type="file" id="photoInput" accept="image/*">
+                <div class="preview-box">
+                  <img id="photoPreview" src="" alt="Photo Preview" class="hidden-preview">
+                </div>
+              </div>
+
+              <!-- ঠিক করা Occupation ফিল্ড -->
+              <div class="form-group">
+                <label>Occupation *</label>
+                <div class="select-with-btn">
+                  <select id="occupationSelect" required>
+                    <option value="">Select Occupation</option>
+                    <option value="Labour">Labour</option>
+                    <option value="Service">Service</option>
+                    <option value="Self Employed">Self Employed</option>
+                    <option value="Hand Embrodary">Hand Embrodary</option>
+                  </select>
+                  <button type="button" class="btn-small bg-blue" onclick="promptAddNewOccupation()" title="Add Occupation">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- ঠিক করা Loan Type ফিল্ড -->
+              <div class="form-group">
+                <label>Loan Type *</label>
+                <div class="select-with-btn">
+                  <select id="loanTypeSelect" required>
+                    <option value="">Select Loan Type</option>
+                    <option value="RD Loan">RD Loan</option>
+                    <option value="Group Loan">Group Loan</option>
+                    <option value="Gold Loan">Gold Loan</option>
+                  </select>
+                  <button type="button" class="btn-small bg-blue" onclick="promptAddNewLoanType()" title="Add Loan Type">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Nominee Details -->
+          <div class="form-card">
+            <h3>Nominee Details</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nominee Name *</label>
+                <input type="text" id="nomineeName" required>
+              </div>
+              <div class="form-group">
+                <label>Nominee Guardian Type</label>
+                <select id="nomineeGuardianType">
+                  <option value="">Select Relation</option>
+                  <option value="Father's Name">Father's Name</option>
+                  <option value="Mother's Name">Mother's Name</option>
+                  <option value="Husband's Name">Husband's Name</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Nominee Guardian Name</label>
+                <input type="text" id="nomineeGuardianName">
+              </div>
+              <div class="form-group">
+                <label>Nominee Gender</label>
+                <select id="nomineeGender">
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Nominee Occupation</label>
+                <input type="text" id="nomineeOccupation">
+              </div>
+              <div class="form-group">
+                <label>Nominee DOB</label>
+                <input type="date" id="nomineeDob">
+              </div>
+              <div class="form-group">
+                <label>Nominee Aadhaar</label>
+                <input type="text" id="nomineeAadhaar" maxlength="12">
+              </div>
+              <div class="form-group">
+                <label>Relation with Applicant *</label>
+                <input type="text" id="relationWithApplicant" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" id="submit-btn" class="btn-primary">Save Customer</button>
+            <button type="button" class="btn-secondary" onclick="resetForm()">Reset</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+  <!-- Gold Loan Modal Popup -->
+  
+
+  <script src="js/common.js"></script>
+  <script src="js/customer_entry.js"></script>
+</body>
+</html>

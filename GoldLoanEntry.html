@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gold Loan Entry - Loan Manager</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/customer.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand"><h2>Loan Manager</h2></div>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+        <li class="nav-item has-submenu open">
+          <a href="#" class="nav-link submenu-toggle active"><i class="fa-solid fa-users"></i> Customer Information</a>
+          <ul class="submenu" style="display: block;">
+            <li><a href="CustomerEntry.html">Customer Entry</a></li>
+            <li><a href="CustomerDetails.html">Customer Details</a></li>
+          </ul>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content for Gold Loan -->
+    <main class="main-content">
+      <section class="content-section">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; background-color: #b8860b; padding: 15px; border-radius: 8px 8px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 22px;"><i class="fa-solid fa-coins"></i> Gold Loan Application Form</h1>
+          <button onclick="window.location.href='CustomerEntry.html'" class="btn-danger" style="background: #ef4444; padding: 8px 15px; border: none; color: white; border-radius: 5px; cursor: pointer;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+        </div>
+
+        <form id="gold-loan-form" style="background: #fff9f0; padding: 20px; border: 1px solid #d4d4d8; border-top: none; border-radius: 0 0 8px 8px;">
+          
+          <!-- Primary Fields -->
+          <div class="form-grid" style="margin-bottom: 20px;">
+            <div class="form-group"><label>Application No</label><input type="text" id="goldAppNo" placeholder="Auto/Enter No"></div>
+            <div class="form-group"><label>Application Date</label><input type="date" id="goldAppDate" required></div>
+            <div class="form-group"><label>Branch Name</label><input type="text" id="goldBranchName" value="Amtala" readonly style="background-color: #e2e8f0; font-weight: bold;"></div>
+            <div class="form-group"><label>Branch Code</label><input type="text" id="goldBranchCode" value="AMT-001" readonly style="background-color: #e2e8f0; font-weight: bold;"></div>
+            <div class="form-group"><label>Loan Officer Name *</label><input type="text" id="goldOfficerName" placeholder="Enter Officer Name" required></div>
+            <div class="form-group"><label>CSP Location</label><input type="text" id="goldCspLocation" placeholder="Enter Location"></div>
+            <div class="form-group"><label>Monthly Income (₹)</label><input type="number" id="goldMonthlyIncome" placeholder="0.00"></div>
+          </div>
+
+          <!-- Image Uploads -->
+          <div class="form-grid" style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #d4d4d8;">
+            <div class="form-group"><label style="color: #b8860b; font-weight: bold;">Nominee Image (Upload)</label><input type="file" id="goldNomineeImage" accept="image/*"></div>
+            <div class="form-group"><label style="color: #b8860b; font-weight: bold;">Gold Image (Upload)</label><input type="file" id="goldItemImage" accept="image/*"></div>
+          </div>
+
+          <!-- GOLD ARTICLE DETAILS -->
+          <h4 class="gold-section-title">GOLD ARTICLE DETAILS</h4>
+          <div class="table-responsive" style="margin-bottom: 10px; padding: 0;">
+            <table class="gold-table" id="gold-article-table">
+              <thead>
+                <tr>
+                  <th>Sl. No.</th>
+                  <th>Article Description</th>
+                  <th>Purity (Carats)</th>
+                  <th>Category</th>
+                  <th>Gram(Ana/Vori)</th>
+                  <th>Gross Wt. (g)</th>
+                  <th>Net Wt. (g) / Value</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="gold-table-body">
+                <tr>
+                  <td class="row-sl">1</td>
+                  <td><input type="text" class="gold-input" placeholder="e.g. Ring"></td>
+                  <td><input type="text" class="gold-input" placeholder="22K"></td>
+                  <td><input type="text" class="gold-input" value="Ana"></td>
+                  <td><input type="text" class="gold-input"></td>
+                  <td><input type="text" class="gold-input" placeholder="₹0.000"></td>
+                  <td><input type="text" class="gold-input" placeholder="₹0.00"></td>
+                  <td style="text-align: center;"><button type="button" class="btn-delete" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button type="button" class="btn-small bg-blue" onclick="addGoldRow()" style="margin-bottom: 20px; width: auto; padding: 8px 15px;"><i class="fa-solid fa-plus"></i> Add More Item</button>
+
+          <!-- LOAN DETAILS -->
+          <h4 class="gold-section-title">LOAN DETAILS</h4>
+          <div class="form-grid" style="background: white; border: 1px solid #d4d4d8; padding: 15px; margin-bottom: 20px;">
+            <div class="form-group"><label>Loan Amount Requested (₹)</label><input type="number" id="goldLoanAmount" class="gold-input-bg" placeholder="₹20,000.00" required></div>
+            <div class="form-group"><label>Loan Tenure</label><input type="text" id="goldLoanTenure" class="gold-input-bg" value="12 months"></div>
+            <div class="form-group"><label>Purpose of Loan</label><input type="text" id="goldPurpose" class="gold-input-bg" value="Business"></div>
+            <div class="form-group"><label>Scheme</label><input type="text" id="goldScheme" class="gold-input-bg" value="Fource Close"></div>
+            <div class="form-group"><label>Rate of Interest (%)</label><input type="number" id="goldInterestRate" class="gold-input-bg" value="24"></div>
+            <div class="form-group"><label>EMI Amount (₹)</label><input type="number" id="goldEmiAmount" class="gold-input-bg" placeholder="₹1,891.19"></div>
+            
+            <!-- Disbursement Mode Dropdown -->
+            <div class="form-group">
+              <label>Disbursement Mode *</label>
+              <select id="goldDisbursementMode" class="gold-input-bg" onchange="toggleBankDetails()" required>
+                <option value="Cash">Cash</option>
+                <option value="Bank">Bank</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- BANK DETAILS (Hidden by default, shows when 'Bank' is selected) -->
+          <div id="bank-details-section" class="hidden">
+            <h4 class="gold-section-title">BANK DETAILS</h4>
+            <div class="form-grid" style="background: white; border: 1px solid #d4d4d8; padding: 15px; margin-bottom: 20px;">
+              <div class="form-group">
+                <label>Select Bank *</label>
+                <div class="select-with-btn">
+                  <select id="goldBankName" class="gold-input-bg">
+                    <option value="">Select Bank</option>
+                    <option value="SBI">SBI</option>
+                    <option value="PNB">PNB</option>
+                    <option value="HDFC">HDFC</option>
+                  </select>
+                  <button type="button" class="btn-small bg-blue" onclick="promptAddNewBank()" title="Add Bank"><i class="fa-solid fa-plus"></i></button>
+                </div>
+              </div>
+              <div class="form-group"><label>A/C Holder Name</label><input type="text" id="goldAcHolderName" class="gold-input-bg" placeholder="Holder Name"></div>
+              <div class="form-group"><label>A/C Number</label><input type="text" id="goldAcNumber" class="gold-input-bg" placeholder="Account No"></div>
+              <div class="form-group"><label>IFSC Code</label><input type="text" id="goldIfscCode" class="gold-input-bg" placeholder="IFSC Code"></div>
+              <div class="form-group"><label>Branch Name</label><input type="text" id="goldBankBranch" class="gold-input-bg" placeholder="Branch Name"></div>
+            </div>
+          </div>
+
+          <!-- DOCUMENTS CHECKLIST -->
+          <h4 class="gold-section-title">DOCUMENTS CHECKLIST</h4>
+          <div class="form-grid" id="gold-checklists" style="background: white; border: 1px solid #d4d4d8; padding: 15px; margin-bottom: 20px;">
+            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Identity Proof" checked> Identity Proof (Aadhaar / PAN)</label>
+            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Address Proof" checked> Address Proof (Utility Bill / Ration Card)</label>
+            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Photographs" checked> Passport-size Photographs (2 nos.)</label>
+            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Income Proof"> Income Proof</label>
+            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Application Form"> Duly Filled Application Form</label>
+            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Ownership Declaration"> Gold Ownership Declaration</label>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" id="submit-gold-btn" class="btn-primary" style="background-color: #b8860b;">Submit Application</button>
+            <button type="button" class="btn-secondary" onclick="window.location.href='CustomerEntry.html'">Cancel</button>
+          </div>
+
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/gold_loan.js"></script>
+</body>
+</html>

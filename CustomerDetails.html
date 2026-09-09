@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Customer Details - Loan Manager</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/table.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <h2>Loan Manager</h2>
+      </div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="Dashboard.html" class="nav-link">
+            <i class="fa-solid fa-chart-line"></i> Dashboard
+          </a>
+        </li>
+        
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle">
+            <i class="fa-solid fa-users"></i> Customer Information <i class="fa-solid fa-chevron-down arrow"></i>
+          </a>
+          <ul class="submenu">
+            <li><a href="CustomerEntry.html">Customer Entry</a></li>
+            <li><a href="CustomerDetails.html">Customer Details</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle">
+            <i class="fa-solid fa-hand-holding-dollar"></i> Loan Type <i class="fa-solid fa-chevron-down arrow"></i>
+          </a>
+          <!-- id="sidebar-loan-list" দেওয়া হয়েছে যাতে JS দিয়ে নতুন লোন এখানে ঢোকানো যায় -->
+          <ul class="submenu" id="sidebar-loan-list">
+            <li><a href="CustomerDetails.html?loan=RD Loan">RD Loan</a></li>
+            <li><a href="CustomerDetails.html?loan=Group Loan">Group Loan</a></li>
+            <li><a href="CustomerDetails.html?loan=Gold Loan">Gold Loan</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item">
+          <a href="Report.html" class="nav-link">
+            <i class="fa-solid fa-file-invoice"></i> Reports
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <section class="content-section">
+        <h1>Customer Details</h1>
+        <div class="table-responsive">
+          <table id="customer-table">
+            <thead id="customer-table-head"></thead>
+            <tbody id="customer-table-body">
+              <tr><td class="text-center">Loading data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="js/common.js"></script>
+  <script src="js/customer_details.js"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+.content-section h1 { margin-bottom: 20px; font-size: 24px; color: #0f172a; }
+
+/* Form Styling */
+.form-card { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.form-card h3 { margin-bottom: 15px; color: #2563eb; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; }
+.form-group { display: flex; flex-direction: column; }
+.form-group label { font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #475569; }
+.form-group input, .form-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 14px; outline: none; }
+.form-group input:focus, .form-group select:focus { border-color: #2563eb; }
+
+/* Photo Preview Box */
+.preview-box { margin-top: 8px; }
+.hidden-preview { display: none; }
+#photoPreview { width: 70px; height: 70px; border-radius: 6px; object-fit: cover; border: 1px solid #cbd5e1; }
+.select-with-btn { display: flex; gap: 8px; }
+.select-with-btn select { flex: 1; }
+
+/* Buttons */
+.btn-small { background-color: #2563eb; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 32px; }
+.form-actions { display: flex; gap: 15px; margin-top: 20px; }
+.btn-primary { background-color: #2563eb; color: #fff; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; }
+.btn-secondary { background-color: #64748b; color: #fff; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; }
+.btn-danger { background-color: #ef4444; color: #fff; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; }
+
+/* Button Colors */
+.bg-blue { background-color: #2563eb !important; }
+.bg-yellow { background-color: #eab308 !important; }
+.bg-red { background-color: #ef4444 !important; }
+/* Gold Loan Form Specific Styles */
+.gold-section-title {
+  background-color: #b8860b;
+  color: white;
+  padding: 8px 15px;
+  font-size: 14px;
+  text-transform: uppercase;
+  margin-bottom: 0;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.gold-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #b8860b;
+}
+
+.gold-table th {
+  background-color: #b8860b;
+  color: white;
+  text-align: center;
+  border: 1px solid #946b09;
+  font-size: 12px;
+  padding: 8px;
+}
+
+.gold-table td {
+  border: 1px solid #d4d4d8;
+  padding: 0;
+  background-color: #fffde7;
+}
+
+.gold-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 8px;
+  text-align: center;
+  outline: none;
+}
+
+.gold-input-bg {
+  background-color: #fffde7 !important;
+  border: 1px solid #d4d4d8 !important;
+}
