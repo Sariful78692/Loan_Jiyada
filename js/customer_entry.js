@@ -31,12 +31,23 @@ document.addEventListener("DOMContentLoaded", function () {
   const form = document.getElementById("customer-form");
   if(form) form.addEventListener("submit", handleCustomerFormSubmit);
 
-  // ৩. Gold Loan Select Logic (নতুন যোগ করা হয়েছে)
+// ৩. Loan Type Select Logic
   const loanTypeSelect = document.getElementById("loanTypeSelect");
+  const rdLoanSection = document.getElementById("rd-loan-details"); // RD লোনের সেকশন
+
   if (loanTypeSelect) {
     loanTypeSelect.addEventListener("change", function (e) {
+      // প্রথমে RD Loan সেকশন হাইড করে রাখা
+      if (rdLoanSection) rdLoanSection.classList.add("hidden");
+
       if (e.target.value === "Gold Loan") {
-        openGoldLoanModal();
+        window.location.href = "GoldLoanEntry.html"; // Gold Loan পেজে যাবে
+      } else if (e.target.value === "RD Loan") {
+        // RD Loan সিলেক্ট করলে ফিল্ডগুলো শো করবে
+        if (rdLoanSection) rdLoanSection.classList.remove("hidden");
+        
+        // ডিফল্টভাবে আজকের তারিখ সেট করা
+        document.getElementById("startDate").value = new Date().toISOString().substring(0, 10);
       }
     });
   }
@@ -104,6 +115,18 @@ function promptAddNewOccupation() {
   }
 }
 
+function promptAddNewNomineeOccupation() {
+  const newOcc = prompt("Enter new Nominee Occupation:");
+  if (newOcc && newOcc.trim() !== "") {
+    const cleanOcc = newOcc.trim();
+    const select = document.getElementById("nomineeOccupationSelect");
+    const option = document.createElement("option");
+    option.value = cleanOcc;
+    option.textContent = cleanOcc;
+    select.appendChild(option);
+    select.value = cleanOcc;
+  }
+}
 function promptAddNewLoanType() {
   const newLoan = prompt("Enter new Loan Type (e.g. Personal Loan):");
   if (newLoan && newLoan.trim() !== "") {
@@ -163,8 +186,16 @@ async function handleCustomerFormSubmit(e) {
     religion: document.getElementById("religion").value.trim(),
     aadhaarNo: document.getElementById("aadhaarNo").value.trim(),
     mobileNo: document.getElementById("mobileNo").value.trim(),
+    address: document.getElementById("address").value.trim(),
     occupation: document.getElementById("occupationSelect").value,
     loanType: document.getElementById("loanTypeSelect").value,
+    
+    // RD Loan এর ফিল্ডগুলো যুক্ত করা হলো
+    loanAmount: document.getElementById("loanAmount") ? document.getElementById("loanAmount").value : "",
+    startDate: document.getElementById("startDate") ? document.getElementById("startDate").value : "",
+    durationDays: document.getElementById("durationDays") ? document.getElementById("durationDays").value : "",
+    interestRate: document.getElementById("interestRate") ? document.getElementById("interestRate").value : "",
+    
     photoBase64: photoBase64,
     photoName: photoName,
     photoMimeType: photoMimeType,
@@ -172,7 +203,7 @@ async function handleCustomerFormSubmit(e) {
     nomineeGuardianType: document.getElementById("nomineeGuardianType").value,
     nomineeGuardianName: document.getElementById("nomineeGuardianName").value.trim(),
     nomineeGender: document.getElementById("nomineeGender").value,
-    nomineeOccupation: document.getElementById("nomineeOccupation").value.trim(),
+    nomineeOccupation: document.getElementById("nomineeOccupationSelect").value,
     nomineeDob: document.getElementById("nomineeDob").value,
     nomineeAadhaar: document.getElementById("nomineeAadhaar").value.trim(),
     relationWithApplicant: document.getElementById("relationWithApplicant").value.trim()

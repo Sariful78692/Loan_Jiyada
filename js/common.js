@@ -1,5 +1,5 @@
 // আপনার Google Apps Script URL
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVLQhiXrgu2_6nx2tVBeQih2WvGowsUrAAhCzTAbeXa0CLmYiThzMia94P20GUACOfEA/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwQ936Dr_aYwUX5wf4qS4r2RIj9hkHCDWJpDlUy21aByywrAPlzNvDPPGVOXwmMIee3Ww/exec";
 
 document.addEventListener("DOMContentLoaded", function () {
   
@@ -16,6 +16,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // ২. LocalStorage থেকে কাস্টম লোনগুলো সাইডবার এবং ফর্মে লোড করা
   loadCustomLoanTypes();
+
+  // ফর্মের লেবেলে থাকা (*) গুলোকে অটোমেটিক লাল করার ম্যাজিক কোড
+  document.querySelectorAll("label").forEach(label => {
+    if(label.innerHTML.includes("*")) {
+      label.innerHTML = label.innerHTML.replace(/\*/g, "<span style='color: #ef4444;'>*</span>");
+    }
+  });
 });
 
 // কাস্টম লোন লোড করার ফাংশন
