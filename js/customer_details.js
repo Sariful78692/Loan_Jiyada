@@ -1,4 +1,5 @@
 let customersData = []; 
+let allCollectionsData = []; // 🟢 কালেকশন কাউন্ট করার জন্য নতুন ভেরিয়েবল
 let currentLoanFilter = "";
 let selectedCustomerId = null;
 let selectedCustomerName = null;
@@ -29,6 +30,9 @@ async function fetchCustomers() {
     const res = await fetch(APPS_SCRIPT_URL + "?t=" + new Date().getTime());
     const data = await res.json();
     
+    // 🟢 ডাটাবেস থেকে কালেকশন ডেটা গ্লোবাল ভেরিয়েবলে সেভ করা
+    allCollectionsData = data.collections || [];
+
     let activeCustomers = data.customers.filter(c => (c["Status"] || "").trim() !== "Disabled");
     
     if (currentLoanFilter) {
@@ -83,14 +87,30 @@ function renderTable(data) {
       }
     }
 
-    // 🔴 শর্ত: শুধু RD Loan পেজ হলেই Collect বাটন দেখাবে, অন্যথায় দেখাবে না
+    // 🟢 কালেকশন কাউন্ট এবং Duration লজিক
+    const custId = String(cust["ID"]).trim();
+    const durationDays = parseInt(cust["Duration (Days)"]) || 0;
+    
+    // এই কাস্টমারের মোট কয়টি কালেকশন হয়েছে তা চেক করা
+    const customerCollections = allCollectionsData.filter(col => String(col["Customer ID"]).trim() === custId);
+    const collectionCount = customerCollections.length;
+
     let collectBtnHtml = "";
     if (currentLoanFilter === "RD Loan") {
-      collectBtnHtml = `
-        <button onclick="openCollectionModal('${cust["ID"]}')" style="background: #10b981; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Collect Payment">
-          <i class="fa-solid fa-indian-rupee-sign"></i> Collect
-        </button>
-      `;
+      // যদি কালেকশন কাউন্ট ডিউরেশনের সমান বা বেশি হয়, তবে 'Completed' দেখাবে
+      if (durationDays > 0 && collectionCount >= durationDays) {
+        collectBtnHtml = `
+          <span style="color: #10b981; font-weight: bold; font-size: 13px; background: #d1fae5; padding: 5px 10px; border-radius: 4px; margin-right: 5px; display: inline-block;">
+            <i class="fa-solid fa-circle-check"></i> Completed
+          </span>
+        `;
+      } else {
+        collectBtnHtml = `
+          <button onclick="openCollectionModal('${custId}')" style="background: #10b981; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Collect Payment">
+            <i class="fa-solid fa-indian-rupee-sign"></i> Collect
+          </button>
+        `;
+      }
     }
 
     tr.innerHTML = `
@@ -102,11 +122,14 @@ function renderTable(data) {
       <td style="padding: 10px 15px;">${cust["Occupation"] || "N/A"}</td>
       <td style="padding: 10px 15px; text-align: center; white-space: nowrap;">
         ${collectBtnHtml}
-        <button onclick="editCustomer('${cust["ID"]}')" style="background: #eab308; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Edit">
+        <button onclick="editCustomer('${custId}')" style="background: #eab308; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Edit">
           <i class="fa-solid fa-pen-to-square"></i>
         </button>
-        <button onclick="deleteCustomer('${cust["ID"]}')" style="background: #ef4444; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer;" title="Delete">
+        <button onclick="deleteCustomer('${custId}')" style="background: #ef4444; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer;" title="Delete">
           <i class="fa-solid fa-trash"></i>
+        </button>
+        <button onclick="closeCustomerLoan('${custId}')" style="background: #64748b; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-left: 5px;" title="Close Loan & Archive">
+          <i class="fa-solid fa-box-archive"></i> Close
         </button>
       </td>
     `;
@@ -114,13 +137,25 @@ function renderTable(data) {
   });
 }
 
+// 🟢 ইয়ার ফিল্টার এবং সার্চ লজিক
 function searchCustomers() {
-  const input = document.getElementById("searchInput").value.toLowerCase();
+  const inputEl = document.getElementById("searchInput");
+  const yearFilterEl = document.getElementById("yearFilter");
+  
+  const input = inputEl ? inputEl.value.toLowerCase() : "";
+  const yearFilter = yearFilterEl ? yearFilterEl.value : "All";
+
   const filteredData = customersData.filter(cust => {
     const name = (cust["Customer Name"] || "").toLowerCase();
     const mobile = (cust["Mobile No"] || "").toLowerCase();
-    return name.includes(input) || mobile.includes(input);
+    const startDate = cust["Start Date"] || "";
+
+    const matchSearch = name.includes(input) || mobile.includes(input);
+    const matchYear = yearFilter === "All" || startDate.includes(yearFilter);
+
+    return matchSearch && matchYear;
   });
+  
   renderTable(filteredData);
 }
 
@@ -134,7 +169,7 @@ function openCollectionModal(id) {
   selectedLoanType = cust["Loan Type"];
   selectedAmount = cust["Loan Amount"] ? cust["Loan Amount"] : "0.00";
 
-  // আজকের তারিখ ডিফল্টভাবে সেট করা (তবে ইউজার চাইলে বদলাতে পারবে)
+  // আজকের তারিখ ডিফল্টভাবে সেট করা
   const today = new Date().toISOString().substring(0, 10);
   document.getElementById("manual-collection-date").value = today;
 
@@ -154,6 +189,31 @@ async function submitCollection() {
   const collectionDate = document.getElementById("manual-collection-date").value;
   if (!collectionDate) {
     alert("Please select a collection date!");
+    return;
+  }
+
+  // 🟢 ১০০% নিখুঁত ফ্রন্টএন্ড ডুপ্লিকেট পেমেন্ট চেক (সব শিট মিলিয়ে)
+  const isDuplicate = allCollectionsData.some(col => {
+    let existDate = col["Collection Date"] ? String(col["Collection Date"]).trim() : "";
+    
+    // যেকোনো ডেট ফরম্যাটকে YYYY-MM-DD এ কনভার্ট করে মেলানো
+    if (existDate.includes("T")) {
+      existDate = existDate.split("T")[0];
+    } else if (existDate.includes("-")) {
+      const parts = existDate.split("-");
+      if (parts[0].length !== 4) { 
+        // যদি DD-MM-YYYY থাকে, তবে উল্টে YYYY-MM-DD বানানো
+        existDate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
+      }
+    }
+
+    // কাস্টমার আইডি এবং ডেট হুবহু মিলছে কিনা চেক
+    return String(col["Customer ID"]).trim() === String(selectedCustomerId).trim() && existDate === collectionDate;
+  });
+
+  // ডুপ্লিকেট পেলে সার্ভারে রিকোয়েস্ট না পাঠিয়ে এখানেই ব্লক করে দেবে
+  if (isDuplicate) {
+    alert("⚠️ Warning: এই কাস্টমারের নামে এই তারিখে ইতিপূর্বেই একটি কালেকশন এন্ট্রি হয়ে গেছে! একই দিনে দ্বিতীয়বার কালেকশন নেওয়া যাবে না।");
     return;
   }
 
@@ -180,8 +240,9 @@ async function submitCollection() {
     if (result.status === "success") {
       alert("✅ Installment collected successfully for " + collectionDate + "!");
       closeCollectionModal();
+      window.location.reload(); 
     } else if (result.message === "DUPLICATE_COLLECTION") {
-      alert("⚠️ Warning: এই কাস্টমারের নামে এই তারিখে ইতিপূর্বেই একটি কালেকশন এন্ট্রি হয়ে গেছে! একই দিনে দ্বিতীয়বার কালেকশন নেওয়া যাবে না।");
+      alert("⚠️ Warning: এই কাস্টমারের নামে এই তারিখে ইতিপূর্বেই একটি কালেকশন এন্ট্রি হয়ে গেছে!");
     } else {
       alert("❌ Failed to save collection.");
     }
@@ -208,5 +269,34 @@ function editCustomer(id) {
   if(customerToEdit) {
     sessionStorage.setItem("editCustomerData", JSON.stringify(customerToEdit));
     window.location.href = "CustomerEdit.html";
+  }
+}
+
+// 🟢 Close Loan and Archive Function
+async function closeCustomerLoan(customerId) {
+  if (!confirm("Are you sure you want to CLOSE this loan? \n\nThis will mark the customer as 'Closed' and move all their collections to the Archive sheet.")) {
+    return;
+  }
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ 
+        action: "close_loan", 
+        customerId: customerId 
+      })
+    });
+    
+    const result = await res.json();
+    
+    if (result.status === "success") {
+      alert("Loan closed and data archived successfully!");
+      window.location.reload(); 
+    } else {
+      alert("Failed to close loan: " + (result.message || "Unknown error"));
+    }
+  } catch (err) {
+    console.error("Error archiving loan:", err);
+    alert("Failed to connect to the server.");
   }
 }

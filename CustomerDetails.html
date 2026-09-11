@@ -67,25 +67,40 @@
     </aside>
 
     <!-- Main Content -->
+    <!-- Main Content -->
     <main class="main-content">
       <section class="content-section">
         
         <!-- Header & Search Section -->
         <div style="margin-bottom: 25px;">
-          <!-- ডায়নামিক হেডিং -->
+          
+          <!-- ডায়নামিক হেডিং (উপরে) -->
           <h2 id="page-title" style="margin: 0 0 15px 0; color: #1e293b; font-size: 24px;">
             <i class="fa-solid fa-users"></i> Customer Details
           </h2>
           
-          <!-- Search Bar (হেডিং এর নিচে) -->
-          <div style="position: relative; max-width: 320px;">
-            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
-            <input type="text" id="searchInput" onkeyup="searchCustomers()" placeholder="Search Name or Mobile..." style="padding: 12px 12px 12px 40px; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; outline: none; box-sizing: border-box; font-size: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+          <!-- ফিল্টার এবং সার্চ বার (হেডিংয়ের নিচে, পাশাপাশি) -->
+          <div style="display: flex; gap: 15px; align-items: center; max-width: 500px;">
+            
+            <!-- Year Filter (বছরভিত্তিক ফিল্টার) -->
+            <select id="yearFilter" onchange="searchCustomers()" style="padding: 11px 15px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background: white; cursor: pointer; font-weight: bold; color: #475569; min-width: 120px;">
+              <option value="All">All Years</option>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+              <option value="2028">2028</option>
+            </select>
+
+            <!-- Search Bar -->
+            <div style="position: relative; width: 100%;">
+              <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+              <input type="text" id="searchInput" onkeyup="searchCustomers()" placeholder="Search Name or Mobile..." style="padding: 12px 12px 12px 40px; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; outline: none; box-sizing: border-box; font-size: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            </div>
+            
           </div>
         </div>
 
+        <!-- Table Section -->
         <div class="table-container" style="width: 100%; overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-          <!-- width: 100% দেওয়া হলো যাতে পুরো পেজ জুড়ে থাকে -->
           <table class="data-table" style="width: 100%; border-collapse: collapse;">
             <tbody id="customer-table-body">
               <!-- JS will auto-fill this -->
@@ -97,7 +112,7 @@
     </main>
   </div>
 
-  <!-- Collection Modal (Hidden by default) -->
+  
   <!-- Collection Modal (Manual Date Picker & Duplicate Validation সহ) -->
   <div id="collection-modal" class="modal-overlay hidden">
     <div class="modal-content" style="text-align: center; background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px;">
@@ -120,6 +135,7 @@
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button onclick="submitCollection()" id="confirm-pay-btn" style="background: #10b981; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Confirm Payment</button>
         <button onclick="closeCollectionModal()" style="background: #ef4444; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Cancel</button>
+        
       </div>
     </div>
   </div>

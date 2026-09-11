@@ -28,7 +28,28 @@
       text-align: center;
     }
 
-    @media print { .sidebar, .export-btns, th:last-child, td:last-child { display: none !important; } .main-content { padding: 0; } }
+    /* 🟢 পারফেক্ট ইন্ডিভিজুয়াল প্রিন্ট মোড CSS */
+    @media print { 
+      body { background: white !important; }
+      
+      /* মেইন অ্যাপ, সাইডবার, টেবিল এবং সব বাটন সম্পূর্ণ হাইড করা */
+      .app-container, .sidebar, .export-btns, .no-print, .table-responsive, #print-header { 
+        display: none !important; 
+      } 
+      
+      /* শুধু কাস্টমার ফর্ম ও কালেকশন হিস্ট্রি শো করানো */
+      #individual-print-section { 
+        display: block !important; 
+        width: 100% !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        margin: 0 !important;
+        padding: 10px !important;
+      }
+      
+      @page { size: portrait; margin: 10mm; }
+    }
   </style>
 </head>
 <body>
@@ -76,16 +97,37 @@
 
     <main class="main-content">
       <section class="content-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-          <h1 id="report-heading" style="margin: 0;">Collections Report</h1>
-          
-          <!-- লোন টাইপ অনুযায়ী ফিল্টার করার ড্রপডাউন -->
-          <!-- লোন টাইপ অনুযায়ী ফিল্টার ড্রপডাউন (ডায়নামিক) -->
-          <div>
-            <select id="reportFilter" onchange="changeReportType()" style="padding: 10px 15px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; outline: none; background: white; color: #1e293b; cursor: pointer;">
-              <option value="collections">Collections Report</option>
-              <option value="All">All Customers Report</option>
-              <!-- JS দিয়ে সাইডবার থেকে লোন টাইপগুলো এখানে অটোমেটিক চলে আসবে -->
+        
+        <!-- হেডিং এবং ফিল্টার সেকশন -->
+        <div class="no-print">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+            <h1 id="report-heading" style="margin: 0;">Collections Report</h1>
+            
+            <div>
+              <select id="reportFilter" onchange="changeReportType()" style="padding: 10px 15px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; outline: none; background: white; color: #1e293b; cursor: pointer;">
+                <option value="collections">Collections Report</option>
+                <option value="All">All Customers Report</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
+            <select id="reportYearFilter" onchange="filterReport()" style="padding: 11px 15px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background: white; cursor: pointer; font-weight: bold; color: #475569; min-width: 120px;">
+              <option value="All">All Years</option>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+              <option value="2028">2028</option>
+              <option value="2029">2029</option>
+            </select>
+
+            <div style="position: relative; max-width: 350px; width: 100%;">
+              <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+              <input type="text" id="reportSearchInput" onkeyup="filterReport()" placeholder="Search Name, Mobile or Date..." style="padding: 12px 12px 12px 40px; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; outline: none; box-sizing: border-box; font-size: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            </div>
+
+            <select id="reportStatusFilter" onchange="fetchReportData()" style="padding: 11px 15px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background: #f0fdf4; cursor: pointer; font-weight: bold; color: #10b981; min-width: 140px;">
+              <option value="Active">🟢 Active Loans</option>
+              <option value="Closed">🔴 Closed Loans</option>
             </select>
           </div>
         </div>
@@ -95,11 +137,17 @@
           <button class="btn-print" onclick="printReport()"><i class="fa-solid fa-print"></i> Print</button>
         </div>
 
+        <div id="print-header" style="display: none;">
+          <h2 style="text-align: center; margin: 0; font-size: 26px; text-transform: uppercase; color: #000;">Loan Management System</h2>
+          <h3 id="print-report-title" style="text-align: center; margin: 5px 0; font-size: 18px; text-decoration: underline; color: #333;">Customer Report</h3>
+          <p id="print-date" style="text-align: right; margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #000;"></p>
+        </div>
+
         <div class="table-responsive">
           <table id="report-table" style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr id="table-header-row" style="background-color: #f8fafc; color: #0284c7; text-align: left; font-size: 13px;">
-                <!-- JS দিয়ে ডাইনামিক হেডার ও ডেটা লোড হবে -->
+                <!-- JS দিয়ে হেডার ও ডেটা লোড হবে -->
               </tr>
             </thead>
             <tbody id="report-table-body">
@@ -130,6 +178,99 @@
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button onclick="updateCollection()" style="background: #10b981; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Update</button>
         <button onclick="closeEditModal()" style="background: #ef4444; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🟢 Individual Customer Print Form (প্রোফাইল + কালেকশন হিস্ট্রি সহ) -->
+  <div id="individual-print-section" style="display: none; padding: 20px; background: white; color: black; width: 100%;">
+    <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+      <h2 style="margin: 0; font-size: 26px; text-transform: uppercase;">Loan Management System</h2>
+      <h3 style="margin: 5px 0; font-size: 18px; text-decoration: underline;">Customer Profile & Collection History</h3>
+    </div>
+
+    <h4 style="background: #e2e8f0; padding: 6px 10px; border: 1px solid #000; margin: 0; font-size: 14px; border-bottom: none;">1. Personal Information</h4>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+      <tr>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold; width: 20%;">Name:</td>
+        <td style="border: 1px solid #000; padding: 8px; width: 30%;" id="print-p-name"></td>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold; width: 20%;">Mobile No:</td>
+        <td style="border: 1px solid #000; padding: 8px; width: 30%;" id="print-p-mobile"></td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">DOB:</td>
+        <td style="border: 1px solid #000; padding: 8px;" id="print-p-dob"></td>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">Guardian Name:</td>
+        <td style="border: 1px solid #000; padding: 8px;" id="print-p-guardian"></td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">Aadhar Number:</td>
+        <td style="border: 1px solid #000; padding: 8px;" id="print-p-aadhar"></td>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">Occupation:</td>
+        <td style="border: 1px solid #000; padding: 8px;" id="print-p-occupation"></td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">Address:</td>
+        <td style="border: 1px solid #000; padding: 8px;" colspan="3" id="print-p-address"></td>
+      </tr>
+    </table>
+
+    <h4 style="background: #e2e8f0; padding: 6px 10px; border: 1px solid #000; margin: 0; font-size: 14px; border-bottom: none;">2. Loan Details</h4>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+      <tr>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold; width: 20%;">Loan Type:</td>
+        <td style="border: 1px solid #000; padding: 8px; width: 30%; font-weight: bold;" id="print-l-type"></td>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold; width: 20%;">Start Date:</td>
+        <td style="border: 1px solid #000; padding: 8px; width: 30%;" id="print-l-date"></td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">RD Amount:</td>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;" id="print-l-amount"></td>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">Interest (%):</td>
+        <td style="border: 1px solid #000; padding: 8px;" id="print-l-interest"></td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">Total Collected:</td>
+        <td style="border: 1px solid #000; padding: 8px;" id="print-l-total"></td>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">G. Total Amount:</td>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;" id="print-l-gtotal"></td>
+      </tr>
+    </table>
+
+    <h4 style="background: #e2e8f0; padding: 6px 10px; border: 1px solid #000; margin: 0; font-size: 14px; border-bottom: none;">3. Nominee Details</h4>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+      <tr>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold; width: 20%;">Nominee Name:</td>
+        <td style="border: 1px solid #000; padding: 8px; width: 30%;" id="print-n-name"></td>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold; width: 20%;">Relation:</td>
+        <td style="border: 1px solid #000; padding: 8px; width: 30%;" id="print-n-relation"></td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">Gender:</td>
+        <td style="border: 1px solid #000; padding: 8px;" colspan="3" id="print-n-gender"></td>
+      </tr>
+    </table>
+
+    <h4 style="background: #e2e8f0; padding: 6px 10px; border: 1px solid #000; margin: 0; font-size: 14px; border-bottom: none;">4. Date-wise Collection History</h4>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 40px;">
+      <thead>
+        <tr style="background: #f8fafc;">
+          <th style="border: 1px solid #000; padding: 6px; font-size: 12px; width: 15%;">SL No</th>
+          <th style="border: 1px solid #000; padding: 6px; font-size: 12px; width: 50%;">Collection Date</th>
+          <th style="border: 1px solid #000; padding: 6px; font-size: 12px; width: 35%;">Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody id="print-collection-history-body">
+        <!-- JS দিয়ে ডাইনামিক কালেকশন রো আসবে -->
+      </tbody>
+    </table>
+    
+    <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+      <div style="text-align: center;">
+        <p style="margin: 0; border-top: 1px solid #000; padding-top: 5px; font-weight: bold; width: 200px;">Customer Signature</p>
+      </div>
+      <div style="text-align: center;">
+        <p style="margin: 0; border-top: 1px solid #000; padding-top: 5px; font-weight: bold; width: 200px;">Authorized Signature</p>
       </div>
     </div>
   </div>

@@ -89,12 +89,12 @@
           <!-- LOAN DETAILS -->
           <h4 class="gold-section-title">LOAN DETAILS</h4>
           <div class="form-grid" style="background: white; border: 1px solid #d4d4d8; padding: 15px; margin-bottom: 20px;">
-            <div class="form-group"><label>Loan Amount Requested (₹)</label><input type="number" id="goldLoanAmount" class="gold-input-bg" placeholder="₹20,000.00" required></div>
-            <div class="form-group"><label>Loan Tenure</label><input type="text" id="goldLoanTenure" class="gold-input-bg" value="12 months"></div>
-            <div class="form-group"><label>Purpose of Loan</label><input type="text" id="goldPurpose" class="gold-input-bg" value="Business"></div>
-            <div class="form-group"><label>Scheme</label><input type="text" id="goldScheme" class="gold-input-bg" value="Fource Close"></div>
-            <div class="form-group"><label>Rate of Interest (%)</label><input type="number" id="goldInterestRate" class="gold-input-bg" value="24"></div>
-            <div class="form-group"><label>EMI Amount (₹)</label><input type="number" id="goldEmiAmount" class="gold-input-bg" placeholder="₹1,891.19"></div>
+            <div class="form-group"><label>Loan Amount Requested (₹)</label><input type="number" id="goldLoanAmount" class="gold-input-bg" placeholder="" required></div>
+            <div class="form-group"><label>Loan Tenure</label><input type="text" id="goldLoanTenure" class="gold-input-bg" value=""></div>
+            <div class="form-group"><label>Purpose of Loan</label><input type="text" id="goldPurpose" class="gold-input-bg" value=""></div>
+            <div class="form-group"><label>Scheme</label><input type="text" id="goldScheme" class="gold-input-bg" value=""></div>
+            <div class="form-group"><label>Rate of Interest (%)</label><input type="number" id="goldInterestRate" class="gold-input-bg" value=""></div>
+            <div class="form-group"><label>EMI Amount (₹)</label><input type="number" id="goldEmiAmount" class="gold-input-bg" placeholder=""></div>
             
             <!-- Disbursement Mode Dropdown -->
             <div class="form-group">
@@ -132,9 +132,9 @@
           <!-- DOCUMENTS CHECKLIST -->
           <h4 class="gold-section-title">DOCUMENTS CHECKLIST</h4>
           <div class="form-grid" id="gold-checklists" style="background: white; border: 1px solid #d4d4d8; padding: 15px; margin-bottom: 20px;">
-            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Identity Proof" checked> Identity Proof (Aadhaar / PAN)</label>
-            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Address Proof" checked> Address Proof (Utility Bill / Ration Card)</label>
-            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Photographs" checked> Passport-size Photographs (2 nos.)</label>
+            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Identity Proof"> Identity Proof (Aadhaar / PAN)</label>
+            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Address Proof"> Address Proof (Utility Bill / Ration Card)</label>
+            <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Photographs"> Passport-size Photographs (2 nos.)</label>
             <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Income Proof"> Income Proof</label>
             <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Application Form"> Duly Filled Application Form</label>
             <label style="display: flex; gap: 10px; align-items: center;"><input type="checkbox" class="chk-doc" value="Ownership Declaration"> Gold Ownership Declaration</label>
@@ -150,7 +150,10 @@
     </main>
   </div>
 
+  
+
   <script src="js/common.js"></script>
   <script src="js/gold_loan.js"></script>
+  <script src="js/goldLoanEntry.js"></script>
 </body>
 </html>
