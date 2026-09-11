@@ -8,28 +8,30 @@
   <link rel="stylesheet" href="css/auth.css">
   <link rel="stylesheet" href="css/login-animation.css">
   <link rel="stylesheet" href="css/sheet-auth.css">
+  <link rel="stylesheet" href="css/login-screenshot.css">
 </head>
 <body class="auth-page">
   <main class="auth-layout">
     <section class="auth-intro">
       <div class="logo-mark"><i class="fa-solid fa-hand-holding-dollar"></i></div>
       <p class="eyebrow">LOAN MANAGER</p>
-      <h1>Manage every loan with clarity.</h1>
-      <p>Securely access customer records, loan activity, and reports from one place.</p>
+      <h1>Welcome<br>Back.</h1>
+      <p>Sign in to manage your customers, loans and daily collections securely.</p>
     </section>
     <section class="auth-card" aria-labelledby="login-title">
       <div class="mobile-brand"><i class="fa-solid fa-hand-holding-dollar"></i> Loan Manager</div>
       <h2 id="login-title">Welcome back</h2>
-      <p class="subtitle">Sign in to continue to your dashboard.</p>
+      <p class="subtitle">Use your account details to continue.</p>
       <form id="login-form" novalidate>
         <label for="login-username">Username</label>
         <div class="input-wrap"><i class="fa-regular fa-user"></i><input id="login-username" autocomplete="username" required placeholder="Enter your username"></div>
         <label for="login-password">Password</label>
         <div class="input-wrap"><i class="fa-solid fa-lock"></i><input id="login-password" type="password" autocomplete="current-password" required placeholder="Enter your password"><button class="password-toggle" type="button" data-password-toggle="login-password" aria-label="Show password"><i class="fa-regular fa-eye"></i></button></div>
+        <div class="login-options"><label class="remember-option"><input type="checkbox"> <span>Remember me</span></label><button type="button" data-modal="password-modal">Forgot password?</button></div>
         <p class="form-message" id="login-message" role="alert"></p>
         <button class="primary-button" type="submit">Sign in <i class="fa-solid fa-arrow-right"></i></button>
       </form>
-      <div class="help-links"><button type="button" data-modal="username-modal">Forgot username?</button><span></span><button type="button" data-modal="password-modal">Forgot password?</button></div>
+      <div class="help-links"><button type="button" data-modal="username-modal">Forgot username?</button></div>
     </section>
   </main>
 

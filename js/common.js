@@ -54,7 +54,10 @@ document.addEventListener("DOMContentLoaded", function () {
   submenuToggles.forEach((toggle) => {
     toggle.addEventListener("click", function (e) {
       e.preventDefault(); // লিংকে ক্লিক করলে যেন পেজ রিলোড না হয়
-      const parent = this.parentElement; 
+      const parent = this.parentElement;
+      document.querySelectorAll(".nav-item.has-submenu.open").forEach((item) => {
+        if (item !== parent) item.classList.remove("open");
+      });
       parent.classList.toggle("open"); 
     });
   });
