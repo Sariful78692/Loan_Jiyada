@@ -1,0 +1,10 @@
+/* Compact, side-by-side account controls in the sidebar */
+.sidebar-account { padding: 12px 12px 14px; }
+.account-user { padding: 0 4px 10px; gap: 8px; font-size: 13px; }
+.account-user i { font-size: 18px; }
+.account-user span { font-size: 11px; }
+.account-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.account-action { justify-content: center; gap: 6px; padding: 8px 5px; border: 1px solid #334155; border-radius: 6px; font-size: 12px; }
+.account-action i { font-size: 13px; }
+.account-action:hover { border-color: #475569; }
+@media (max-width: 700px) { .account-actions { max-width: 210px; } }

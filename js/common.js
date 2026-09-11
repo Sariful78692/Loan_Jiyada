@@ -1,5 +1,5 @@
 // আপনার Google Apps Script URL
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKURwDVAQzR5PQEICmSRkhFKcfx6om4EUUllDhLUjnRVpH1LptFLNDMynX2P-8YHwpmw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUxR-mjIAtUQB0RjEXUVjJAgBHhOziXX0o051e-bZ8O1BgMgg9fbpj0z5KhfvjyUA40g/exec";
 
 const AUTH_USER_KEY = "loanManagerUser";
 const AUTH_SESSION_KEY = "loanManagerSession";
@@ -22,13 +22,21 @@ function requireLogin() {
 function addAccountMenu() {
   const sidebar = document.querySelector(".sidebar");
   if (!sidebar || sidebar.querySelector(".sidebar-account")) return;
+  if (!document.querySelector('link[href="css/account-menu.css"]')) {
+    const stylesheet = document.createElement("link");
+    stylesheet.rel = "stylesheet";
+    stylesheet.href = "css/account-menu.css";
+    document.head.appendChild(stylesheet);
+  }
   const account = getAccount();
   const accountMenu = document.createElement("div");
   accountMenu.className = "sidebar-account";
   accountMenu.innerHTML = `
     <div class="account-user"><i class="fa-solid fa-circle-user"></i><div>${account.username}<span>Signed in</span></div></div>
-    <button class="account-action" type="button" onclick="window.location.href='Settings.html'"><i class="fa-solid fa-gear"></i> Settings</button>
-    <button class="account-action logout" type="button" id="logout-button"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>`;
+    <div class="account-actions">
+      <button class="account-action" type="button" title="Settings" aria-label="Settings" onclick="window.location.href='Settings.html'"><i class="fa-solid fa-gear"></i><span>Settings</span></button>
+      <button class="account-action logout" type="button" title="Logout" aria-label="Logout" id="logout-button"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></button>
+    </div>`;
   sidebar.appendChild(accountMenu);
   document.getElementById("logout-button").addEventListener("click", function () {
     sessionStorage.removeItem(AUTH_SESSION_KEY);
