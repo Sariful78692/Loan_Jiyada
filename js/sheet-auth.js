@@ -5,8 +5,11 @@ function account() { return JSON.parse(localStorage.getItem(SHEET_USER_KEY) || "
 function saveAccount(user) { localStorage.setItem(SHEET_USER_KEY, JSON.stringify(user)); }
 function showMessage(id, message, success) { const element = document.getElementById(id); if (!element) return; element.textContent = message; element.classList.toggle("success", Boolean(success)); }
 async function authRequest(payload) {
-  const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-  const result = await response.json();
+  const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload), redirect: "follow" });
+  const rawResult = await response.text();
+  let result;
+  try { result = JSON.parse(rawResult); }
+  catch (_) { throw new Error("Login service returned an invalid response. Please try again."); }
   if (!result || result.status !== "success") throw new Error((result && result.message) || "Request failed. Please try again.");
   return result;
 }
