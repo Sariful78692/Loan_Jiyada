@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
     photoInput.addEventListener("change", function () {
       const file = this.files[0];
       if (file) {
-        if (file.size > 50 * 1024) {
+        if (file.size > 100 * 1024) {
           alert("Photo size must be 50 KB or less!");
           this.value = "";
           photoPreview.classList.add("hidden-preview");
@@ -31,9 +31,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const form = document.getElementById("customer-form");
   if(form) form.addEventListener("submit", handleCustomerFormSubmit);
 
-// ৩. Loan Type Select Logic
+  // ৩. Loan Type Select Logic
   const loanTypeSelect = document.getElementById("loanTypeSelect");
   const rdLoanSection = document.getElementById("rd-loan-details"); // RD লোনের সেকশন
+  const interestRateInput = document.getElementById("interestRate"); // 🟢 Interest % এর ফিল্ড
 
   if (loanTypeSelect) {
     loanTypeSelect.addEventListener("change", function (e) {
@@ -48,6 +49,25 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // ডিফল্টভাবে আজকের তারিখ সেট করা
         document.getElementById("startDate").value = new Date().toISOString().substring(0, 10);
+
+        // 🟢 Interest % অটোমেটিক বসানোর লজিক
+        if (interestRateInput) {
+          // আগে সেভ করা কোনো রেট থাকলে সেটা নেবে, না থাকলে 1.6439 বসাবে
+          const savedInterest = localStorage.getItem("savedRdInterest") || "1.6439";
+          interestRateInput.value = savedInterest;
+        }
+      } else {
+        // অন্য লোন সিলেক্ট করলে ইন্টারেস্ট ঘর ফাঁকা করে দেবে
+        if (interestRateInput) interestRateInput.value = "";
+      }
+    });
+  }
+
+  // 🟢 Interest % এডিট করলে ব্রাউজারে সেভ করে রাখার লজিক
+  if (interestRateInput) {
+    interestRateInput.addEventListener("input", function () {
+      if (loanTypeSelect && loanTypeSelect.value === "RD Loan") {
+        localStorage.setItem("savedRdInterest", this.value);
       }
     });
   }
@@ -62,16 +82,6 @@ document.addEventListener("DOMContentLoaded", function () {
 // ==========================================
 // Gold Loan Modal Functions
 // ==========================================
-  const loanTypeSelect = document.getElementById("loanTypeSelect");
-  if (loanTypeSelect) {
-    loanTypeSelect.addEventListener("change", function (e) {
-      if (e.target.value === "Gold Loan") {
-        // Gold Loan সিলেক্ট করলে নতুন পেজে রিডাইরেক্ট করবে
-        window.location.href = "GoldLoanEntry.html";
-      }
-    });
-  }
-
 function closeGoldLoanModal() {
   document.getElementById("gold-loan-modal").classList.add("hidden");
 }
@@ -84,7 +94,7 @@ async function saveGoldLoanDetails() {
     return;
   }
 
-  // ইমেজ Base64 করার লজিক (প্রয়োজনে)
+  // ইমেজ Base64 করার লজিক (প্রয়োজনে)
   const nomineeImgFile = document.getElementById("goldNomineeImage").files[0];
   const goldItemImgFile = document.getElementById("goldItemImage").files[0];
   

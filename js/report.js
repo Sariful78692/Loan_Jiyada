@@ -47,19 +47,31 @@ async function fetchReportData() {
     const data = await res.json();
     
     allCollectionsData = data.collections || [];
-    allClosedCollectionsData = data.closed_collections || []; // 🟢 ডাটাবেস থেকে ক্লোজড ডেটা সেভ করা
+    allClosedCollectionsData = data.closed_collections || [];
     
-    // Disabled কাস্টমার বাদে বাকি সবাইকে (Active + Closed) সেভ করা হচ্ছে
-    allCustomersData = (data.customers || []).filter(c => (c["Status"] || "").trim() !== "Disabled");
+    // 🟢 কনসোলে চেক করার জন্য প্রিন্ট করা হলো
+    console.log("All Customers from Server:", data.customers);
+
+    allCustomersData = (data.customers || []).map(c => {
+      if (c["Loan Type"]) {
+        c["Loan Type"] = String(c["Loan Type"]).trim();
+      }
+      return c;
+    }).filter(c => {
+      const status = (c["Status"] || "").trim().toLowerCase();
+      return status !== "disabled";
+    });
+
+    console.log("Filtered Active Customers:", allCustomersData);
+
     allGoldLoansData = data.gold_loans || [];
     
     renderCurrentReport();
   } catch (err) {
     console.error("Failed to load report data", err);
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: red; padding: 20px;">Failed to load report data.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red; padding: 20px;">Failed to load report data.</td></tr>`;
   }
 }
-
 function changeReportType() {
   currentReportType = document.getElementById("reportFilter").value;
   const heading = document.getElementById("report-heading");
@@ -76,28 +88,45 @@ function changeReportType() {
 }
 
 function renderCurrentReport() {
-  // 🟢 HTML থেকে স্ট্যাটাস ফিল্টারের ভ্যালু রিড করা (Active নাকি Closed)
   const statusFilterEl = document.getElementById("reportStatusFilter");
   const currentStatus = statusFilterEl ? statusFilterEl.value : "Active";
 
   if (currentReportType === "collections") {
-    // 🟢 কালেকশন রিপোর্টের ক্ষেত্রে স্ট্যাটাস অনুযায়ী ডেটা পাঠানো
     renderCollectionsTable(currentStatus === "Closed" ? allClosedCollectionsData : allCollectionsData, currentStatus);
   } else {
-    // 🟢 কাস্টমার রিপোর্টের ক্ষেত্রে স্ট্যাটাস অনুযায়ী কাস্টমার ফিল্টার
     let filteredCustomers = allCustomersData.filter(c => {
-      const status = (c["Status"] || "Active").trim();
-      return status === currentStatus;
+      
+      // 🟢 ১. স্ট্যাটাস ফিল্টার (খুবই স্ট্রং লজিক)
+      // গুগল শিটে Status ফাঁকা থাকলে বা অন্য কিছু থাকলেও সেটিকে জোর করে Active ধরবে (যদি না সেটা Closed হয়)
+      let dbStatus = String(c["Status"] || "").trim().toLowerCase();
+      if (dbStatus !== "closed") {
+        dbStatus = "active"; // Closed বাদে বাকি সব স্ট্যাটাসকে Active হিসেবে টেবিলে দেখাবে
+      }
+      let selectedStatus = currentStatus.toLowerCase();
+      let statusMatch = (dbStatus === selectedStatus);
+
+      // 🟢 ২. লোন টাইপ ফিল্টার (সব ধরনের স্পেস ও স্পেশাল ক্যারেক্টার ইগনোর করবে)
+      let loanMatch = true;
+      if (currentReportType !== "All") {
+        // ডেটাবেসের নাম থেকে সব স্পেস মুছে ফেলবে (যেমন: "RD Loan" হয়ে যাবে "rdloan")
+        let dbLoan = String(c["Loan Type"] || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        
+        // ড্রপডাউনের নাম থেকেও "report" এবং স্পেস মুছে ফেলবে
+        let selectedLoan = String(currentReportType).toLowerCase().replace("report", "").replace(/[^a-z0-9]/g, "");
+        
+        // এবার চেক করবে দুজনের মধ্যে মিল আছে কি না
+        loanMatch = dbLoan.includes(selectedLoan) || selectedLoan.includes(dbLoan);
+      }
+      
+      return statusMatch && loanMatch;
     });
     
-    if (currentReportType !== "All") {
-      filteredCustomers = filteredCustomers.filter(c => (c["Loan Type"] || "").trim() === currentReportType.trim());
-    }
-    
+    // কনসোলে ফাইনাল রেজাল্ট প্রিন্ট করবে (চেক করার জন্য)
+    console.log("Final Customers Showing in Table:", filteredCustomers);
+
     renderCustomersTable(filteredCustomers, currentStatus);
   }
 }
-
 // পার্মানেন্ট ডেট ফিক্স
 function formatDate(dateStr) {
   if (!dateStr) return "N/A";
@@ -113,6 +142,7 @@ function formatDate(dateStr) {
   return dateStr;
 }
 
+// কালেকশন টেবিল রেন্ডার
 // কালেকশন টেবিল রেন্ডার
 function renderCollectionsTable(data, status) {
   const headerRow = document.getElementById("table-header-row");
@@ -134,11 +164,20 @@ function renderCollectionsTable(data, status) {
   }
 
   data.forEach((item) => {
-    // 🟢 ক্লোজড লোন হলে এডিট/ডিলিট বাটন হাইড করে 'Archived' ব্যাজ দেখাবে
     let actionHtml = '';
+    
     if (status === "Closed") {
-      actionHtml = `<span style="background: #f1f5f9; color: #64748b; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;"><i class="fa-solid fa-lock"></i> Archived</span>`;
+      // 🟢 ক্লোজড কালেকশনের জন্য 'Archived' ব্যাজের সাথে Delete বাটন যুক্ত করা হলো
+      actionHtml = `
+        <span style="background: #f1f5f9; color: #64748b; padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px;">
+          <i class="fa-solid fa-lock"></i> Archived
+        </span>
+        <button onclick="deleteCollection('${item["Collection ID"]}')" style="background: #ef4444; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer;" title="Delete">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      `;
     } else {
+      // 🟢 অ্যাকটিভ কালেকশনের জন্য আগের মতোই Edit এবং Delete বাটন থাকবে
       actionHtml = `
         <button onclick="openEditModal('${item["Collection ID"]}')" style="background: #eab308; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Edit">
           <i class="fa-solid fa-pen-to-square"></i>
@@ -161,7 +200,6 @@ function renderCollectionsTable(data, status) {
     tbody.appendChild(tr);
   });
 }
-
 // 🟢 কাস্টমার টেবিল রেন্ডার (প্রিন্ট বাটন সহ)
 function renderCustomersTable(data, status) {
   const headerRow = document.getElementById("table-header-row");
@@ -204,6 +242,9 @@ function renderCustomersTable(data, status) {
     const interestAmount = (totalAmount * interestPercent) / 100;
     const gTotalAmount = totalAmount + interestAmount;
 
+    // 🟢 রিলেশন পাওয়ার জন্য একাধিক পসিবল কি (Key) চেক করা হচ্ছে
+    const relationVal = cust["Relation With Applicant"] || cust["Relation"] || cust["Relation with Applicant"] || "N/A";
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td style="padding: 8px 10px; font-size: 12px; font-weight: 500;">${cust["Customer Name"] || "N/A"}</td>
@@ -215,7 +256,7 @@ function renderCustomersTable(data, status) {
       <td style="padding: 8px 10px; font-size: 12px;">${cust["Address"] || "N/A"}</td>
       <td style="padding: 8px 10px; font-size: 12px;">${cust["Nominee Name"] || "N/A"}</td>
       <td style="padding: 8px 10px; font-size: 12px;">${cust["Nominee Gender"] || "N/A"}</td>
-      <td style="padding: 8px 10px; font-size: 12px;">${cust["Relation With Applicant"] || "N/A"}</td>
+      <td style="padding: 8px 10px; font-size: 12px;">${relationVal}</td>
       <td style="padding: 8px 10px; font-size: 12px; font-weight: bold;">₹ ${unitAmount}</td>
       <td style="padding: 8px 10px; font-size: 12px;">${formatDate(cust["Start Date"])}</td>
       <td style="padding: 8px 10px; font-size: 12px; font-weight: bold; color: #2563eb;">₹ ${totalAmount}</td>
@@ -230,7 +271,6 @@ function renderCustomersTable(data, status) {
   });
 }
 
-// 🟢 নির্দিষ্ট কাস্টমারের প্রোফাইল ফর্ম আকারে প্রিন্ট করা
 // 🟢 নির্দিষ্ট কাস্টমারের প্রোফাইল এবং কালেকশন হিস্ট্রি সহ প্রিন্ট করা
 function printCustomerProfile(custId) {
   const cust = allCustomersData.find(c => String(c["ID"]).trim() === custId);

@@ -1,5 +1,5 @@
 // আপনার Google Apps Script URL
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwY1Y98s9s_buJjxhjI53xpuLDWwViHH6hzBmqD5dR_I9bSGqJ2gnv9rJK6j8JWU1j-Tw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKURwDVAQzR5PQEICmSRkhFKcfx6om4EUUllDhLUjnRVpH1LptFLNDMynX2P-8YHwpmw/exec";
 
 document.addEventListener("DOMContentLoaded", function () {
   
