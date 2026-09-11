@@ -1,0 +1,18 @@
+.table-responsive { background: white; padding: 20px; border-radius: 8px; overflow-x: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 13px; vertical-align: middle; }
+th { background-color: #f1f5f9; color: #334155; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+table tbody tr:hover { background-color: #f1f5f9; transition: background-color 0.2s ease; }
+
+.cust-photo-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; transition: transform 0.3s ease; }
+.cust-photo-img:hover { transform: scale(2.2); box-shadow: 0 4px 15px rgba(0,0,0,0.3); position: relative; z-index: 10; }
+
+.badge { background-color: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+.action-btns { display: flex; gap: 5px; align-items: center; }
+.action-btns button { border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; color: #fff; transition: transform 0.2s; }
+.action-btns button:hover { transform: scale(1.15); }
+.btn-collection { background-color: #10b981; font-size: 12px; }
+.btn-edit { background-color: #eab308; }
+.btn-disable { background-color: #f97316; }
+.btn-delete { background-color: #ef4444; }
+.text-center { text-align: center; }
