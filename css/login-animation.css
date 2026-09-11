@@ -1,0 +1,27 @@
+/* Subtle motion for the sign-in experience */
+.auth-intro { overflow: hidden; position: relative; }
+.auth-intro::before, .auth-intro::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
+.auth-intro::before { width: 340px; height: 340px; right: -130px; top: -110px; border: 1px solid rgba(125, 211, 252, .25); box-shadow: 0 0 0 45px rgba(125, 211, 252, .04), 0 0 0 92px rgba(125, 211, 252, .03); animation: login-drift 9s ease-in-out infinite; }
+.auth-intro::after { width: 170px; height: 170px; left: -70px; bottom: -40px; background: rgba(14, 165, 233, .12); filter: blur(2px); animation: login-drift 7s ease-in-out infinite reverse; }
+.auth-intro > * { position: relative; z-index: 1; }
+.logo-mark { animation: login-float 4s ease-in-out infinite; }
+.auth-intro h1 { animation: login-reveal .7s .08s both; }
+.auth-intro > p:last-child { animation: login-reveal .7s .18s both; }
+.auth-card { animation: login-card-in .65s cubic-bezier(.22, 1, .36, 1) both; }
+.input-wrap > i { transition: color .2s; }
+.input-wrap:focus-within > i { color: var(--blue); }
+.auth-card input { transition: border-color .2s, box-shadow .2s, transform .2s; }
+.auth-card input:focus { transform: translateY(-1px); }
+.primary-button { transition: background .2s, transform .2s, box-shadow .2s; }
+.primary-button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(2, 132, 199, .22); }
+.help-links button { transition: color .2s, transform .2s; }
+.help-links button:hover { color: #0369a1; transform: translateY(-1px); }
+
+@keyframes login-card-in { from { opacity: 0; transform: translateY(22px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes login-reveal { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes login-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes login-drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-16px, 18px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-page *, .auth-page *::before, .auth-page *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

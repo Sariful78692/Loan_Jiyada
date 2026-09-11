@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in | Loan Manager</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/login-animation.css">
+</head>
+<body class="auth-page">
+  <main class="auth-layout">
+    <section class="auth-intro">
+      <div class="logo-mark"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+      <p class="eyebrow">LOAN MANAGER</p>
+      <h1>Manage every loan with clarity.</h1>
+      <p>Securely access customer records, loan activity, and reports from one place.</p>
+    </section>
+    <section class="auth-card" aria-labelledby="login-title">
+      <div class="mobile-brand"><i class="fa-solid fa-hand-holding-dollar"></i> Loan Manager</div>
+      <h2 id="login-title">Welcome back</h2>
+      <p class="subtitle">Sign in to continue to your dashboard.</p>
+      <form id="login-form" novalidate>
+        <label for="login-username">Username</label>
+        <div class="input-wrap"><i class="fa-regular fa-user"></i><input id="login-username" autocomplete="username" required placeholder="Enter your username"></div>
+        <label for="login-password">Password</label>
+        <div class="input-wrap"><i class="fa-solid fa-lock"></i><input id="login-password" type="password" autocomplete="current-password" required placeholder="Enter your password"><button class="password-toggle" type="button" data-password-toggle="login-password" aria-label="Show password"><i class="fa-regular fa-eye"></i></button></div>
+        <p class="form-message" id="login-message" role="alert"></p>
+        <button class="primary-button" type="submit">Sign in <i class="fa-solid fa-arrow-right"></i></button>
+      </form>
+      <div class="help-links"><button type="button" data-modal="username-modal">Forgot username?</button><span></span><button type="button" data-modal="password-modal">Forgot password?</button></div>
+    </section>
+  </main>
+
+  <div class="modal" id="username-modal" aria-hidden="true"><div class="modal-box"><button class="close-modal" type="button" aria-label="Close">&times;</button><i class="modal-icon fa-regular fa-user"></i><h2>Recover username</h2><p>Enter your recovery email to see your username.</p><form id="username-recovery-form"><label for="username-email">Recovery email</label><input id="username-email" type="email" required placeholder="name@example.com"><p class="form-message" id="username-recovery-message"></p><button class="primary-button" type="submit">Recover username</button></form></div></div>
+  <div class="modal" id="password-modal" aria-hidden="true"><div class="modal-box"><button class="close-modal" type="button" aria-label="Close">&times;</button><i class="modal-icon fa-solid fa-key"></i><h2>Reset password</h2><p>Verify your username and recovery email, then choose a new password.</p><form id="password-recovery-form"><label for="reset-username">Username</label><input id="reset-username" required placeholder="Your username"><label for="reset-email">Recovery email</label><input id="reset-email" type="email" required placeholder="name@example.com"><label for="reset-password">New password</label><input id="reset-password" type="password" minlength="6" required placeholder="At least 6 characters"><p class="form-message" id="password-recovery-message"></p><button class="primary-button" type="submit">Reset password</button></form></div></div>
+  <script src="js/auth.js"></script>
+</body>
+</html>
