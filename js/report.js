@@ -585,7 +585,7 @@ function printCustomerProfile(custId) {
         <h3>Nominee Details</h3>
         <div class="grid">
           <div class="item"><strong>Nominee Name:</strong> ${cust["Nominee Name"] || "N/A"}</div>
-          <div class="item"><strong>Relation:</strong> ${cust["Relation With Applicant"] || cust["Relation"] || "N/A"}</div>
+          <div class="item"><strong>Relation:</strong> ${cust["Relation with Applicant"] || cust["Relation With Applicant"] || cust["Relation"] || "N/A"}</div>
           <div class="item full-width"><strong>Gender:</strong> ${cust["Nominee Gender"] || "N/A"}</div>
         </div>
       </div>
