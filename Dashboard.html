@@ -18,37 +18,25 @@
       </div>
       <ul class="nav-menu">
         <li class="nav-item">
-          <a href="Dashboard.html" class="nav-link">
-            <i class="fa-solid fa-chart-line"></i> Dashboard
-          </a>
+          <a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
         </li>
-        
         <li class="nav-item has-submenu">
-          <a href="#" class="nav-link submenu-toggle">
-            <i class="fa-solid fa-users"></i> Customer Information <i class="fa-solid fa-chevron-down arrow"></i>
-          </a>
+          <a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-users"></i> Customer Information <i class="fa-solid fa-chevron-down arrow"></i></a>
           <ul class="submenu">
             <li><a href="CustomerEntry.html">Customer Entry</a></li>
             <li><a href="CustomerDetails.html">Customer Details</a></li>
           </ul>
         </li>
-
         <li class="nav-item has-submenu">
-          <a href="#" class="nav-link submenu-toggle">
-            <i class="fa-solid fa-hand-holding-dollar"></i> Loan Type <i class="fa-solid fa-chevron-down arrow"></i>
-          </a>
-          <!-- id="sidebar-loan-list" দেওয়া হয়েছে যাতে JS দিয়ে নতুন লোন এখানে ঢোকানো যায় -->
+          <a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-hand-holding-dollar"></i> Loan Type <i class="fa-solid fa-chevron-down arrow"></i></a>
           <ul class="submenu" id="sidebar-loan-list">
             <li><a href="CustomerDetails.html?loan=RD Loan">RD Loan</a></li>
             <li><a href="CustomerDetails.html?loan=Group Loan">Group Loan</a></li>
             <li><a href="CustomerDetails.html?loan=Gold Loan">Gold Loan</a></li>
           </ul>
         </li>
-
         <li class="nav-item">
-          <a href="Report.html" class="nav-link">
-            <i class="fa-solid fa-file-invoice"></i> Reports
-          </a>
+          <a href="Report.html" class="nav-link"><i class="fa-solid fa-file-invoice"></i> Reports</a>
         </li>
       </ul>
     </aside>
@@ -56,33 +44,66 @@
     <main class="main-content">
       <section class="content-section">
         <h1>Dashboard</h1>
+        
+        <!-- Customer Stats Cards -->
         <div class="dashboard-cards">
-          <!-- Total Active -->
           <div class="stat-card border-blue">
             <div class="stat-icon bg-blue-light text-blue"><i class="fa-solid fa-users"></i></div>
             <div class="stat-info"><span class="stat-title">Total Active</span><h3 class="stat-value" id="count-total">0</h3></div>
           </div>
-          <!-- RD Loan -->
           <div class="stat-card border-yellow">
             <div class="stat-icon bg-yellow-light text-yellow"><i class="fa-solid fa-hand-holding-dollar"></i></div>
             <div class="stat-info"><span class="stat-title">RD Loan</span><h3 class="stat-value" id="count-rd">0</h3></div>
           </div>
-          <!-- Group Loan -->
           <div class="stat-card border-green">
             <div class="stat-icon bg-green-light text-green"><i class="fa-solid fa-users-rectangle"></i></div>
             <div class="stat-info"><span class="stat-title">Group Loan</span><h3 class="stat-value" id="count-group-loan">0</h3></div>
           </div>
-          <!-- Gold Loan -->
           <div class="stat-card border-red">
             <div class="stat-icon bg-red-light text-red"><i class="fa-solid fa-coins"></i></div>
             <div class="stat-info"><span class="stat-title">Gold Loan</span><h3 class="stat-value" id="count-gold">0</h3></div>
           </div>
         </div>
 
-        <div class="charts-container">
-          <div class="chart-card"><h3>Loan Type Overview</h3><canvas id="loanTypeChart"></canvas></div>
-          <div class="chart-card"><h3>Group Wise Customers</h3><canvas id="groupNameChart"></canvas></div>
+        <!-- 🟢 RD Loan Box (এর ভেতরে ৩টি কার্ড থাকবে) -->
+        <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 30px; margin-top: 30px;">
+            <h2 style="margin: 0 0 15px 5px; font-size: 18px; color: #0284c7; border-left: 4px solid #0ea5e9; padding-left: 10px;">RD Loan Overview</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <!-- Total RD Amount -->
+                <div style="background: linear-gradient(135deg, #0ea5e9, #0284c7); padding: 25px; border-radius: 10px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 500;"><i class="fa-solid fa-coins"></i> Total RD Amount</h3>
+                    <p id="total-rd-amount" style="margin: 0; font-size: 26px; font-weight: bold;">₹ 0.00</p>
+                </div>
+                <!-- Total RD Collection -->
+                <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 25px; border-radius: 10px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 500;"><i class="fa-solid fa-hand-holding-dollar"></i> Total Collection</h3>
+                    <p id="total-rd-collection" style="margin: 0; font-size: 26px; font-weight: bold;">₹ 0.00</p>
+                </div>
+                <!-- RD Due Amount -->
+                <div style="background: linear-gradient(135deg, #f43f5e, #e11d48); padding: 25px; border-radius: 10px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 500;"><i class="fa-solid fa-file-invoice-dollar"></i> Due Amount</h3>
+                    <p id="rd-due-amount" style="margin: 0; font-size: 26px; font-weight: bold;">₹ 0.00</p>
+                </div>
+            </div>
         </div>
+
+        <!-- Charts Container -->
+        <div class="charts-container">
+          <div class="chart-card">
+            <h3>Financial Overview</h3>
+            <canvas id="financialPieChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Loan Type Overview</h3>
+            <canvas id="loanTypeChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Group Wise Customers</h3>
+            <canvas id="groupNameChart"></canvas>
+          </div>
+        </div>
+        
       </section>
     </main>
   </div>

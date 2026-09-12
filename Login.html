@@ -1,49 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign in | Loan Manager</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/auth.css">
-  <link rel="stylesheet" href="css/sheet-auth.css">
-  <link rel="stylesheet" href="css/login-page.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Management - Login</title>
+    <link rel="stylesheet" href="css/login.css">
 </head>
 <body class="auth-page">
-  <main class="auth-layout">
-    <section class="auth-intro" aria-hidden="true">
-      <div class="art-orbit orbit-one"></div>
-      <div class="art-orbit orbit-two"></div>
-      <div class="art-orbit orbit-three"></div>
-      <div class="art-plant">
-        <span class="stem stem-a"></span><span class="stem stem-b"></span><span class="stem stem-c"></span>
-        <span class="leaf leaf-a"></span><span class="leaf leaf-b"></span><span class="leaf leaf-c"></span><span class="leaf leaf-d"></span>
-        <span class="flower flower-a"></span><span class="flower flower-b"></span><span class="flower flower-c"></span>
-      </div>
-      <div class="art-dots"><i></i><i></i><i></i><i></i></div>
-    </section>
-    <section class="auth-card" aria-labelledby="login-title">
-      <div class="mobile-brand"><i class="fa-solid fa-hand-holding-dollar"></i> Loan Manager</div>
-      <div class="card-brand"><i class="fa-solid fa-hand-holding-dollar"></i><span>LOAN MANAGER</span></div>
-      <h2 id="login-title">Login Now</h2>
-      <p class="subtitle">Enter your account details to continue</p>
-      <form id="login-form" novalidate>
-        <label for="login-username">Username</label>
-        <div class="input-wrap"><i class="fa-regular fa-user"></i><input id="login-username" autocomplete="username" required placeholder="Enter your username"></div>
-        <label for="login-password">Password</label>
-        <div class="input-wrap"><i class="fa-solid fa-lock"></i><input id="login-password" type="password" autocomplete="current-password" required placeholder="Enter your password"><button class="password-toggle" type="button" data-password-toggle="login-password" aria-label="Show password"><i class="fa-regular fa-eye"></i></button></div>
-        <div class="login-options"><label class="remember-option"><input type="checkbox"> <span>Remember me</span></label><button type="button" data-modal="password-modal">Forgot password?</button></div>
-        <p class="form-message" id="login-message" role="alert"></p>
-        <button class="primary-button" type="submit">LOGIN <i class="fa-solid fa-arrow-right"></i></button>
-      </form>
-      <div class="help-links"><button type="button" data-modal="username-modal">Forgot username?</button></div>
-    </section>
-  </main>
+    <main class="auth-layout">
+        
+        <!-- Left Side: Login Form -->
+        <div class="auth-form-container">
+            <div class="auth-card">
+                <div class="text-center">
+                    <h2>LOAN MANAGEMENT</h2>
+                    <p class="subtitle">Securely manage your financial workflows.</p>
+                </div>
+                
+                <form id="login-form">
+                    <div class="input-wrap">
+                        <label for="login-username">Username</label>
+                        <input id="login-username" type="text" placeholder="Enter your username" required>
+                    </div>
+                    
+                    <div class="input-wrap">
+                        <label for="login-password">Password</label>
+                        <input id="login-password" type="password" placeholder="Enter your password" required>
+                    </div>
+                    
+                    <!-- Remember Me Checkbox -->
+                    <div class="remember-row">
+                        <label class="remember-option">
+                            <input type="checkbox"> Remember me
+                        </label>
+                    </div>
+                    
+                    <!-- Forgot Links on the Same Line -->
+                    <div class="forgot-links-row">
+                        <button type="button" class="link-btn" onclick="forgotUsername()">Forgot Username?</button>
+                        <button type="button" class="link-btn" onclick="forgotPassword()">Forgot Password?</button>
+                    </div>
+                    
+                    <button type="submit" class="primary-button">Sign In</button>
+                    <p id="login-message" class="form-message"></p>
+                </form>
+            </div>
+        </div>
 
-  <div class="modal" id="username-modal" aria-hidden="true"><div class="modal-box"><button class="close-modal" type="button" aria-label="Close">&times;</button><i class="modal-icon fa-regular fa-user"></i><h2>Recover username</h2><p>Enter your recovery email to see your username.</p><form id="username-recovery-form"><label for="username-email">Recovery email</label><input id="username-email" type="email" required placeholder="name@example.com"><p class="form-message" id="username-recovery-message"></p><button class="primary-button" type="submit">Recover username</button></form></div></div>
-  <div class="modal" id="password-modal" aria-hidden="true"><div class="modal-box"><button class="close-modal" type="button" aria-label="Close">&times;</button><i class="modal-icon fa-solid fa-key"></i><h2>Reset password</h2><p>We will send a one-time verification code to your recovery email.</p><form id="password-recovery-form"><label for="reset-username">Username</label><input id="reset-username" required placeholder="Your username"><label for="reset-email">Recovery email</label><input id="reset-email" type="email" required placeholder="name@example.com"><button class="secondary-button" id="send-reset-code" type="button">Send verification code</button><label for="reset-code">Verification code</label><input id="reset-code" inputmode="numeric" maxlength="6" required placeholder="6-digit code"><label for="reset-password">New password</label><input id="reset-password" type="password" minlength="6" required placeholder="At least 6 characters"><p class="form-message" id="password-recovery-message"></p><button class="primary-button" type="submit">Reset password</button></form></div></div>
-  <!-- Keep this endpoint in sync with js/common.js.  The previous URL was an old deployment without the authentication handler. -->
-  <script>const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUxR-mjIAtUQB0RjEXUVjJAgBHhOziXX0o051e-bZ8O1BgMgg9fbpj0z5KhfvjyUA40g/exec";</script>
-  <script src="js/sheet-auth.js"></script>
+        <!-- Right Side: Intro (Desktop only) -->
+        <div class="auth-intro">
+            <div class="intro-content">
+                <h1>Secure Loan System</h1>
+                <p>Manage your customers, track daily collections, and generate financial reports efficiently in one secure platform.</p>
+            </div>
+        </div>
+
+    </main>
+    <script src="js/login.js"></script>
+    <script src="js/common.js"></script>
 </body>
 </html>

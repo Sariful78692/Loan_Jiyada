@@ -1,9 +1,24 @@
+const STORAGE_KEY = "tempCustomerEntryData";
+const FORM_ID = "customer-form"; 
+
 document.addEventListener("DOMContentLoaded", function () {
-  // ১. Photo Preview Logic
+  // ১. পেজ লোড হওয়ার পর সেভ করা ডেটা ফর্মে বসিয়ে দেওয়া
+  restoreFormData();
+
+  // ২. Main Form & Auto Save Logic
+  const form = document.getElementById(FORM_ID);
+  if (form) {
+    // ফর্মে কিছু লিখলে বা পরিবর্তন করলেই সেভ হবে
+    form.addEventListener("input", saveFormData);
+    form.addEventListener("change", saveFormData);
+    form.addEventListener("submit", handleCustomerFormSubmit);
+  }
+
+  // ৩. Photo Preview Logic
   const photoInput = document.getElementById("photoInput");
   const photoPreview = document.getElementById("photoPreview");
 
-  if(photoInput) {
+  if (photoInput) {
     photoInput.addEventListener("change", function () {
       const file = this.files[0];
       if (file) {
@@ -27,43 +42,55 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // ২. Main Form Submit Logic
-  const form = document.getElementById("customer-form");
-  if(form) form.addEventListener("submit", handleCustomerFormSubmit);
-
-  // ৩. Loan Type Select Logic
+  // ৪. Loan Type Select Logic
   const loanTypeSelect = document.getElementById("loanTypeSelect");
-  const rdLoanSection = document.getElementById("rd-loan-details"); // RD লোনের সেকশন
-  const interestRateInput = document.getElementById("interestRate"); // 🟢 Interest % এর ফিল্ড
+  const rdLoanSection = document.getElementById("rd-loan-details");
+  const interestRateInput = document.getElementById("interestRate");
 
   if (loanTypeSelect) {
     loanTypeSelect.addEventListener("change", function (e) {
-      // প্রথমে RD Loan সেকশন হাইড করে রাখা
+      // অন্য পেজে যাওয়ার ঠিক আগে ফর্মের ডেটা জোর করে সেভ করা
+      saveFormData();
+
       if (rdLoanSection) rdLoanSection.classList.add("hidden");
 
       if (e.target.value === "Gold Loan") {
         window.location.href = "GoldLoanEntry.html"; // Gold Loan পেজে যাবে
       } else if (e.target.value === "RD Loan") {
-        // RD Loan সিলেক্ট করলে ফিল্ডগুলো শো করবে
         if (rdLoanSection) rdLoanSection.classList.remove("hidden");
-        
-        // ডিফল্টভাবে আজকের তারিখ সেট করা
         document.getElementById("startDate").value = new Date().toISOString().substring(0, 10);
-
-        // 🟢 Interest % অটোমেটিক বসানোর লজিক
+        
         if (interestRateInput) {
-          // আগে সেভ করা কোনো রেট থাকলে সেটা নেবে, না থাকলে 1.6439 বসাবে
           const savedInterest = localStorage.getItem("savedRdInterest") || "1.6439";
           interestRateInput.value = savedInterest;
         }
       } else {
-        // অন্য লোন সিলেক্ট করলে ইন্টারেস্ট ঘর ফাঁকা করে দেবে
         if (interestRateInput) interestRateInput.value = "";
       }
     });
+
+    // ==========================================
+  // Auto Capitalize First Letter Logic (ম্যাজিক কোড)
+  // ==========================================
+  const textInputs = document.querySelectorAll('input[type="text"]');
+  textInputs.forEach(input => {
+    input.addEventListener('input', function() {
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      
+      const originalValue = this.value;
+      // প্রতিটি শব্দের প্রথম অক্ষর ক্যাপিটাল করবে
+      const capitalizedValue = originalValue.replace(/(^\w|\s\w)/g, m => m.toUpperCase());
+      
+      if (originalValue !== capitalizedValue) {
+        this.value = capitalizedValue;
+        // টাইপ করার সময় কার্সর যাতে লাফিয়ে শেষে না চলে যায়, তার জন্য এই লাইন
+        this.setSelectionRange(start, end); 
+      }
+    });
+  });
   }
 
-  // 🟢 Interest % এডিট করলে ব্রাউজারে সেভ করে রাখার লজিক
   if (interestRateInput) {
     interestRateInput.addEventListener("input", function () {
       if (loanTypeSelect && loanTypeSelect.value === "RD Loan") {
@@ -72,38 +99,74 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
   
-  // Gold Loan-এর Application Date আজ ডিফল্টভাবে সেট করা
   const goldDate = document.getElementById("goldAppDate");
   if(goldDate) {
     goldDate.value = new Date().toISOString().substring(0, 10);
   }
 });
 
+
+// ==========================================
+// Auto Save & Restore Functions
+// ==========================================
+
+function saveFormData() {
+  const form = document.getElementById(FORM_ID);
+  if(!form) return;
+  
+  const formData = {};
+  const inputs = form.querySelectorAll("input, select, textarea");
+  
+  inputs.forEach(input => {
+    const key = input.id || input.name;
+    if (key) {
+      if (input.type === "checkbox" || input.type === "radio") {
+        formData[key] = input.checked;
+      } else {
+        formData[key] = input.value;
+      }
+    }
+  });
+  
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+}
+
+function restoreFormData() {
+  const savedData = sessionStorage.getItem(STORAGE_KEY);
+  if (savedData) {
+    const formData = JSON.parse(savedData);
+    const form = document.getElementById(FORM_ID);
+    if(!form) return;
+    
+    const inputs = form.querySelectorAll("input, select, textarea");
+    
+    inputs.forEach(input => {
+      const key = input.id || input.name;
+      if (key && formData[key] !== undefined) {
+        if (input.type === "checkbox" || input.type === "radio") {
+          input.checked = formData[key];
+        } else {
+          input.value = formData[key];
+        }
+      }
+    });
+  }
+}
+
 // ==========================================
 // Gold Loan Modal Functions
 // ==========================================
 function closeGoldLoanModal() {
-  document.getElementById("gold-loan-modal").classList.add("hidden");
+  const modal = document.getElementById("gold-loan-modal");
+  if(modal) modal.classList.add("hidden");
 }
 
 async function saveGoldLoanDetails() {
   const officerName = document.getElementById("goldOfficerName").value;
-  
   if (!officerName) {
     alert("Please enter Loan Officer Name.");
     return;
   }
-
-  // ইমেজ Base64 করার লজিক (প্রয়োজনে)
-  const nomineeImgFile = document.getElementById("goldNomineeImage").files[0];
-  const goldItemImgFile = document.getElementById("goldItemImage").files[0];
-  
-  let nomineeImgBase64 = "";
-  let goldItemImgBase64 = "";
-
-  if (nomineeImgFile) nomineeImgBase64 = await convertFileToBase64(nomineeImgFile);
-  if (goldItemImgFile) goldItemImgBase64 = await convertFileToBase64(goldItemImgFile);
-  
   alert("Gold Loan details temporarily saved. Please submit the main Customer Form to save entirely.");
   closeGoldLoanModal();
 }
@@ -122,6 +185,7 @@ function promptAddNewOccupation() {
     option.textContent = cleanOcc;
     select.appendChild(option);
     select.value = cleanOcc;
+    saveFormData(); // নতুন আইটেম অ্যাড হলেও সেভ হবে
   }
 }
 
@@ -135,8 +199,10 @@ function promptAddNewNomineeOccupation() {
     option.textContent = cleanOcc;
     select.appendChild(option);
     select.value = cleanOcc;
+    saveFormData();
   }
 }
+
 function promptAddNewLoanType() {
   const newLoan = prompt("Enter new Loan Type (e.g. Personal Loan):");
   if (newLoan && newLoan.trim() !== "") {
@@ -160,6 +226,7 @@ function promptAddNewLoanType() {
       customLoans.push(cleanLoan);
       localStorage.setItem('customLoans', JSON.stringify(customLoans));
     }
+    saveFormData();
   }
 }
 
@@ -179,7 +246,7 @@ async function handleCustomerFormSubmit(e) {
   let photoName = "";
   let photoMimeType = "";
 
-  if (photoFileInput.files && photoFileInput.files[0]) {
+  if (photoFileInput && photoFileInput.files && photoFileInput.files[0]) {
     const file = photoFileInput.files[0];
     photoName = file.name;
     photoMimeType = file.type;
@@ -200,7 +267,6 @@ async function handleCustomerFormSubmit(e) {
     occupation: document.getElementById("occupationSelect").value,
     loanType: document.getElementById("loanTypeSelect").value,
     
-    // RD Loan এর ফিল্ডগুলো যুক্ত করা হলো
     loanAmount: document.getElementById("loanAmount") ? document.getElementById("loanAmount").value : "",
     startDate: document.getElementById("startDate") ? document.getElementById("startDate").value : "",
     durationDays: document.getElementById("durationDays") ? document.getElementById("durationDays").value : "",
@@ -247,10 +313,15 @@ function convertFileToBase64(file) {
 }
 
 function resetForm() {
-  document.getElementById("customer-form").reset();
+  const form = document.getElementById(FORM_ID);
+  if(form) form.reset();
+  
   const photoPreview = document.getElementById("photoPreview");
   if(photoPreview) {
     photoPreview.src = "";
     photoPreview.classList.add("hidden-preview");
   }
+
+  // ফর্ম সফলভাবে সাবমিট বা রিসেট হলে টেম্পোরারি ডেটা ডিলিট করে দেওয়া হবে
+  sessionStorage.removeItem(STORAGE_KEY);
 }

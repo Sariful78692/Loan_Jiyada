@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 });
 
 let allCollectionsData = [];
-let allClosedCollectionsData = []; // 🟢 ক্লোজড কালেকশনের জন্য নতুন ভেরিয়েবল
+let allClosedCollectionsData = []; // 🟢 ক্লোজড কালেকশনের জন্য
 let allCustomersData = [];
 let allGoldLoansData = [];
 let currentReportType = "collections";
@@ -49,9 +49,6 @@ async function fetchReportData() {
     allCollectionsData = data.collections || [];
     allClosedCollectionsData = data.closed_collections || [];
     
-    // 🟢 কনসোলে চেক করার জন্য প্রিন্ট করা হলো
-    console.log("All Customers from Server:", data.customers);
-
     allCustomersData = (data.customers || []).map(c => {
       if (c["Loan Type"]) {
         c["Loan Type"] = String(c["Loan Type"]).trim();
@@ -62,8 +59,6 @@ async function fetchReportData() {
       return status !== "disabled";
     });
 
-    console.log("Filtered Active Customers:", allCustomersData);
-
     allGoldLoansData = data.gold_loans || [];
     
     renderCurrentReport();
@@ -72,6 +67,7 @@ async function fetchReportData() {
     tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red; padding: 20px;">Failed to load report data.</td></tr>`;
   }
 }
+
 function changeReportType() {
   currentReportType = document.getElementById("reportFilter").value;
   const heading = document.getElementById("report-heading");
@@ -96,37 +92,27 @@ function renderCurrentReport() {
   } else {
     let filteredCustomers = allCustomersData.filter(c => {
       
-      // 🟢 ১. স্ট্যাটাস ফিল্টার (খুবই স্ট্রং লজিক)
-      // গুগল শিটে Status ফাঁকা থাকলে বা অন্য কিছু থাকলেও সেটিকে জোর করে Active ধরবে (যদি না সেটা Closed হয়)
       let dbStatus = String(c["Status"] || "").trim().toLowerCase();
       if (dbStatus !== "closed") {
-        dbStatus = "active"; // Closed বাদে বাকি সব স্ট্যাটাসকে Active হিসেবে টেবিলে দেখাবে
+        dbStatus = "active"; 
       }
       let selectedStatus = currentStatus.toLowerCase();
       let statusMatch = (dbStatus === selectedStatus);
 
-      // 🟢 ২. লোন টাইপ ফিল্টার (সব ধরনের স্পেস ও স্পেশাল ক্যারেক্টার ইগনোর করবে)
       let loanMatch = true;
       if (currentReportType !== "All") {
-        // ডেটাবেসের নাম থেকে সব স্পেস মুছে ফেলবে (যেমন: "RD Loan" হয়ে যাবে "rdloan")
         let dbLoan = String(c["Loan Type"] || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-        
-        // ড্রপডাউনের নাম থেকেও "report" এবং স্পেস মুছে ফেলবে
         let selectedLoan = String(currentReportType).toLowerCase().replace("report", "").replace(/[^a-z0-9]/g, "");
-        
-        // এবার চেক করবে দুজনের মধ্যে মিল আছে কি না
         loanMatch = dbLoan.includes(selectedLoan) || selectedLoan.includes(dbLoan);
       }
       
       return statusMatch && loanMatch;
     });
     
-    // কনসোলে ফাইনাল রেজাল্ট প্রিন্ট করবে (চেক করার জন্য)
-    console.log("Final Customers Showing in Table:", filteredCustomers);
-
     renderCustomersTable(filteredCustomers, currentStatus);
   }
 }
+
 // পার্মানেন্ট ডেট ফিক্স
 function formatDate(dateStr) {
   if (!dateStr) return "N/A";
@@ -142,7 +128,11 @@ function formatDate(dateStr) {
   return dateStr;
 }
 
-// কালেকশন টেবিল রেন্ডার
+
+// ========================================================
+// 🟢 টেবিল রেন্ডারিং সেকশন 
+// ========================================================
+
 // কালেকশন টেবিল রেন্ডার
 function renderCollectionsTable(data, status) {
   const headerRow = document.getElementById("table-header-row");
@@ -160,6 +150,7 @@ function renderCollectionsTable(data, status) {
   tbody.innerHTML = "";
   if (data.length === 0) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
+    filterTableAndCalculateTotal(); // ডেটা না থাকলেও টোটাল ০ করার জন্য কল করা হলো
     return;
   }
 
@@ -167,7 +158,6 @@ function renderCollectionsTable(data, status) {
     let actionHtml = '';
     
     if (status === "Closed") {
-      // 🟢 ক্লোজড কালেকশনের জন্য 'Archived' ব্যাজের সাথে Delete বাটন যুক্ত করা হলো
       actionHtml = `
         <span style="background: #f1f5f9; color: #64748b; padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px;">
           <i class="fa-solid fa-lock"></i> Archived
@@ -177,7 +167,6 @@ function renderCollectionsTable(data, status) {
         </button>
       `;
     } else {
-      // 🟢 অ্যাকটিভ কালেকশনের জন্য আগের মতোই Edit এবং Delete বাটন থাকবে
       actionHtml = `
         <button onclick="openEditModal('${item["Collection ID"]}')" style="background: #eab308; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Edit">
           <i class="fa-solid fa-pen-to-square"></i>
@@ -199,8 +188,12 @@ function renderCollectionsTable(data, status) {
     `;
     tbody.appendChild(tr);
   });
+
+  // 🟢 টেবিল রেন্ডার হওয়ার পর টোটাল হিসাব করার ফাংশন কল করা হলো
+  filterTableAndCalculateTotal(); 
 }
-// 🟢 কাস্টমার টেবিল রেন্ডার (প্রিন্ট বাটন সহ)
+
+// কাস্টমার টেবিল রেন্ডার
 function renderCustomersTable(data, status) {
   const headerRow = document.getElementById("table-header-row");
   const tbody = document.getElementById("report-table-body");
@@ -226,6 +219,7 @@ function renderCustomersTable(data, status) {
   tbody.innerHTML = "";
   if (data.length === 0) {
     tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; padding: 20px; color: #64748b;">No records found.</td></tr>`;
+    filterTableAndCalculateTotal();
     return;
   }
 
@@ -242,7 +236,6 @@ function renderCustomersTable(data, status) {
     const interestAmount = (totalAmount * interestPercent) / 100;
     const gTotalAmount = totalAmount + interestAmount;
 
-    // 🟢 রিলেশন পাওয়ার জন্য একাধিক পসিবল কি (Key) চেক করা হচ্ছে
     const relationVal = cust["Relation With Applicant"] || cust["Relation"] || cust["Relation with Applicant"] || "N/A";
 
     const tr = document.createElement("tr");
@@ -269,9 +262,132 @@ function renderCustomersTable(data, status) {
     `;
     tbody.appendChild(tr);
   });
+
+  // 🟢 টেবিল রেন্ডার হওয়ার পর টোটাল হিসাব করার ফাংশন কল করা হলো
+  filterTableAndCalculateTotal();
 }
 
-// 🟢 নির্দিষ্ট কাস্টমারের প্রোফাইল এবং কালেকশন হিস্ট্রি সহ প্রিন্ট করা
+
+// ========================================================
+// 🟢 ফিল্টার এবং টোটাল হিসাব করার ম্যাজিক সেকশন (নিয়মিত আপডেট)
+// ========================================================
+
+function filterReport() {
+  filterTableAndCalculateTotal();
+}
+
+function filterTableAndCalculateTotal() {
+  // ১. ইনপুট ফিল্ড থেকে ভ্যালুগুলো নেওয়া
+  const searchInputEl = document.getElementById("reportSearchInput");
+  const yearFilterEl = document.getElementById("reportYearFilter");
+  const startDateEl = document.getElementById("startDate");
+  const endDateEl = document.getElementById("endDate");
+
+  const searchText = searchInputEl ? searchInputEl.value.toLowerCase() : "";
+  const filterYear = yearFilterEl ? yearFilterEl.value : "All";
+  
+  // Date Object এ কনভার্ট করা
+  const start = (startDateEl && startDateEl.value) ? new Date(startDateEl.value) : null;
+  const end = (endDateEl && endDateEl.value) ? new Date(endDateEl.value) : null;
+
+  const tbody = document.getElementById("report-table-body");
+  if (!tbody) return;
+  const rows = tbody.getElementsByTagName("tr");
+
+  let totalCollection = 0;
+
+  // ২. কোন কলাম থেকে ডেট এবং অ্যামাউন্ট নেবে তা নির্ধারণ করা
+  const isCollectionReport = (currentReportType === "collections");
+  const dateColIndex = isCollectionReport ? 3 : 11; 
+  const amountColIndex = isCollectionReport ? 4 : 13;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    
+    // হেডার বা 'No records found' রো বাদ দেওয়া
+    if (row.getElementsByTagName("th").length > 0 || row.textContent.includes("No records found") || row.textContent.includes("No active collection")) {
+      continue;
+    }
+
+    const cells = row.getElementsByTagName("td");
+    if (cells.length <= amountColIndex) continue;
+
+    const rowText = row.textContent.toLowerCase();
+    const rowOriginalText = row.textContent;
+
+    // ৩. সার্চ এবং ইয়ার ম্যাচ করানো
+    const matchSearch = rowText.includes(searchText);
+    const matchYear = (filterYear === "All" || rowOriginalText.includes(filterYear));
+
+    // ৪. ডেট রেঞ্জ (Date Range) ম্যাচ করানো
+    let matchDateRange = true;
+    if (start || end) {
+      const dateText = cells[dateColIndex].innerText.trim(); 
+      const dateParts = dateText.split('-'); 
+      
+      if (dateParts.length === 3) {
+        const rowDate = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
+        if (start && rowDate < start) matchDateRange = false;
+        if (end && rowDate > end) matchDateRange = false;
+      } else {
+        matchDateRange = false; 
+      }
+    }
+
+    // ৫. সবকিছু ম্যাচ করলে রো দেখাবে এবং টোটাল যোগ করবে
+    if (matchSearch && matchYear && matchDateRange) {
+      row.style.display = ""; 
+      
+      const amtText = cells[amountColIndex].innerText.replace(/[^0-9.-]+/g, "");
+      const numericAmount = parseFloat(amtText);
+      
+      if (!isNaN(numericAmount)) {
+        totalCollection += numericAmount;
+      }
+    } else {
+      row.style.display = "none"; 
+    }
+  }
+
+ // 🟢 ৬. UI তে ফিল্টার অনুযায়ী ডাইনামিক নাম আপডেট করা
+  const totalLabel = document.getElementById("totalLabelDisplay");
+  if (totalLabel) {
+    if (currentReportType === "collections") {
+      totalLabel.innerText = "Total Collection";
+    } else if (currentReportType === "All") {
+      totalLabel.innerText = "All Customers Total Amount";
+    } else {
+      // যেমন: RD Loan Total Amount, Group Loan Total Amount
+      totalLabel.innerText = `${currentReportType} Total Amount`;
+    }
+  }
+
+  // ৭. UI তে টোটাল আপডেট করা (ভারতীয় টাকার ফরম্যাটে)
+  const totalDisplay = document.getElementById("totalAmountDisplay");
+  if (totalDisplay) {
+    totalDisplay.innerText = "₹ " + totalCollection.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+}
+
+// ক্লিয়ার ফিল্টার বাটন ফাংশন
+function clearFilters() {
+  if(document.getElementById("startDate")) document.getElementById("startDate").value = "";
+  if(document.getElementById("endDate")) document.getElementById("endDate").value = "";
+  if(document.getElementById("reportSearchInput")) document.getElementById("reportSearchInput").value = "";
+  if(document.getElementById("reportYearFilter")) document.getElementById("reportYearFilter").value = "All";
+  
+  // সব ফিল্টার ফাঁকা করার পর টেবিল আবার আপডেট করা
+  filterTableAndCalculateTotal(); 
+}
+
+
+// ========================================================
+// 🟢 অন্যান্য ফাংশন (Print, Export, Edit, Delete)
+// ========================================================
+
 function printCustomerProfile(custId) {
   const cust = allCustomersData.find(c => String(c["ID"]).trim() === custId);
   if (!cust) return;
@@ -284,7 +400,6 @@ function printCustomerProfile(custId) {
   const rawInterest = String(cust["Interest %"] || cust["Interest Rate"] || "0").replace("%", "").trim();
   const interestPercent = parseFloat(rawInterest) || 0;
 
-  // 🟢 ওই কাস্টমারের সমস্ত কালেকশন ফিল্টার করা এবং তারিখ অনুযায়ী সাজানো
   const customerCollections = relevantCollections.filter(col => String(col["Customer ID"]).trim() === custId);
   
   const collectionCount = customerCollections.length;
@@ -292,7 +407,6 @@ function printCustomerProfile(custId) {
   const interestAmount = (totalAmount * interestPercent) / 100;
   const gTotalAmount = totalAmount + interestAmount;
 
-  // Personal Info বসানো
   document.getElementById("print-p-name").innerText = cust["Customer Name"] || "N/A";
   document.getElementById("print-p-mobile").innerText = cust["Mobile No"] || "N/A";
   document.getElementById("print-p-dob").innerText = formatDate(cust["DOB"]);
@@ -301,7 +415,6 @@ function printCustomerProfile(custId) {
   document.getElementById("print-p-occupation").innerText = cust["Occupation"] || "N/A";
   document.getElementById("print-p-address").innerText = cust["Address"] || "N/A";
 
-  // Loan Details বসানো
   document.getElementById("print-l-type").innerText = cust["Loan Type"] || "N/A";
   document.getElementById("print-l-date").innerText = formatDate(cust["Start Date"]);
   document.getElementById("print-l-amount").innerText = "₹ " + unitAmount;
@@ -309,12 +422,10 @@ function printCustomerProfile(custId) {
   document.getElementById("print-l-total").innerText = "₹ " + totalAmount;
   document.getElementById("print-l-gtotal").innerText = "₹ " + gTotalAmount.toFixed(2);
 
-  // Nominee Details বসানো
   document.getElementById("print-n-name").innerText = cust["Nominee Name"] || "N/A";
   document.getElementById("print-n-relation").innerText = cust["Relation With Applicant"] || "N/A";
   document.getElementById("print-n-gender").innerText = cust["Nominee Gender"] || "N/A";
 
-  // 🟢 কালেকশন হিস্ট্রি টেবিল ডাইনামিক তৈরি করা
   const historyBody = document.getElementById("print-collection-history-body");
   historyBody.innerHTML = "";
 
@@ -332,11 +443,9 @@ function printCustomerProfile(custId) {
     });
   }
 
-  // প্রিন্ট কমান্ড দেওয়া
   window.print();
 }
 
-// পপআপ এবং এডিট/ডিলিট হ্যান্ডলার
 function openEditModal(collId) {
   const item = allCollectionsData.find(c => c["Collection ID"] === collId);
   if (!item) return;
@@ -403,7 +512,6 @@ async function deleteCollection(collId) {
   }
 }
 
-// 🟢 এক্সেল এক্সপোর্ট (নতুন ১৪টি কলাম অনুযায়ী এবং Collection ID বাদে)
 function exportToExcel() {
   const statusFilterEl = document.getElementById("reportStatusFilter");
   const currentStatus = statusFilterEl ? statusFilterEl.value : "Active";
@@ -413,7 +521,6 @@ function exportToExcel() {
   let sheetName = currentStatus === "Closed" ? "Closed_Report" : "Report";
 
   if (currentReportType === "collections") {
-    // কালেকশন রিপোর্টের জন্য (Collection ID বাদ দেওয়া হয়েছে)
     exportData = relevantCollections.map(item => ({
       "Customer Name": item["Customer Name"] || "N/A",
       "Loan Type": item["Loan Type"] || "N/A",
@@ -422,7 +529,6 @@ function exportToExcel() {
     }));
     sheetName = currentStatus === "Closed" ? "Closed_Collections" : "Active_Collections";
   } else {
-    // 🟢 কাস্টমার রিপোর্টের জন্য (ঠিক ১৪টি কলাম সিরিয়াল অনুযায়ী)
     let dataToExport = allCustomersData.filter(c => (c["Status"] || "Active").trim() === currentStatus);
     if (currentReportType !== "All") {
       dataToExport = dataToExport.filter(c => (c["Loan Type"] || "").trim() === currentReportType.trim());
@@ -453,7 +559,7 @@ function exportToExcel() {
         "RD Amount": unitAmount,
         "Start Date": formatDate(cust["Start Date"]),
         "Total Amount": totalAmount,
-        "G.Total Amount": parseFloat(gTotalAmount.toFixed(2)) // সংখ্যা হিসেবে রাখার জন্য parseFloat
+        "G.Total Amount": parseFloat(gTotalAmount.toFixed(2)) 
       };
     });
     
@@ -471,59 +577,21 @@ function exportToExcel() {
   
   XLSX.writeFile(workbook, `${sheetName}.xlsx`);
 }
-// 🟢 প্রফেশনাল প্রিন্ট ফাংশন (ডাইনামিক হেডিং এবং ডেট সহ)
+
 function printReport() {
-  // ডাইনামিক রিপোর্টের নাম তৈরি করা
   const statusEl = document.getElementById("reportStatusFilter");
-  const currentStatus = statusEl ? statusEl.value : "Active";
+  const currentStatus = statusEl ? statusFilterEl.value : "Active";
   
   let reportName = currentReportType === "All" ? "All Customers" : currentReportType;
   if (currentReportType === "collections") {
     reportName = "Collections";
   }
 
-  // ফর্মে টাইটেল বসানো
   document.getElementById("print-report-title").innerText = `${reportName} Report (${currentStatus} Loans)`;
 
-  // ফর্মে আজকের তারিখ বসানো
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   document.getElementById("print-date").innerText = `Print Date: ${dateStr}`;
 
-  // প্রিন্ট কমান্ড
   window.print();
-}
-
-// 🟢 লাইভ ফিল্টার (সার্চ এবং ইয়ার)
-function filterReport() {
-  const searchInputEl = document.getElementById("reportSearchInput");
-  const yearFilterEl = document.getElementById("reportYearFilter");
-  
-  const searchText = searchInputEl ? searchInputEl.value.toLowerCase() : "";
-  const filterYear = yearFilterEl ? yearFilterEl.value : "All";
-
-  const tbody = document.querySelector(".data-table tbody") || document.getElementById("report-table-body");
-  if (!tbody) return;
-
-  const rows = tbody.getElementsByTagName("tr");
-
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    
-    if (row.getElementsByTagName("th").length > 0 || row.textContent.includes("No records found")) {
-      continue;
-    }
-
-    const rowText = row.textContent.toLowerCase();
-    const rowOriginalText = row.textContent; 
-
-    const matchSearch = rowText.includes(searchText);
-    const matchYear = filterYear === "All" || rowOriginalText.includes(filterYear);
-
-    if (matchSearch && matchYear) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
-    }
-  }
 }

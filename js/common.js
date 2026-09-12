@@ -1,20 +1,37 @@
-// আপনার Google Apps Script URL
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUxR-mjIAtUQB0RjEXUVjJAgBHhOziXX0o051e-bZ8O1BgMgg9fbpj0z5KhfvjyUA40g/exec";
+// ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
-const AUTH_USER_KEY = "loanManagerUser";
-const AUTH_SESSION_KEY = "loanManagerSession";
+// আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwYMeCZvo-mBg7EA_Itg1TZYkUdzykgAtCpC3vdsJiAl22q5axER10Goy18FrYCUbnGhw/exec";
 
-function getAccount() {
-  const saved = localStorage.getItem(AUTH_USER_KEY);
-  if (saved) return JSON.parse(saved);
-  const account = { username: "admin", password: "admin123", recoveryEmail: "admin@loanmanager.local" };
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(account));
-  return account;
-}
+document.addEventListener("DOMContentLoaded", function () {
+  requireLogin(); // সবার আগে লগইন চেক
+  addAccountMenu();
+  loadCustomLoanTypes();
+
+  // সাইডবার সাবমেনু খোলা/বন্ধ
+  const submenuToggles = document.querySelectorAll(".submenu-toggle");
+  submenuToggles.forEach((toggle) => {
+    toggle.addEventListener("click", function (e) {
+      e.preventDefault();
+      const parent = this.parentElement;
+      document.querySelectorAll(".nav-item.has-submenu.open").forEach((item) => {
+        if (item !== parent) item.classList.remove("open");
+      });
+      parent.classList.toggle("open");
+    });
+  });
+
+  // লেবেলের (*) লাল করা
+  document.querySelectorAll("label").forEach(label => {
+    if (label.innerHTML.includes("*")) {
+      label.innerHTML = label.innerHTML.replace(/\*/g, "<span style='color: #ef4444;'>*</span>");
+    }
+  });
+});
 
 function requireLogin() {
-  getAccount();
-  if (sessionStorage.getItem(AUTH_SESSION_KEY) !== "active") {
+  const isLoginPage = window.location.pathname.toLowerCase().includes("login.html");
+  if (localStorage.getItem("loanLoggedIn") !== "true" && !isLoginPage) {
     window.location.replace("Login.html");
   }
 }
@@ -22,76 +39,47 @@ function requireLogin() {
 function addAccountMenu() {
   const sidebar = document.querySelector(".sidebar");
   if (!sidebar || sidebar.querySelector(".sidebar-account")) return;
+
   if (!document.querySelector('link[href="css/account-menu.css"]')) {
     const stylesheet = document.createElement("link");
     stylesheet.rel = "stylesheet";
     stylesheet.href = "css/account-menu.css";
     document.head.appendChild(stylesheet);
   }
-  const account = getAccount();
+
+  const authData = JSON.parse(localStorage.getItem("loanAuth") || '{"username":"Admin"}');
+
   const accountMenu = document.createElement("div");
   accountMenu.className = "sidebar-account";
   accountMenu.innerHTML = `
-    <div class="account-user"><i class="fa-solid fa-circle-user"></i><div>${account.username}<span>Signed in</span></div></div>
+    <div class="account-user"><i class="fa-solid fa-circle-user"></i><div>${authData.username}<span>Signed in</span></div></div>
     <div class="account-actions">
       <button class="account-action" type="button" title="Settings" aria-label="Settings" onclick="window.location.href='Settings.html'"><i class="fa-solid fa-gear"></i><span>Settings</span></button>
       <button class="account-action logout" type="button" title="Logout" aria-label="Logout" id="logout-button"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></button>
     </div>`;
   sidebar.appendChild(accountMenu);
+
   document.getElementById("logout-button").addEventListener("click", function () {
-    sessionStorage.removeItem(AUTH_SESSION_KEY);
+    localStorage.removeItem("loanLoggedIn");
     window.location.replace("Login.html");
   });
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  requireLogin();
-  addAccountMenu();
-  
-  // ১. সাইডবার মেনু খোলার এবং বন্ধ করার কোড
-  const submenuToggles = document.querySelectorAll(".submenu-toggle");
-  
-  submenuToggles.forEach((toggle) => {
-    toggle.addEventListener("click", function (e) {
-      e.preventDefault(); // লিংকে ক্লিক করলে যেন পেজ রিলোড না হয়
-      const parent = this.parentElement;
-      document.querySelectorAll(".nav-item.has-submenu.open").forEach((item) => {
-        if (item !== parent) item.classList.remove("open");
-      });
-      parent.classList.toggle("open"); 
-    });
-  });
-
-  // ২. LocalStorage থেকে কাস্টম লোনগুলো সাইডবার এবং ফর্মে লোড করা
-  loadCustomLoanTypes();
-
-  // ফর্মের লেবেলে থাকা (*) গুলোকে অটোমেটিক লাল করার ম্যাজিক কোড
-  document.querySelectorAll("label").forEach(label => {
-    if(label.innerHTML.includes("*")) {
-      label.innerHTML = label.innerHTML.replace(/\*/g, "<span style='color: #ef4444;'>*</span>");
-    }
-  });
-});
-
-// কাস্টম লোন লোড করার ফাংশন
 function loadCustomLoanTypes() {
   let customLoans = JSON.parse(localStorage.getItem('customLoans')) || [];
-  
   const sidebarList = document.getElementById('sidebar-loan-list');
   const selectList = document.getElementById('loanTypeSelect');
 
   customLoans.forEach(loan => {
-    // সাইডবারে যোগ
-    if(sidebarList) {
+    if (sidebarList) {
       const existsInSidebar = Array.from(sidebarList.querySelectorAll('a')).some(a => a.textContent === loan);
-      if(!existsInSidebar) {
+      if (!existsInSidebar) {
         sidebarList.innerHTML += `<li><a href="CustomerDetails.html?loan=${encodeURIComponent(loan)}">${loan}</a></li>`;
       }
     }
-    // ফর্মের ড্রপডাউনে যোগ (শুধু Customer Entry পেজে)
-    if(selectList) {
+    if (selectList) {
       const existsInSelect = Array.from(selectList.options).some(opt => opt.value === loan);
-      if(!existsInSelect) {
+      if (!existsInSelect) {
         let option = document.createElement("option");
         option.value = loan;
         option.textContent = loan;
@@ -100,3 +88,4 @@ function loadCustomLoanTypes() {
     }
   });
 }
+

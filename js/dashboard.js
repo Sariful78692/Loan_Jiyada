@@ -1,5 +1,8 @@
+// ---------------- Dashboard Only Logic ---------------- //
+
 let loanChartInstance = null;
 let groupChartInstance = null;
+let financialPieChartInstance = null;
 
 document.addEventListener("DOMContentLoaded", async function () {
   await loadDashboardData();
@@ -7,15 +10,93 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 async function loadDashboardData() {
   try {
-    const res = await fetch(APPS_SCRIPT_URL);
+    const res = await fetch(APPS_SCRIPT_URL + "?t=" + new Date().getTime());
     const data = await res.json();
-    const activeCustomers = data.customers.filter((c) => (c["Status"] || "").trim() !== "Disabled");
+
+    console.log("Dashboard Data Loaded Successfully:", data);
+
+    const activeCustomers = (data.customers || []).filter((c) => {
+      const status = String(c["Status"] || "").trim().toLowerCase();
+      return status !== "disabled" && status !== "closed";
+    });
+
+    const allCollections = data.collections || [];
+
     updateDashboardCharts(activeCustomers);
+    updateRDLoanMetrics(activeCustomers, allCollections);
+
   } catch (err) {
-    console.error("Failed to load data", err);
+    console.error("Failed to load dashboard data:", err);
   }
 }
 
+// 🟢 RD Loan ক্যালকুলেশন লজিক
+function updateRDLoanMetrics(activeCustomers, allCollections) {
+  let totalRDAmount = 0;
+  let totalRDCollection = 0;
+
+  activeCustomers.forEach(cust => {
+    const loanType = String(cust["Loan Type"] || "").trim().toLowerCase();
+
+    if (loanType === "rd loan") {
+      let unitAmount = parseFloat(cust["Loan Amount"] || 0);
+      let duration = parseFloat(cust["Duration (Days)"] || 365);
+      if (duration === 0) duration = 365;
+
+      let rawInterest = String(cust["Interest %"] || "0").replace("%", "").trim();
+      let interestPercent = parseFloat(rawInterest) || 0;
+
+      let principalAmount = unitAmount * duration;
+      let interestAmount = (principalAmount * interestPercent) / 100;
+
+      totalRDAmount += (principalAmount + interestAmount);
+    }
+  });
+
+  allCollections.forEach(col => {
+    totalRDCollection += parseFloat(col["Amount"] || 0);
+  });
+
+  let rdDueAmount = totalRDAmount - totalRDCollection;
+  if (rdDueAmount < 0) rdDueAmount = 0;
+
+  const rdAmtEl = document.getElementById("total-rd-amount");
+  const rdColEl = document.getElementById("total-rd-collection");
+  const rdDueEl = document.getElementById("rd-due-amount");
+
+  if (rdAmtEl) rdAmtEl.innerText = "₹ " + totalRDAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (rdColEl) rdColEl.innerText = "₹ " + totalRDCollection.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (rdDueEl) rdDueEl.innerText = "₹ " + rdDueAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const pieCanvas = document.getElementById("financialPieChart");
+  if (pieCanvas) {
+    const pieCtx = pieCanvas.getContext("2d");
+    if (financialPieChartInstance) financialPieChartInstance.destroy();
+
+    let chartData = [totalRDCollection, rdDueAmount];
+    if (totalRDCollection === 0 && rdDueAmount === 0) chartData = [0.1, 0.1];
+
+    financialPieChartInstance = new Chart(pieCtx, {
+      type: "pie",
+      data: {
+        labels: ["RD Collection", "RD Due"],
+        datasets: [{
+          data: chartData,
+          backgroundColor: ["#10b981", "#f43f5e"],
+          borderWidth: 2,
+          borderColor: "#ffffff",
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } }
+      }
+    });
+  }
+}
+
+// 🟢 ড্যাশবোর্ড চার্ট এবং কাউন্টার আপডেট
 function updateDashboardCharts(activeCustomers) {
   let rdCount = 0, goldCount = 0, groupLoanCount = 0;
   let anondodharaCount = 0, ashaCount = 0, janoniCount = 0;
@@ -26,10 +107,10 @@ function updateDashboardCharts(activeCustomers) {
     const loan = (cust["Loan Type"] || "").trim();
     const group = (cust["Group Name"] || "").trim();
 
-    if (loan === "RD Loan") rdCount++;
-    if (loan === "Gold Loan") goldCount++;
-    if (loan === "Group Loan") groupLoanCount++;
-    
+    if (loan.toLowerCase() === "rd loan") rdCount++;
+    if (loan.toLowerCase() === "gold loan") goldCount++;
+    if (loan.toLowerCase() === "group loan") groupLoanCount++;
+
     if (group === "Anondodhara Group") anondodharaCount++;
     if (group === "Asha Group") ashaCount++;
     if (group === "Janoni Group") janoniCount++;
@@ -40,7 +121,6 @@ function updateDashboardCharts(activeCustomers) {
     groupCounts[groupKey] = (groupCounts[groupKey] || 0) + 1;
   });
 
-  // নিরাপদে ডেটা বসানোর লজিক (HTML এ কার্ড থাকলে তবেই ডেটা বসাবে)
   const ids = {
     "count-total": activeCustomers.length,
     "count-rd": rdCount,
@@ -56,7 +136,6 @@ function updateDashboardCharts(activeCustomers) {
     if (el) el.innerText = count;
   }
 
-  // চার্ট লোড করার লজিক
   const loanCanvas = document.getElementById("loanTypeChart");
   if (loanCanvas) {
     const loanCtx = loanCanvas.getContext("2d");
