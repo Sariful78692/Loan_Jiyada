@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit Customer - Loan Manager</title>
+  <title>Edit Customer - Loan Management</title>
   <link rel="stylesheet" href="css/common.css">
   <link rel="stylesheet" href="css/customer.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,40 +14,49 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="brand">
-        <h2>Loan Manager</h2>
+        <h2>Loan Management</h2>
       </div>
       <ul class="nav-menu">
-        <li class="nav-item"><a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+        <li class="nav-item">
+          <a href="Dashboard.html" class="nav-link">
+            <i class="fa-solid fa-chart-line"></i> Dashboard
+          </a>
+        </li>
         <li class="nav-item has-submenu open">
-          <a href="#" class="nav-link submenu-toggle active"><i class="fa-solid fa-users"></i> Customer Information</a>
-          <ul class="submenu" style="display: block;">
+          <a href="#" class="nav-link submenu-toggle">
+            <i class="fa-solid fa-users"></i> Customer Information <i class="fa-solid fa-chevron-down arrow"></i>
+          </a>
+          <ul class="submenu">
             <li><a href="CustomerEntry.html">Customer Entry</a></li>
-            <li><a href="CustomerDetails.html" style="color: #fff;">Customer Details</a></li>
+            <li><a href="CustomerDetails.html" class="active">Customer Details</a></li>
           </ul>
+        </li>
+        <li class="nav-item">
+          <a href="Report.html" class="nav-link">
+            <i class="fa-solid fa-file-invoice"></i> Reports
+          </a>
         </li>
       </ul>
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
-      <section class="content-section">
-        
-        <!-- Header Section -->
-        <div style="display: flex; justify-content: space-between; align-items: center; background-color: #0284c7; padding: 15px; border-radius: 8px 8px 0 0;">
-          <h2 style="color: white; margin: 0; font-size: 20px;"><i class="fa-solid fa-user-pen"></i> Update Customer Details</h2>
-          <button onclick="window.location.href='CustomerDetails.html'" class="btn-danger" style="background: #ef4444; padding: 8px 15px; border: none; color: white; border-radius: 5px; cursor: pointer;">
-            <i class="fa-solid fa-arrow-left"></i> Back
-          </button>
-        </div>
+      <section id="customer-edit-section" class="content-section">
+        <h1 id="form-title">Edit Customer Profile</h1>
+        <form id="customer-edit-form">
+          <input type="hidden" id="edit-customer-id">
+          <input type="hidden" id="existing-photo-url">
 
-        <form id="customer-form" class="customer-form" style="background: #ffffff; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-          
           <!-- Personal Details -->
           <div class="form-card">
             <h3>Personal Details</h3>
             <div class="form-grid">
               
-              <div class="form-group"><label>Customer Name *</label><input type="text" id="customerName" required></div>
+              <div class="form-group">
+                <label>Customer Name *</label>
+                <input type="text" id="customerName" required>
+              </div>
+
               <div class="form-group">
                 <label>Guardian Type *</label>
                 <select id="guardianType" required>
@@ -57,7 +66,12 @@
                   <option value="Husband's Name">Husband's Name</option>
                 </select>
               </div>
-              <div class="form-group"><label>Guardian Name *</label><input type="text" id="guardianName" required></div>
+
+              <div class="form-group">
+                <label>Guardian Name *</label>
+                <input type="text" id="guardianName" required>
+              </div>
+
               <div class="form-group">
                 <label>Gender *</label>
                 <select id="gender" required>
@@ -67,51 +81,103 @@
                   <option value="Other">Other</option>
                 </select>
               </div>
-              <div class="form-group"><label>DOB *</label><input type="date" id="dob" required></div>
-              <div class="form-group"><label>Religion</label><input type="text" id="religion"></div>
-              <div class="form-group"><label>Aadhaar No *</label><input type="text" id="aadhaarNo" maxlength="12" required></div>
-              <div class="form-group"><label>Mobile No *</label><input type="tel" id="mobileNo" maxlength="10" required></div>
-              <div class="form-group"><label>Address *</label><input type="text" id="address" placeholder="Enter Full Address" required></div>
 
               <div class="form-group">
-                <label>Photo (Max 50 KB)</label>
-                <input type="file" id="photoInput" accept="image/*">
+                <label>DOB *</label>
+                <input type="date" id="dob" required>
+              </div>
+              
+              <!-- 🟢 Religion Dropdown -->
+              <div class="form-group">
+                <label>Religion</label>
+                <select id="religion">
+                  <option value="">Select Religion</option>
+                  <option value="Muslim">Muslim</option>
+                  <option value="Hinduism">Hinduism</option>
+                </select>
+              </div>
+              
+              <!-- 🟢 Aadhaar No Validation (12 digits only) -->
+              <div class="form-group">
+                <label>Aadhaar No *</label>
+                <input type="text" id="aadhaarNo" maxlength="12" pattern="\d{12}" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="12-digit number" required>
+              </div>
+              
+              <!-- 🟢 Mobile No Validation (10 digits only) -->
+              <div class="form-group">
+                <label>Mobile No *</label>
+                <input type="text" id="mobileNo" maxlength="10" pattern="\d{10}" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="10-digit number" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Address *</label>
+                <input type="text" id="address" placeholder="Enter Full Address" required>
+              </div>
+
+              <!-- 🟢 Photo Upload with 1 MB validation -->
+              <div class="form-group">
+                <label>Update Photo (Max 1 MB)</label>
+                <input type="file" id="photoInput" accept="image/*" onchange="validatePhotoSize(this)">
+                <small id="photo-error" style="color: #ef4444; font-size: 12px; font-weight: bold; display: none; margin-top: 5px;">File size must be less than 1 MB!</small>
                 <div class="preview-box">
-                  <img id="photoPreview" src="" alt="Photo Preview" class="hidden-preview" style="max-width: 100px; margin-top: 10px;">
+                  <img id="photoPreview" src="" alt="Photo Preview" class="hidden-preview">
                 </div>
               </div>
 
               <div class="form-group">
                 <label>Occupation *</label>
-                <select id="occupationSelect" required>
-                  <option value="">Select Occupation</option>
-                  <option value="Labour">Labour</option>
-                  <option value="Service">Service</option>
-                  <option value="Self Employed">Self Employed</option>
-                  <option value="Hand Embrodary">Hand Embrodary</option>
-                </select>
+                <div class="select-with-btn">
+                  <select id="occupationSelect" required>
+                    <option value="">Select Occupation</option>
+                    <option value="Labour">Labour</option>
+                    <option value="Service">Service</option>
+                    <option value="Self Employed">Self Employed</option>
+                    <option value="Hand Embrodary">Hand Embrodary</option>
+                  </select>
+                  <button type="button" class="btn-small bg-blue" onclick="promptAddNewOccupation()" title="Add Occupation">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
               </div>
 
               <div class="form-group">
                 <label>Loan Type *</label>
-                <select id="loanTypeSelect" required>
-                  <option value="">Select Loan Type</option>
-                  <option value="RD Loan">RD Loan</option>
-                  <option value="Group Loan">Group Loan</option>
-                  <option value="Gold Loan">Gold Loan</option>
-                </select>
+                <div class="select-with-btn">
+                  <select id="loanTypeSelect" required>
+                    <option value="">Select Loan Type</option>
+                    <option value="RD Loan">RD Loan</option>
+                    <option value="Group Loan">Group Loan</option>
+                    <option value="Gold Loan">Gold Loan</option>
+                  </select>
+                  <button type="button" class="btn-small bg-blue" onclick="promptAddNewLoanType()" title="Add Loan Type">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
               </div>
+
             </div>
           </div>
 
-          <!-- RD Loan Details (Hidden by default) -->
+          <!-- RD Loan Details -->
           <div class="form-card hidden" id="rd-loan-details" style="border: 1px solid #38bdf8; background-color: #f0fdfa;">
             <h3 style="color: #0369a1;"><i class="fa-solid fa-hand-holding-dollar"></i> RD Loan Details</h3>
             <div class="form-grid">
-              <div class="form-group"><label>RD Amount *</label><input type="number" id="loanAmount" placeholder="Enter Amount"></div>
-              <div class="form-group"><label>Start Date *</label><input type="date" id="startDate"></div>
-              <div class="form-group"><label>Duration (Days) *</label><input type="number" id="durationDays" placeholder="e.g. 365"></div>
-              <div class="form-group"><label>Interest % *</label><input type="number" step="any" id="interestRate" placeholder="Enter Interest %"></div>
+              <div class="form-group">
+                <label>RD Amount *</label>
+                <input type="number" id="loanAmount" placeholder="Enter Amount">
+              </div>
+              <div class="form-group">
+                <label>Start Date *</label>
+                <input type="date" id="startDate">
+              </div>
+              <div class="form-group">
+                <label>Duration (Days) *</label>
+                <input type="number" id="durationDays" placeholder="e.g. 365">
+              </div>
+              <div class="form-group">
+                <label>Interest % *</label>
+                <input type="number" step="any" id="interestRate" placeholder="Enter Interest %">
+              </div>
             </div>
           </div>
 
@@ -119,7 +185,11 @@
           <div class="form-card">
             <h3>Nominee Details</h3>
             <div class="form-grid">
-              <div class="form-group"><label>Nominee Name *</label><input type="text" id="nomineeName" required></div>
+              <div class="form-group">
+                <label>Nominee Name *</label>
+                <input type="text" id="nomineeName" required>
+              </div>
+
               <div class="form-group">
                 <label>Nominee Guardian Type</label>
                 <select id="nomineeGuardianType">
@@ -129,7 +199,12 @@
                   <option value="Husband's Name">Husband's Name</option>
                 </select>
               </div>
-              <div class="form-group"><label>Nominee Guardian Name</label><input type="text" id="nomineeGuardianName"></div>
+
+              <div class="form-group">
+                <label>Nominee Guardian Name</label>
+                <input type="text" id="nomineeGuardianName">
+              </div>
+
               <div class="form-group">
                 <label>Nominee Gender</label>
                 <select id="nomineeGender">
@@ -139,35 +214,98 @@
                   <option value="Other">Other</option>
                 </select>
               </div>
+              
               <div class="form-group">
                 <label>Nominee Occupation</label>
-                <select id="nomineeOccupationSelect">
-                  <option value="">Select Occupation</option>
-                  <option value="Housewife">Housewife</option>
-                  <option value="Labour">Labour</option>
-                  <option value="Service">Service</option>
-                  <option value="Self Employed">Self Employed</option>
-                </select>
+                <div class="select-with-btn">
+                  <select id="nomineeOccupationSelect">
+                    <option value="">Select Occupation</option>
+                    <option value="Housewife">Housewife</option>
+                    <option value="Labour">Labour</option>
+                    <option value="Service">Service</option>
+                    <option value="Self Employed">Self Employed</option>
+                  </select>
+                  <button type="button" class="btn-small bg-blue" onclick="promptAddNewNomineeOccupation()" title="Add Nominee Occupation">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
               </div>
-              <div class="form-group"><label>Nominee DOB</label><input type="date" id="nomineeDob"></div>
-              <div class="form-group"><label>Nominee Aadhaar</label><input type="text" id="nomineeAadhaar" maxlength="12"></div>
-              <div class="form-group"><label>Relation with Applicant *</label><input type="text" id="relationWithApplicant" required></div>
+
+              <div class="form-group">
+                <label>Nominee DOB</label>
+                <input type="date" id="nomineeDob">
+              </div>
+              
+              <!-- 🟢 Nominee Aadhaar Validation (12 digits only) -->
+              <div class="form-group">
+                <label>Nominee Aadhaar</label>
+                <input type="text" id="nomineeAadhaar" maxlength="12" pattern="\d{12}" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="12-digit number">
+              </div>
+              
+              <!-- 🟢 Relation with Applicant Dropdown with Plus Icon -->
+              <div class="form-group">
+                <label>Relation with Applicant *</label>
+                <div class="select-with-btn">
+                  <select id="relationWithApplicant" required>
+                    <option value="">Select Relation</option>
+                    <option value="Father's">Father's</option>
+                    <option value="Husband's">Husband's</option>
+                    <option value="Wife">Wife</option>
+                    <option value="Daughter">Daughter</option>
+                    <option value="Son">Son</option>
+                  </select>
+                  <button type="button" class="btn-small bg-blue" onclick="promptAddNewRelation()" title="Add Custom Relation">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
 
-          <!-- Form Actions -->
-          <div class="form-actions" style="margin-top: 20px;">
-            <button type="submit" id="submit-btn" class="btn-primary" style="background-color: #eab308; color: white;">Update Customer</button>
+          <div class="form-actions">
+            <button type="submit" id="submit-btn" class="btn-primary">Update Customer</button>
             <button type="button" class="btn-secondary" onclick="window.location.href='CustomerDetails.html'">Cancel</button>
           </div>
-
         </form>
       </section>
     </main>
   </div>
 
+  <script>
+    function validatePhotoSize(fileInput) {
+      const maxSize = 1 * 1024 * 1024; // 1 MB
+      const errorMsg = document.getElementById("photo-error");
+      if (fileInput.files && fileInput.files[0]) {
+        if (fileInput.files[0].size > maxSize) {
+          errorMsg.style.display = "block";
+          fileInput.value = "";
+        } else {
+          errorMsg.style.display = "none";
+        }
+      }
+    }
+
+    function promptAddNewRelation() {
+      const relationSelect = document.getElementById("relationWithApplicant");
+      const newRelation = prompt("Enter new custom relation:");
+      if (newRelation && newRelation.trim() !== "") {
+        const cleanVal = newRelation.trim();
+        const exists = Array.from(relationSelect.options).some(opt => opt.value.toLowerCase() === cleanVal.toLowerCase());
+        if (!exists) {
+          const option = document.createElement("option");
+          option.value = cleanVal;
+          option.text = cleanVal;
+          relationSelect.appendChild(option);
+          relationSelect.value = cleanVal;
+        } else {
+          relationSelect.value = Array.from(relationSelect.options).find(opt => opt.value.toLowerCase() === cleanVal.toLowerCase()).value;
+        }
+      }
+    }
+  </script>
+
   <script src="js/common.js"></script>
-  <!-- নতুন এডিট ফাইলটি কানেক্ট করা হলো -->
-  <script src="js/customer_edit.js"></script> 
+  <script src="js/customer_edit.js"></script>
 </body>
 </html>

@@ -30,7 +30,7 @@ async function loadDashboardData() {
   }
 }
 
-// 🟢 RD Loan ক্যালকুলেশন লজিক
+// 🟢 RD Loan ক্যালকুলেশন লজিক (Interest% ছাড়া)
 function updateRDLoanMetrics(activeCustomers, allCollections) {
   let totalRDAmount = 0;
   let totalRDCollection = 0;
@@ -39,23 +39,45 @@ function updateRDLoanMetrics(activeCustomers, allCollections) {
     const loanType = String(cust["Loan Type"] || "").trim().toLowerCase();
 
     if (loanType === "rd loan") {
-      let unitAmount = parseFloat(cust["Loan Amount"] || 0);
-      let duration = parseFloat(cust["Duration (Days)"] || 365);
-      if (duration === 0) duration = 365;
+      let unitAmount = 0;
+      for (let key in cust) {
+        if (key.trim().toLowerCase().includes("loan amount") || key.trim().toLowerCase().includes("rd amount")) {
+            unitAmount = parseFloat(cust[key]) || 0;
+            break;
+        }
+      }
 
-      let rawInterest = String(cust["Interest %"] || "0").replace("%", "").trim();
-      let interestPercent = parseFloat(rawInterest) || 0;
+      let duration = 0;
+      for (let key in cust) {
+        if (key.trim().toLowerCase().includes("duration")) {
+            duration = parseFloat(cust[key]);
+            break;
+        }
+      }
+      
+      // যদি ডিউরেশন পাওয়া না যায় বা ০ হয়, তবে ডিফল্ট ৩৬৫ দিন
+      if (isNaN(duration) || duration === 0) duration = 365;
 
+      // শুধুমাত্র আসল টাকা (Interest ছাড়া)
       let principalAmount = unitAmount * duration;
-      let interestAmount = (principalAmount * interestPercent) / 100;
-
-      totalRDAmount += (principalAmount + interestAmount);
+      totalRDAmount += principalAmount;
     }
   });
 
   allCollections.forEach(col => {
-    totalRDCollection += parseFloat(col["Amount"] || 0);
+    // শুধুমাত্র RD Loan-এর কালেকশন যোগ করা হচ্ছে
+    const colLoanType = String(col["Loan Type"] || "").trim().toLowerCase();
+    if (colLoanType === "rd loan" || colLoanType.includes("rd")) {
+      totalRDCollection += parseFloat(col["Amount"] || 0);
+    }
   });
+
+  // কালেকশন টেবিলে লোন টাইপ না থাকলে সেফটি হিসেবে টোটাল কালেকশন নেওয়া
+  if (totalRDCollection === 0 && allCollections.length > 0) {
+      allCollections.forEach(col => {
+          totalRDCollection += parseFloat(col["Amount"] || 0);
+      });
+  }
 
   let rdDueAmount = totalRDAmount - totalRDCollection;
   if (rdDueAmount < 0) rdDueAmount = 0;

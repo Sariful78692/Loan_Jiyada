@@ -1,7 +1,7 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwYMeCZvo-mBg7EA_Itg1TZYkUdzykgAtCpC3vdsJiAl22q5axER10Goy18FrYCUbnGhw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw6Rvkbo8aPiPW0J4gFzAiF0TZXybkfquoLMa5jK42TQJGguQZ0yuq5pPDUzxXA7MkNwg/exec";
 
 document.addEventListener("DOMContentLoaded", function () {
   requireLogin(); // সবার আগে লগইন চেক

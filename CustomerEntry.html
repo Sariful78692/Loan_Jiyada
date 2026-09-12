@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customer Entry - Loan Manager</title>
+  <title>Customer Entry - Loan Management</title>
   <link rel="stylesheet" href="css/common.css">
   <link rel="stylesheet" href="css/customer.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,7 +14,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="brand">
-        <h2>Loan Manager</h2>
+        <h2>Loan Management</h2>
       </div>
       <ul class="nav-menu">
         <li class="nav-item">
@@ -37,7 +37,6 @@
           <a href="#" class="nav-link submenu-toggle">
             <i class="fa-solid fa-hand-holding-dollar"></i> Loan Type <i class="fa-solid fa-chevron-down arrow"></i>
           </a>
-          <!-- id="sidebar-loan-list" দেওয়া হয়েছে যাতে JS দিয়ে নতুন লোন এখানে ঢোকানো যায় -->
           <ul class="submenu" id="sidebar-loan-list">
             <li><a href="CustomerDetails.html?loan=RD Loan">RD Loan</a></li>
             <li><a href="CustomerDetails.html?loan=Group Loan">Group Loan</a></li>
@@ -62,7 +61,6 @@
           <input type="hidden" id="existing-photo-url" value="">
 
           <!-- Personal Details -->
-         
           <div class="form-card">
             <h3>Personal Details</h3>
             <div class="form-grid">
@@ -88,16 +86,36 @@
                 </select>
               </div>
               <div class="form-group"><label>DOB *</label><input type="date" id="dob" required></div>
-              <div class="form-group"><label>Religion</label><input type="text" id="religion"></div>
-              <div class="form-group"><label>Aadhaar No *</label><input type="text" id="aadhaarNo" maxlength="12" required></div>
-              <div class="form-group"><label>Mobile No *</label><input type="tel" id="mobileNo" maxlength="10" required></div>
               
-              <!-- নতুন Address ফিল্ড যোগ করা হলো -->
+              <!-- 🟢 Religion Dropdown -->
+              <div class="form-group">
+                <label>Religion</label>
+                <select id="religion">
+                  <option value="">Select Religion</option>
+                  <option value="Muslim">Muslim</option>
+                  <option value="Hinduism">Hinduism</option>
+                </select>
+              </div>
+              
+              <!-- 🟢 Aadhaar No Validation (12 digits only) -->
+              <div class="form-group">
+                <label>Aadhaar No *</label>
+                <input type="text" id="aadhaarNo" maxlength="12" pattern="\d{12}" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="12-digit number" required>
+              </div>
+              
+              <!-- 🟢 Mobile No Validation (10 digits only) -->
+              <div class="form-group">
+                <label>Mobile No *</label>
+                <input type="text" id="mobileNo" maxlength="10" pattern="\d{10}" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="10-digit number" required>
+              </div>
+              
               <div class="form-group"><label>Address *</label><input type="text" id="address" placeholder="Enter Full Address" required></div>
 
+              <!-- 🟢 Photo Upload with 1 MB validation -->
               <div class="form-group">
                 <label>Photo (Max 1 MB)</label>
-                <input type="file" id="photoInput" accept="image/*">
+                <input type="file" id="photoInput" accept="image/*" onchange="validatePhotoSize(this)">
+                <small id="photo-error" style="color: #ef4444; font-size: 12px; font-weight: bold; display: none; margin-top: 5px;">File size must be less than 1 MB!</small>
                 <div class="preview-box">
                   <img id="photoPreview" src="" alt="Photo Preview" class="hidden-preview">
                 </div>
@@ -137,7 +155,7 @@
             </div>
           </div>
 
-          <!-- RD Loan Details (Hidden by default, shows only when RD Loan is selected) -->
+          <!-- RD Loan Details -->
           <div class="form-card hidden" id="rd-loan-details" style="border: 1px solid #38bdf8; background-color: #f0fdfa;">
             <h3 style="color: #0369a1;"><i class="fa-solid fa-hand-holding-dollar"></i> RD Loan Details</h3>
             <div class="form-grid">
@@ -185,7 +203,6 @@
                 </select>
               </div>
               
-              <!-- ঠিক করা Nominee Occupation ফিল্ড (প্লাস বাটন সহ) -->
               <div class="form-group">
                 <label>Nominee Occupation</label>
                 <div class="select-with-btn">
@@ -203,8 +220,31 @@
               </div>
 
               <div class="form-group"><label>Nominee DOB</label><input type="date" id="nomineeDob"></div>
-              <div class="form-group"><label>Nominee Aadhaar</label><input type="text" id="nomineeAadhaar" maxlength="12"></div>
-              <div class="form-group"><label>Relation with Applicant *</label><input type="text" id="relationWithApplicant" required></div>
+              
+              <!-- 🟢 Nominee Aadhaar Validation (12 digits only) -->
+              <div class="form-group">
+                <label>Nominee Aadhaar</label>
+                <input type="text" id="nomineeAadhaar" maxlength="12" pattern="\d{12}" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="12-digit number">
+              </div>
+              
+              <!-- 🟢 Relation with Applicant Dropdown with Plus Icon -->
+              <div class="form-group">
+                <label>Relation with Applicant *</label>
+                <div class="select-with-btn">
+                  <select id="relationWithApplicant" required>
+                    <option value="">Select Relation</option>
+                    <option value="Father's">Father's</option>
+                    <option value="Husband's">Husband's</option>
+                    <option value="Wife">Wife</option>
+                    <option value="Daughter">Daughter</option>
+                    <option value="Son">Son</option>
+                  </select>
+                  <button type="button" class="btn-small bg-blue" onclick="promptAddNewRelation()" title="Add Custom Relation">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
 
@@ -216,7 +256,7 @@
       </section>
     </main>
   </div>
-  <!-- Gold Loan Modal Popup -->
+
   
 
   <script src="js/common.js"></script>

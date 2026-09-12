@@ -1,0 +1,183 @@
+/* 🟢 Layout & Base */
+.main-content {
+    background: #f8fafc;
+    min-height: 100vh;
+}
+
+.settings-container {
+    max-width: 650px; /* পেজের সাইজ ছোট করা হয়েছে */
+    margin: 30px auto;
+    padding: 0 15px;
+}
+
+.settings-header {
+    margin-bottom: 20px;
+}
+
+.settings-header h1 {
+    font-size: 22px;
+    color: #1e293b;
+    margin-bottom: 4px;
+    font-weight: 700;
+}
+
+.settings-header p {
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* 🟢 Animations */
+@keyframes slideUpFade {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animated-item {
+    opacity: 0;
+    animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 🟢 Settings Cards (Compact Design) */
+.settings-card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    margin-bottom: 15px;
+    border: 1px solid #e2e8f0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings-card:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.06);
+}
+
+.settings-card.border-green {
+    border-left: 3px solid #10b981;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.settings-card h3 {
+    font-size: 15px;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.settings-card h3 i { color: #6366f1; font-size: 14px; }
+.text-green { color: #10b981 !important; }
+.text-green i { color: #10b981 !important; }
+
+.badge {
+    font-size: 11px;
+    color: #059669;
+    font-weight: 600;
+    background: #d1fae5;
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+.info-text {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+/* 🟢 Forms & Inputs (Compact) */
+.compact-form .input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 15px;
+}
+
+.compact-form .input-group {
+    flex: 1;
+}
+
+.input-group.full-width {
+    margin-bottom: 15px;
+}
+
+.compact-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #475569;
+    font-size: 12px;
+}
+
+.compact-form input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s ease;
+    background: #f8fafc;
+}
+
+.compact-form input:focus {
+    background: #ffffff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* 🟢 Buttons */
+.btn-save {
+    background: #6366f1;
+    color: white;
+    border: none;
+    padding: 9px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+    height: 36px;
+    white-space: nowrap;
+}
+
+.btn-save:hover {
+    background: #4f46e5;
+}
+
+.btn-save:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+}
+
+.btn-green {
+    background: #10b981;
+}
+
+.btn-green:hover {
+    background: #059669;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .compact-form .input-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .btn-save {
+        width: 100%;
+    }
+}

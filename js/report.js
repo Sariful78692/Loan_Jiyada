@@ -4,12 +4,12 @@ document.addEventListener("DOMContentLoaded", async function () {
 });
 
 let allCollectionsData = [];
-let allClosedCollectionsData = []; // 🟢 ক্লোজড কালেকশনের জন্য
+let allClosedCollectionsData = []; 
 let allCustomersData = [];
 let allGoldLoansData = [];
 let currentReportType = "collections";
 
-// সাইডবার থেকে লোন টাইপগুলো রিড করে ড্রপডাউনে বসানো
+// 🟢 সাইডবার থেকে লোন টাইপগুলো রিড করে ড্রপডাউনে বসানো
 function populateLoanDropdownFromSidebar() {
   const select = document.getElementById("reportFilter");
   if (!select) return;
@@ -38,6 +38,41 @@ function populateLoanDropdownFromSidebar() {
   });
 }
 
+// 🟢 ডাইনামিক ইয়ার (Year) ফিল্টার অপশন তৈরি করা
+function populateDynamicYears() {
+  const yearSelect = document.getElementById("reportYearFilter");
+  if (!yearSelect) return;
+
+  // বর্তমান অপশন ক্লিয়ার করে শুধু 'All Years' রাখা হচ্ছে
+  yearSelect.innerHTML = '<option value="All">All Years</option>';
+  
+  let yearsSet = new Set();
+
+  allCustomersData.forEach(cust => {
+    let dateStr = cust["Start Date"];
+    if (dateStr) {
+      if (typeof dateStr === "string" && dateStr.includes("T")) dateStr = dateStr.split("T")[0];
+      let year = null;
+      if (dateStr.includes("-")) {
+        const parts = dateStr.split("-");
+        year = parts[0].length === 4 ? parts[0] : parts[2]; // yyyy-mm-dd or dd-mm-yyyy চেক
+      }
+      if (year && year.length === 4) {
+        yearsSet.add(year);
+      }
+    }
+  });
+
+  // সালগুলো ছোট থেকে বড় সাজিয়ে ড্রপডাউনে বসানো
+  let sortedYears = Array.from(yearsSet).sort((a, b) => a - b);
+  sortedYears.forEach(year => {
+    const option = document.createElement("option");
+    option.value = year;
+    option.innerText = year;
+    yearSelect.appendChild(option);
+  });
+}
+
 async function fetchReportData() {
   const tbody = document.getElementById("report-table-body");
   if (!tbody) return;
@@ -61,10 +96,11 @@ async function fetchReportData() {
 
     allGoldLoansData = data.gold_loans || [];
     
+    populateDynamicYears(); // 🟢 ডেটা ফেচ হওয়ার পর ইয়ার ড্রপডাউন আপডেট করা হচ্ছে
     renderCurrentReport();
   } catch (err) {
     console.error("Failed to load report data", err);
-    tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red; padding: 20px;">Failed to load report data.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; color: red; padding: 20px;">Failed to load report data.</td></tr>`;
   }
 }
 
@@ -91,7 +127,6 @@ function renderCurrentReport() {
     renderCollectionsTable(currentStatus === "Closed" ? allClosedCollectionsData : allCollectionsData, currentStatus);
   } else {
     let filteredCustomers = allCustomersData.filter(c => {
-      
       let dbStatus = String(c["Status"] || "").trim().toLowerCase();
       if (dbStatus !== "closed") {
         dbStatus = "active"; 
@@ -113,7 +148,6 @@ function renderCurrentReport() {
   }
 }
 
-// পার্মানেন্ট ডেট ফিক্স
 function formatDate(dateStr) {
   if (!dateStr) return "N/A";
   if (typeof dateStr === "string" && dateStr.includes("T")) {
@@ -128,12 +162,10 @@ function formatDate(dateStr) {
   return dateStr;
 }
 
-
 // ========================================================
 // 🟢 টেবিল রেন্ডারিং সেকশন 
 // ========================================================
 
-// কালেকশন টেবিল রেন্ডার
 function renderCollectionsTable(data, status) {
   const headerRow = document.getElementById("table-header-row");
   const tbody = document.getElementById("report-table-body");
@@ -144,13 +176,13 @@ function renderCollectionsTable(data, status) {
     <th style="padding: 12px;">Loan Type</th>
     <th style="padding: 12px;">Collection Date</th>
     <th style="padding: 12px;">Amount</th>
-    <th style="padding: 12px; text-align: center;">Actions</th>
+    <th class="no-print" style="padding: 12px; text-align: center;">Actions</th>
   `;
 
   tbody.innerHTML = "";
   if (data.length === 0) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
-    filterTableAndCalculateTotal(); // ডেটা না থাকলেও টোটাল ০ করার জন্য কল করা হলো
+    filterTableAndCalculateTotal(); 
     return;
   }
 
@@ -162,9 +194,6 @@ function renderCollectionsTable(data, status) {
         <span style="background: #f1f5f9; color: #64748b; padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px;">
           <i class="fa-solid fa-lock"></i> Archived
         </span>
-        <button onclick="deleteCollection('${item["Collection ID"]}')" style="background: #ef4444; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer;" title="Delete">
-          <i class="fa-solid fa-trash"></i>
-        </button>
       `;
     } else {
       actionHtml = `
@@ -184,16 +213,14 @@ function renderCollectionsTable(data, status) {
       <td style="padding: 10px 15px; font-weight: bold; color: #0284c7;">${item["Loan Type"] || "N/A"}</td>
       <td style="padding: 10px 15px;">${formatDate(item["Collection Date"])}</td>
       <td style="padding: 10px 15px; font-weight: bold; color: #10b981;">₹ ${item["Amount"] || "0"}</td>
-      <td style="padding: 10px 15px; text-align: center; white-space: nowrap;">${actionHtml}</td>
+      <td class="no-print" style="padding: 10px 15px; text-align: center; white-space: nowrap;">${actionHtml}</td>
     `;
     tbody.appendChild(tr);
   });
 
-  // 🟢 টেবিল রেন্ডার হওয়ার পর টোটাল হিসাব করার ফাংশন কল করা হলো
   filterTableAndCalculateTotal(); 
 }
 
-// কাস্টমার টেবিল রেন্ডার
 function renderCustomersTable(data, status) {
   const headerRow = document.getElementById("table-header-row");
   const tbody = document.getElementById("report-table-body");
@@ -213,12 +240,13 @@ function renderCustomersTable(data, status) {
     <th style="padding: 10px; font-size: 12px; white-space: nowrap;">Start Date</th>
     <th style="padding: 10px; font-size: 12px; white-space: nowrap;">Total Amount</th>
     <th style="padding: 10px; font-size: 12px; white-space: nowrap;">G.Total</th>
+    <th style="padding: 10px; font-size: 12px; white-space: nowrap; color: #d97706;">Maturity Amount</th>
     <th class="no-print" style="padding: 10px; font-size: 12px; text-align: center;">Action</th>
   `;
 
   tbody.innerHTML = "";
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; padding: 20px; color: #64748b;">No records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; padding: 20px; color: #64748b;">No records found.</td></tr>`;
     filterTableAndCalculateTotal();
     return;
   }
@@ -227,7 +255,7 @@ function renderCustomersTable(data, status) {
 
   data.forEach((cust) => {
     const custId = String(cust["ID"] || "").trim();
-    const unitAmount = parseFloat(cust["Loan Amount"]) || 0;
+    const unitAmount = parseFloat(cust["Loan Amount"] || cust["RD Amount"] || cust["Amount"]) || 0;
     const rawInterest = String(cust["Interest %"] || cust["Interest Rate"] || "0").replace("%", "").trim();
     const interestPercent = parseFloat(rawInterest) || 0;
 
@@ -235,6 +263,13 @@ function renderCustomersTable(data, status) {
     const totalAmount = unitAmount * collectionCount;
     const interestAmount = (totalAmount * interestPercent) / 100;
     const gTotalAmount = totalAmount + interestAmount;
+
+    let duration = parseFloat(cust["Duration (Days)"] || cust["Duration Days"] || cust["Duration"]) || 0;
+    if (duration === 0) duration = 365; 
+
+    const maturityPrincipal = unitAmount * duration;
+    const maturityInterest = (maturityPrincipal * interestPercent) / 100;
+    const maturityAmount = maturityPrincipal + maturityInterest;
 
     const relationVal = cust["Relation With Applicant"] || cust["Relation"] || cust["Relation with Applicant"] || "N/A";
 
@@ -251,9 +286,10 @@ function renderCustomersTable(data, status) {
       <td style="padding: 8px 10px; font-size: 12px;">${cust["Nominee Gender"] || "N/A"}</td>
       <td style="padding: 8px 10px; font-size: 12px;">${relationVal}</td>
       <td style="padding: 8px 10px; font-size: 12px; font-weight: bold;">₹ ${unitAmount}</td>
-      <td style="padding: 8px 10px; font-size: 12px;">${formatDate(cust["Start Date"])}</td>
+      <td style="padding: 8px 10px; font-size: 12px;" class="date-column">${formatDate(cust["Start Date"])}</td>
       <td style="padding: 8px 10px; font-size: 12px; font-weight: bold; color: #2563eb;">₹ ${totalAmount}</td>
       <td style="padding: 8px 10px; font-size: 12px; font-weight: bold; color: #10b981;">₹ ${gTotalAmount.toFixed(2)}</td>
+      <td style="padding: 8px 10px; font-size: 12px; font-weight: bold; color: #d97706;">₹ ${maturityAmount.toFixed(2)}</td>
       <td class="no-print" style="padding: 8px 10px; text-align: center;">
         <button onclick="printCustomerProfile('${custId}')" style="background: #0284c7; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer;" title="Print Customer Form">
           <i class="fa-solid fa-print"></i>
@@ -263,13 +299,11 @@ function renderCustomersTable(data, status) {
     tbody.appendChild(tr);
   });
 
-  // 🟢 টেবিল রেন্ডার হওয়ার পর টোটাল হিসাব করার ফাংশন কল করা হলো
   filterTableAndCalculateTotal();
 }
 
-
 // ========================================================
-// 🟢 ফিল্টার এবং টোটাল হিসাব করার ম্যাজিক সেকশন (নিয়মিত আপডেট)
+// 🟢 ফিল্টার এবং টোটাল হিসাব
 // ========================================================
 
 function filterReport() {
@@ -277,7 +311,6 @@ function filterReport() {
 }
 
 function filterTableAndCalculateTotal() {
-  // ১. ইনপুট ফিল্ড থেকে ভ্যালুগুলো নেওয়া
   const searchInputEl = document.getElementById("reportSearchInput");
   const yearFilterEl = document.getElementById("reportYearFilter");
   const startDateEl = document.getElementById("startDate");
@@ -286,7 +319,6 @@ function filterTableAndCalculateTotal() {
   const searchText = searchInputEl ? searchInputEl.value.toLowerCase() : "";
   const filterYear = yearFilterEl ? yearFilterEl.value : "All";
   
-  // Date Object এ কনভার্ট করা
   const start = (startDateEl && startDateEl.value) ? new Date(startDateEl.value) : null;
   const end = (endDateEl && endDateEl.value) ? new Date(endDateEl.value) : null;
 
@@ -295,16 +327,13 @@ function filterTableAndCalculateTotal() {
   const rows = tbody.getElementsByTagName("tr");
 
   let totalCollection = 0;
-
-  // ২. কোন কলাম থেকে ডেট এবং অ্যামাউন্ট নেবে তা নির্ধারণ করা
   const isCollectionReport = (currentReportType === "collections");
   const dateColIndex = isCollectionReport ? 3 : 11; 
-  const amountColIndex = isCollectionReport ? 4 : 13;
+  const amountColIndex = isCollectionReport ? 4 : 13; 
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     
-    // হেডার বা 'No records found' রো বাদ দেওয়া
     if (row.getElementsByTagName("th").length > 0 || row.textContent.includes("No records found") || row.textContent.includes("No active collection")) {
       continue;
     }
@@ -313,18 +342,14 @@ function filterTableAndCalculateTotal() {
     if (cells.length <= amountColIndex) continue;
 
     const rowText = row.textContent.toLowerCase();
-    const rowOriginalText = row.textContent;
-
-    // ৩. সার্চ এবং ইয়ার ম্যাচ করানো
+    const dateText = cells[dateColIndex].innerText.trim();
+    
     const matchSearch = rowText.includes(searchText);
-    const matchYear = (filterYear === "All" || rowOriginalText.includes(filterYear));
+    const matchYear = (filterYear === "All" || dateText.includes(filterYear));
 
-    // ৪. ডেট রেঞ্জ (Date Range) ম্যাচ করানো
     let matchDateRange = true;
     if (start || end) {
-      const dateText = cells[dateColIndex].innerText.trim(); 
       const dateParts = dateText.split('-'); 
-      
       if (dateParts.length === 3) {
         const rowDate = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
         if (start && rowDate < start) matchDateRange = false;
@@ -334,7 +359,6 @@ function filterTableAndCalculateTotal() {
       }
     }
 
-    // ৫. সবকিছু ম্যাচ করলে রো দেখাবে এবং টোটাল যোগ করবে
     if (matchSearch && matchYear && matchDateRange) {
       row.style.display = ""; 
       
@@ -349,7 +373,6 @@ function filterTableAndCalculateTotal() {
     }
   }
 
- // 🟢 ৬. UI তে ফিল্টার অনুযায়ী ডাইনামিক নাম আপডেট করা
   const totalLabel = document.getElementById("totalLabelDisplay");
   if (totalLabel) {
     if (currentReportType === "collections") {
@@ -357,12 +380,10 @@ function filterTableAndCalculateTotal() {
     } else if (currentReportType === "All") {
       totalLabel.innerText = "All Customers Total Amount";
     } else {
-      // যেমন: RD Loan Total Amount, Group Loan Total Amount
       totalLabel.innerText = `${currentReportType} Total Amount`;
     }
   }
 
-  // ৭. UI তে টোটাল আপডেট করা (ভারতীয় টাকার ফরম্যাটে)
   const totalDisplay = document.getElementById("totalAmountDisplay");
   if (totalDisplay) {
     totalDisplay.innerText = "₹ " + totalCollection.toLocaleString('en-IN', {
@@ -372,31 +393,78 @@ function filterTableAndCalculateTotal() {
   }
 }
 
-// ক্লিয়ার ফিল্টার বাটন ফাংশন
 function clearFilters() {
   if(document.getElementById("startDate")) document.getElementById("startDate").value = "";
   if(document.getElementById("endDate")) document.getElementById("endDate").value = "";
   if(document.getElementById("reportSearchInput")) document.getElementById("reportSearchInput").value = "";
   if(document.getElementById("reportYearFilter")) document.getElementById("reportYearFilter").value = "All";
   
-  // সব ফিল্টার ফাঁকা করার পর টেবিল আবার আপডেট করা
   filterTableAndCalculateTotal(); 
 }
 
+// ========================================================
+// 🟢 Print & Excel Export 
+// ========================================================
+
+function printReport() {
+  window.print();
+}
+
+function exportToExcel() {
+  const tbody = document.getElementById("report-table-body");
+  const rows = tbody.querySelectorAll("tr");
+  let exportData = [];
+
+  const headers = Array.from(document.querySelectorAll("#table-header-row th"))
+                       .map(th => th.innerText.trim())
+                       .filter(text => text.toLowerCase() !== "action" && text.toLowerCase() !== "actions");
+
+  rows.forEach(row => {
+      if (row.style.display !== "none" && !row.innerText.includes("No records found") && !row.innerText.includes("No active collection")) {
+          const cells = row.querySelectorAll("td");
+          let rowData = {};
+          
+          cells.forEach((cell, index) => {
+              if (index < headers.length) {
+                  let text = cell.innerText.trim();
+                  if (text.startsWith("₹")) {
+                      text = parseFloat(text.replace(/[^0-9.-]+/g, ""));
+                  }
+                  rowData[headers[index]] = text;
+              }
+          });
+          exportData.push(rowData);
+      }
+  });
+
+  if (exportData.length === 0) {
+      alert("No data available to export! Please check your filters.");
+      return;
+  }
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+  const sheetName = currentReportType === "All" ? "All_Data" : currentReportType.replace(/[^a-zA-Z0-9]/g, "_");
+  
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  XLSX.writeFile(workbook, `${sheetName}_Report.xlsx`);
+}
 
 // ========================================================
-// 🟢 অন্যান্য ফাংশন (Print, Export, Edit, Delete)
+// 🟢 Customer Profile Print Function (Deep Black & Bordered)
 // ========================================================
 
 function printCustomerProfile(custId) {
   const cust = allCustomersData.find(c => String(c["ID"]).trim() === custId);
-  if (!cust) return;
+  if (!cust) {
+      alert("Customer data not found!");
+      return;
+  }
 
   const statusFilterEl = document.getElementById("reportStatusFilter");
-  const currentStatus = statusFilterEl ? statusFilterEl.value : "Active";
   const relevantCollections = statusFilterEl && statusFilterEl.value === "Closed" ? allClosedCollectionsData : allCollectionsData;
 
-  const unitAmount = parseFloat(cust["Loan Loan"] || cust["Loan Amount"]) || 0;
+  const unitAmount = parseFloat(cust["Loan Amount"] || cust["RD Amount"] || cust["Amount"]) || 0;
   const rawInterest = String(cust["Interest %"] || cust["Interest Rate"] || "0").replace("%", "").trim();
   const interestPercent = parseFloat(rawInterest) || 0;
 
@@ -407,191 +475,157 @@ function printCustomerProfile(custId) {
   const interestAmount = (totalAmount * interestPercent) / 100;
   const gTotalAmount = totalAmount + interestAmount;
 
-  document.getElementById("print-p-name").innerText = cust["Customer Name"] || "N/A";
-  document.getElementById("print-p-mobile").innerText = cust["Mobile No"] || "N/A";
-  document.getElementById("print-p-dob").innerText = formatDate(cust["DOB"]);
-  document.getElementById("print-p-guardian").innerText = cust["Guardian Name"] || "N/A";
-  document.getElementById("print-p-aadhar").innerText = cust["Aadhaar No"] || "N/A";
-  document.getElementById("print-p-occupation").innerText = cust["Occupation"] || "N/A";
-  document.getElementById("print-p-address").innerText = cust["Address"] || "N/A";
+  // Maturity Amount Calculation
+  let duration = parseFloat(cust["Duration (Days)"] || cust["Duration Days"] || cust["Duration"]) || 0;
+  if (duration === 0) duration = 365; 
+  const maturityPrincipal = unitAmount * duration;
+  const maturityInterest = (maturityPrincipal * interestPercent) / 100;
+  const maturityAmount = maturityPrincipal + maturityInterest;
 
-  document.getElementById("print-l-type").innerText = cust["Loan Type"] || "N/A";
-  document.getElementById("print-l-date").innerText = formatDate(cust["Start Date"]);
-  document.getElementById("print-l-amount").innerText = "₹ " + unitAmount;
-  document.getElementById("print-l-interest").innerText = interestPercent + "% (₹ " + interestAmount.toFixed(2) + ")";
-  document.getElementById("print-l-total").innerText = "₹ " + totalAmount;
-  document.getElementById("print-l-gtotal").innerText = "₹ " + gTotalAmount.toFixed(2);
-
-  document.getElementById("print-n-name").innerText = cust["Nominee Name"] || "N/A";
-  document.getElementById("print-n-relation").innerText = cust["Relation With Applicant"] || "N/A";
-  document.getElementById("print-n-gender").innerText = cust["Nominee Gender"] || "N/A";
-
-  const historyBody = document.getElementById("print-collection-history-body");
-  historyBody.innerHTML = "";
-
+  let historyRows = "";
   if (customerCollections.length === 0) {
-    historyBody.innerHTML = `<tr><td colspan="3" style="border: 1px solid #000; text-align: center; padding: 8px; color: #64748b;">No collection history found.</td></tr>`;
+    historyRows = `<tr><td colspan="3" style="border: 1px solid #000; text-align: center; padding: 12px; color: #000;">No collection history found.</td></tr>`;
   } else {
     customerCollections.forEach((col, index) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td style="border: 1px solid #000; padding: 6px; text-align: center; font-size: 12px;">${index + 1}</td>
-        <td style="border: 1px solid #000; padding: 6px; text-align: center; font-size: 12px;">${formatDate(col["Collection Date"])}</td>
-        <td style="border: 1px solid #000; padding: 6px; text-align: center; font-size: 12px; font-weight: bold;">₹ ${col["Amount"] || unitAmount}</td>
+      historyRows += `
+        <tr>
+          <td style="border: 1px solid #000; padding: 8px; text-align: center; color: #000;">${index + 1}</td>
+          <td style="border: 1px solid #000; padding: 8px; text-align: center; color: #000;">${formatDate(col["Collection Date"])}</td>
+          <td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">₹ ${col["Amount"] || unitAmount}</td>
+        </tr>
       `;
-      historyBody.appendChild(tr);
     });
   }
 
-  window.print();
-}
-
-function openEditModal(collId) {
-  const item = allCollectionsData.find(c => c["Collection ID"] === collId);
-  if (!item) return;
-
-  document.getElementById("edit-coll-id").value = item["Collection ID"];
-  let rawDate = item["Collection Date"] || "";
-  if (rawDate.includes("T")) rawDate = rawDate.split("T")[0];
-  document.getElementById("edit-coll-date").value = rawDate;
-  document.getElementById("edit-coll-amount").value = item["Amount"];
-  document.getElementById("edit-collection-modal").classList.remove("hidden");
-}
-
-function closeEditModal() {
-  document.getElementById("edit-collection-modal").classList.add("hidden");
-}
-
-async function updateCollection() {
-  const collId = document.getElementById("edit-coll-id").value;
-  const date = document.getElementById("edit-coll-date").value;
-  const amount = document.getElementById("edit-coll-amount").value;
-
-  if (!date || !amount) {
-    alert("Please fill in all fields!");
-    return;
-  }
-
-  try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "update_collection", collectionId: collId, collectionDate: date, amount: amount })
-    });
-    const result = await res.json();
-    if (result.status === "success") {
-      alert("Collection updated successfully!");
-      closeEditModal();
-      fetchReportData();
-    } else {
-      alert("Failed to update collection.");
-    }
-  } catch (err) {
-    console.error(err);
-    alert("Error updating collection.");
-  }
-}
-
-async function deleteCollection(collId) {
-  if (!confirm("Are you sure you want to delete this collection record?")) return;
-
-  try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "delete_collection", collectionId: collId })
-    });
-    const result = await res.json();
-    if (result.status === "success") {
-      alert("Collection deleted successfully!");
-      fetchReportData();
-    } else {
-      alert("Failed to delete collection.");
-    }
-  } catch (err) {
-    console.error(err);
-    alert("Error deleting collection.");
-  }
-}
-
-function exportToExcel() {
-  const statusFilterEl = document.getElementById("reportStatusFilter");
-  const currentStatus = statusFilterEl ? statusFilterEl.value : "Active";
-  const relevantCollections = currentStatus === "Closed" ? allClosedCollectionsData : allCollectionsData;
-  
-  let exportData = [];
-  let sheetName = currentStatus === "Closed" ? "Closed_Report" : "Report";
-
-  if (currentReportType === "collections") {
-    exportData = relevantCollections.map(item => ({
-      "Customer Name": item["Customer Name"] || "N/A",
-      "Loan Type": item["Loan Type"] || "N/A",
-      "Collection Date": formatDate(item["Collection Date"]),
-      "Amount": item["Amount"] || 0
-    }));
-    sheetName = currentStatus === "Closed" ? "Closed_Collections" : "Active_Collections";
-  } else {
-    let dataToExport = allCustomersData.filter(c => (c["Status"] || "Active").trim() === currentStatus);
-    if (currentReportType !== "All") {
-      dataToExport = dataToExport.filter(c => (c["Loan Type"] || "").trim() === currentReportType.trim());
-    }
-
-    exportData = dataToExport.map(cust => {
-      const custId = String(cust["ID"] || "").trim();
-      const unitAmount = parseFloat(cust["Loan Amount"]) || 0;
-      const rawInterest = String(cust["Interest %"] || cust["Interest Rate"] || "0").replace("%", "").trim();
-      const interestPercent = parseFloat(rawInterest) || 0;
+  // 🟢 প্রিন্ট পেজের HTML (Deep Black Colors & Borders)
+  const printHTML = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Customer Profile - ${cust["Customer Name"]}</title>
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #000000; margin: 0; background: #ffffff; }
+        .header { text-align: center; padding-bottom: 10px; border-bottom: 2px solid #000000; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 22px; text-transform: uppercase; color: #000000; font-weight: bold; }
+        .header p { margin: 5px 0 0; font-size: 14px; color: #000000; font-weight: bold; }
+        
+        .section { margin-bottom: 20px; }
+        .section h3 { 
+            background: #e2e8f0; 
+            padding: 8px 12px; 
+            margin: 0 0 0 0; 
+            border: 1px solid #000000; 
+            border-bottom: none; 
+            font-size: 15px; 
+            color: #000000; 
+            font-weight: bold;
+        }
+        
+        /* Grid with Deep Black Borders */
+        .grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            border-top: 1px solid #000000; 
+            border-left: 1px solid #000000; 
+        }
+        .item { 
+            font-size: 13px; 
+            border-bottom: 1px solid #000000; 
+            border-right: 1px solid #000000; 
+            padding: 8px 12px; 
+            color: #000000;
+        }
+        .item.full-width { grid-column: span 2; }
+        .item strong { display: inline-block; width: 120px; color: #000000; font-weight: bold; }
+        
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 0; font-size: 13px; }
+        th { background: #e2e8f0; border: 1px solid #000000; padding: 8px; text-align: center; color: #000000; font-weight: bold; }
+        td { border: 1px solid #000000; padding: 8px; color: #000000; }
+        
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>LOAN MANAGEMENT SYSTEM</h1>
+        <p>Customer Detailed Profile & Collection Report</p>
+      </div>
       
-      const collectionCount = relevantCollections.filter(col => String(col["Customer ID"]).trim() === custId).length;
-      const totalAmount = unitAmount * collectionCount;
-      const interestAmount = (totalAmount * interestPercent) / 100;
-      const gTotalAmount = totalAmount + interestAmount;
+      <div class="section">
+        <h3>Customer Details</h3>
+        <div class="grid">
+          <div class="item"><strong>Name:</strong> ${cust["Customer Name"] || "N/A"}</div>
+          <div class="item"><strong>Mobile No:</strong> ${cust["Mobile No"] || "N/A"}</div>
+          <div class="item"><strong>DOB:</strong> ${formatDate(cust["DOB"])}</div>
+          <div class="item"><strong>Guardian:</strong> ${cust["Guardian Name"] || "N/A"}</div>
+          <div class="item"><strong>Aadhaar No:</strong> ${cust["Aadhaar No"] || "N/A"}</div>
+          <div class="item"><strong>Occupation:</strong> ${cust["Occupation"] || "N/A"}</div>
+          <div class="item full-width"><strong>Address:</strong> ${cust["Address"] || "N/A"}</div>
+        </div>
+      </div>
 
-      return {
-        "Customer Name": cust["Customer Name"] || "N/A",
-        "DOB": formatDate(cust["DOB"]),
-        "Guardian Name": cust["Guardian Name"] || "N/A",
-        "Mobile No": cust["Mobile No"] || "N/A",
-        "Aadhar Number": cust["Aadhaar No"] || "N/A",
-        "Occupation": cust["Occupation"] || "N/A",
-        "Address": cust["Address"] || "N/A",
-        "Nominee Name": cust["Nominee Name"] || "N/A",
-        "Nominee Gender": cust["Nominee Gender"] || "N/A",
-        "Relation With Applicant": cust["Relation With Applicant"] || "N/A",
-        "RD Amount": unitAmount,
-        "Start Date": formatDate(cust["Start Date"]),
-        "Total Amount": totalAmount,
-        "G.Total Amount": parseFloat(gTotalAmount.toFixed(2)) 
-      };
-    });
-    
-    if (currentReportType !== "All") sheetName = `${currentReportType}_${currentStatus}`;
+      <div class="section">
+        <h3>Loan Details</h3>
+        <div class="grid">
+          <div class="item"><strong>Loan Type:</strong> ${cust["Loan Type"] || "N/A"}</div>
+          <div class="item"><strong>Start Date:</strong> ${formatDate(cust["Start Date"])}</div>
+          <div class="item"><strong>RD Amount:</strong> ₹ ${unitAmount}</div>
+          <div class="item"><strong>Interest Rate:</strong> ${interestPercent}%</div>
+          <div class="item"><strong>Total Collected:</strong> ₹ ${totalAmount}</div>
+          <div class="item"><strong>G.Total:</strong> ₹ ${gTotalAmount.toFixed(2)}</div>
+          <div class="item full-width"><strong>Maturity Amount:</strong> ₹ ${maturityAmount.toFixed(2)}</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Nominee Details</h3>
+        <div class="grid">
+          <div class="item"><strong>Nominee Name:</strong> ${cust["Nominee Name"] || "N/A"}</div>
+          <div class="item"><strong>Relation:</strong> ${cust["Relation With Applicant"] || cust["Relation"] || "N/A"}</div>
+          <div class="item full-width"><strong>Gender:</strong> ${cust["Nominee Gender"] || "N/A"}</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Collection History</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Collection Date</th>
+              <th>Amount Collected</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${historyRows}
+          </tbody>
+        </table>
+      </div>
+    </body>
+    </html>
+  `;
+
+  let printFrame = document.getElementById('hidden-print-frame');
+  if (!printFrame) {
+      printFrame = document.createElement('iframe');
+      printFrame.id = 'hidden-print-frame';
+      printFrame.style.position = 'absolute';
+      printFrame.style.top = '-10000px';
+      printFrame.style.left = '-10000px';
+      document.body.appendChild(printFrame);
   }
 
-  if (exportData.length === 0) {
-    alert("No data available to export!");
-    return;
-  }
+  const frameDoc = printFrame.contentWindow.document;
+  frameDoc.open();
+  frameDoc.write(printHTML);
+  frameDoc.close();
 
-  const worksheet = XLSX.utils.json_to_sheet(exportData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-  
-  XLSX.writeFile(workbook, `${sheetName}.xlsx`);
-}
-
-function printReport() {
-  const statusEl = document.getElementById("reportStatusFilter");
-  const currentStatus = statusEl ? statusFilterEl.value : "Active";
-  
-  let reportName = currentReportType === "All" ? "All Customers" : currentReportType;
-  if (currentReportType === "collections") {
-    reportName = "Collections";
-  }
-
-  document.getElementById("print-report-title").innerText = `${reportName} Report (${currentStatus} Loans)`;
-
-  const today = new Date();
-  const dateStr = today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  document.getElementById("print-date").innerText = `Print Date: ${dateStr}`;
-
-  window.print();
+  setTimeout(() => {
+      printFrame.contentWindow.focus();
+      printFrame.contentWindow.print();
+  }, 500);
 }

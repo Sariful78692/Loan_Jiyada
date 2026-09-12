@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loan Management - Login</title>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/login.css">
 </head>
 <body class="auth-page">
@@ -18,14 +20,23 @@
                 </div>
                 
                 <form id="login-form">
+                    <!-- Username Input -->
                     <div class="input-wrap">
                         <label for="login-username">Username</label>
-                        <input id="login-username" type="text" placeholder="Enter your username" required>
+                        <div class="input-icon-wrapper">
+                            <i class="fa-solid fa-user icon-left"></i>
+                            <input id="login-username" type="text" placeholder="Enter your username" required>
+                        </div>
                     </div>
                     
+                    <!-- Password Input -->
                     <div class="input-wrap">
                         <label for="login-password">Password</label>
-                        <input id="login-password" type="password" placeholder="Enter your password" required>
+                        <div class="input-icon-wrapper">
+                            <i class="fa-solid fa-lock icon-left"></i>
+                            <input id="login-password" type="password" placeholder="Enter your password" required>
+                            <i class="fa-solid fa-eye icon-right" id="togglePassword"></i>
+                        </div>
                     </div>
                     
                     <!-- Remember Me Checkbox -->
@@ -35,7 +46,7 @@
                         </label>
                     </div>
                     
-                    <!-- Forgot Links on the Same Line -->
+                    <!-- Forgot Links -->
                     <div class="forgot-links-row">
                         <button type="button" class="link-btn" onclick="forgotUsername()">Forgot Username?</button>
                         <button type="button" class="link-btn" onclick="forgotPassword()">Forgot Password?</button>
@@ -56,6 +67,16 @@
         </div>
 
     </main>
+
+    <!-- Script for Eye Icon Toggle -->
+    <script>
+        document.getElementById('togglePassword').addEventListener('click', function () {
+            const passwordField = document.getElementById('login-password');
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            this.classList.toggle('fa-eye-slash');
+        });
+    </script>
     <script src="js/login.js"></script>
     <script src="js/common.js"></script>
 </body>

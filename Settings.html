@@ -1,16 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Settings | Loan Manager</title>
+  <title>Settings | Loan Management</title>
   <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/auth.css">
 </head>
+
 <body>
-  <div class="app-container"><aside class="sidebar"><div class="brand"><h2>Loan Manager</h2></div><ul class="nav-menu"><li class="nav-item"><a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li><li class="nav-item"><a href="CustomerEntry.html" class="nav-link"><i class="fa-solid fa-user-plus"></i> Customer Entry</a></li><li class="nav-item"><a href="CustomerDetails.html" class="nav-link"><i class="fa-solid fa-users"></i> Customer Details</a></li><li class="nav-item"><a href="Report.html" class="nav-link"><i class="fa-solid fa-file-invoice"></i> Reports</a></li></ul></aside>
-  <main class="main-content settings-main"><div class="settings-heading"><p class="eyebrow">ACCOUNT</p><h1>Settings</h1><p>Keep your sign-in details up to date.</p></div><div class="settings-grid"><section class="settings-card"><div class="settings-card-icon"><i class="fa-regular fa-user"></i></div><h2>Change username</h2><p>Your current username is <strong id="current-username"></strong>.</p><form id="change-username-form"><label for="new-username">New username</label><input id="new-username" required minlength="3" autocomplete="username"><label for="username-current-password">Current password</label><input id="username-current-password" type="password" required autocomplete="current-password"><p class="form-message" id="username-change-message"></p><button class="primary-button" type="submit">Save username</button></form></section><section class="settings-card"><div class="settings-card-icon"><i class="fa-solid fa-lock"></i></div><h2>Change password</h2><p>Use a password with at least 6 characters.</p><form id="change-password-form"><label for="current-password">Current password</label><input id="current-password" type="password" required autocomplete="current-password"><label for="new-password">New password</label><input id="new-password" type="password" minlength="6" required autocomplete="new-password"><label for="confirm-password">Confirm new password</label><input id="confirm-password" type="password" minlength="6" required autocomplete="new-password"><p class="form-message" id="password-change-message"></p><button class="primary-button" type="submit">Save password</button></form></section></div></main></div>
-  <script src="js/common.js"></script><script src="js/sheet-auth.js"></script>
+  <div class="app-container">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <h2>Loan Manager</h2>
+      </div>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i>
+            Dashboard</a></li>
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-users"></i> Customer Information <i
+              class="fa-solid fa-chevron-down arrow"></i></a>
+          <ul class="submenu">
+            <li><a href="CustomerEntry.html">Customer Entry</a></li>
+            <li><a href="CustomerDetails.html">Customer Details</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a href="Report.html" class="nav-link"><i class="fa-solid fa-file-invoice"></i> Reports</a>
+        </li>
+        <li class="nav-item"><a href="Settings.html" class="nav-link active"><i class="fa-solid fa-gear"></i>
+            Settings</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="settings-container">
+
+        <div class="settings-header animated-item">
+          <h1>Account Settings</h1>
+          <p>Manage your account preferences securely.</p>
+        </div>
+
+        <!-- 🟢 Username Section -->
+        <div class="settings-card animated-item" style="animation-delay: 0.1s;">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-at"></i> Username</h3>
+            <span class="badge" id="display-current-username">Loading...</span>
+          </div>
+          <form id="form-username" class="compact-form">
+            <div class="input-row">
+              <div class="input-group">
+                <label>New Username</label>
+                <input type="text" id="new-username" placeholder="New username" required>
+              </div>
+              <div class="input-group">
+                <label>Current Password</label>
+                <input type="password" id="auth-password-user" placeholder="Required for changes" required>
+              </div>
+              <button type="submit" class="btn-save" id="btn-save-username">Save</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 🟢 Password Section -->
+        <div class="settings-card animated-item" style="animation-delay: 0.2s;">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-key"></i> Security & Password</h3>
+          </div>
+          <form id="form-password" class="compact-form">
+            <div class="input-group full-width">
+              <label>Current Password</label>
+              <input type="password" id="current-password" placeholder="Enter current password" required>
+            </div>
+            <div class="input-row">
+              <div class="input-group">
+                <label>New Password</label>
+                <input type="password" id="new-password" placeholder="Min 6 chars" required minlength="6">
+              </div>
+              <div class="input-group">
+                <label>Confirm Password</label>
+                <input type="password" id="confirm-password" placeholder="Re-type new password" required minlength="6">
+              </div>
+              <button type="submit" class="btn-save" id="btn-save-password">Update</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 🟢 Recovery Section -->
+        <!-- 🟢 Recovery Section (Email + Secret Code) -->
+        <div class="settings-card border-green animated-item" style="animation-delay: 0.3s;">
+          <div class="card-header">
+            <h3 class="text-green"><i class="fa-solid fa-shield-halved"></i> Security Recovery Options</h3>
+            <span class="info-text">Needed for instant recovery.</span>
+          </div>
+          <form id="form-recovery" class="compact-form">
+            <div class="input-row">
+              <div class="input-group">
+                <label>Recovery Email</label>
+                <input type="email" id="recovery-email" placeholder="example@mail.com" required>
+              </div>
+              <div class="input-group">
+                <label>Secret Code (PIN/Name)</label>
+                <input type="text" id="recovery-code" placeholder="e.g. 1234" required>
+              </div>
+            </div>
+            <div class="input-row" style="margin-top: 15px;">
+              <div class="input-group">
+                <label>Current Password (for security)</label>
+                <input type="password" id="auth-password-recovery" placeholder="Required for changes" required>
+              </div>
+              <button type="submit" class="btn-save btn-green" id="btn-save-recovery">Save Recovery Data</button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/settings.js"></script>
 </body>
+
 </html>

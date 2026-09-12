@@ -57,8 +57,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ২. ফর্ম সাবমিট ইভেন্ট
-  const form = document.getElementById("customer-form");
-  if(form) form.addEventListener("submit", handleCustomerUpdateSubmit);
+  const form = document.getElementById("customer-edit-form");
+if(form) form.addEventListener("submit", handleCustomerUpdateSubmit);
 });
 
 // ৩. আপডেট ডেটা সার্ভারে পাঠানো

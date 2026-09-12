@@ -2,7 +2,7 @@ const STORAGE_KEY = "tempCustomerEntryData";
 const FORM_ID = "customer-form"; 
 
 document.addEventListener("DOMContentLoaded", function () {
-  // ১. পেজ লোড হওয়ার পর সেভ করা ডেটা ফর্মে বসিয়ে দেওয়া
+  // ১. পেজ লোড হওয়ার পর সেভ করা ডেটা ফর্মে বসিয়ে দেওয়া
   restoreFormData();
 
   // ২. Main Form & Auto Save Logic
@@ -14,21 +14,25 @@ document.addEventListener("DOMContentLoaded", function () {
     form.addEventListener("submit", handleCustomerFormSubmit);
   }
 
-  // ৩. Photo Preview Logic
+  // ৩. Photo Preview Logic (Max 1 MB)
   const photoInput = document.getElementById("photoInput");
   const photoPreview = document.getElementById("photoPreview");
+  const photoError = document.getElementById("photo-error");
 
   if (photoInput) {
     photoInput.addEventListener("change", function () {
       const file = this.files[0];
       if (file) {
-        if (file.size > 100 * 1024) {
-          alert("Photo size must be 50 KB or less!");
+        if (file.size > 1024 * 1024) { // 1 MB = 1024 * 1024 Bytes
+          if(photoError) photoError.style.display = "block";
           this.value = "";
           photoPreview.classList.add("hidden-preview");
           photoPreview.src = "";
           return;
         }
+        
+        if(photoError) photoError.style.display = "none";
+        
         const reader = new FileReader();
         reader.onload = function (e) {
           photoPreview.src = e.target.result;
@@ -38,18 +42,18 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         photoPreview.classList.add("hidden-preview");
         photoPreview.src = "";
+        if(photoError) photoError.style.display = "none";
       }
     });
   }
 
-  // ৪. Loan Type Select Logic
+  // 4. Loan Type Select Logic
   const loanTypeSelect = document.getElementById("loanTypeSelect");
   const rdLoanSection = document.getElementById("rd-loan-details");
   const interestRateInput = document.getElementById("interestRate");
 
   if (loanTypeSelect) {
     loanTypeSelect.addEventListener("change", function (e) {
-      // অন্য পেজে যাওয়ার ঠিক আগে ফর্মের ডেটা জোর করে সেভ করা
       saveFormData();
 
       if (rdLoanSection) rdLoanSection.classList.add("hidden");
@@ -70,25 +74,23 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ==========================================
-  // Auto Capitalize First Letter Logic (ম্যাজিক কোড)
-  // ==========================================
-  const textInputs = document.querySelectorAll('input[type="text"]');
-  textInputs.forEach(input => {
-    input.addEventListener('input', function() {
-      const start = this.selectionStart;
-      const end = this.selectionEnd;
-      
-      const originalValue = this.value;
-      // প্রতিটি শব্দের প্রথম অক্ষর ক্যাপিটাল করবে
-      const capitalizedValue = originalValue.replace(/(^\w|\s\w)/g, m => m.toUpperCase());
-      
-      if (originalValue !== capitalizedValue) {
-        this.value = capitalizedValue;
-        // টাইপ করার সময় কার্সর যাতে লাফিয়ে শেষে না চলে যায়, তার জন্য এই লাইন
-        this.setSelectionRange(start, end); 
-      }
+    // Auto Capitalize First Letter Logic (ম্যাজিক কোড)
+    // ==========================================
+    const textInputs = document.querySelectorAll('input[type="text"]');
+    textInputs.forEach(input => {
+      input.addEventListener('input', function() {
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        
+        const originalValue = this.value;
+        const capitalizedValue = originalValue.replace(/(^\w|\s\w)/g, m => m.toUpperCase());
+        
+        if (originalValue !== capitalizedValue) {
+          this.value = capitalizedValue;
+          this.setSelectionRange(start, end); 
+        }
+      });
     });
-  });
   }
 
   if (interestRateInput) {
@@ -119,7 +121,7 @@ function saveFormData() {
   
   inputs.forEach(input => {
     const key = input.id || input.name;
-    if (key) {
+    if (key && input.type !== "file") { // ফাইল ইনপুট সেভ করা যায় না
       if (input.type === "checkbox" || input.type === "radio") {
         formData[key] = input.checked;
       } else {
@@ -142,7 +144,7 @@ function restoreFormData() {
     
     inputs.forEach(input => {
       const key = input.id || input.name;
-      if (key && formData[key] !== undefined) {
+      if (key && formData[key] !== undefined && input.type !== "file") {
         if (input.type === "checkbox" || input.type === "radio") {
           input.checked = formData[key];
         } else {
@@ -150,6 +152,13 @@ function restoreFormData() {
         }
       }
     });
+
+    // RD Loan সিলেক্ট থাকলে செকশনটি শো করানো
+    const loanTypeSelect = document.getElementById("loanTypeSelect");
+    const rdLoanSection = document.getElementById("rd-loan-details");
+    if (loanTypeSelect && loanTypeSelect.value === "RD Loan" && rdLoanSection) {
+        rdLoanSection.classList.remove("hidden");
+    }
   }
 }
 
@@ -185,7 +194,7 @@ function promptAddNewOccupation() {
     option.textContent = cleanOcc;
     select.appendChild(option);
     select.value = cleanOcc;
-    saveFormData(); // নতুন আইটেম অ্যাড হলেও সেভ হবে
+    saveFormData();
   }
 }
 
@@ -230,12 +239,52 @@ function promptAddNewLoanType() {
   }
 }
 
+// 🟢 Custom Relation Addition Logic
+function promptAddNewRelation() {
+    const relationSelect = document.getElementById("relationWithApplicant");
+    const newRelation = prompt("Enter new custom relation:");
+    if (newRelation && newRelation.trim() !== "") {
+      const cleanVal = newRelation.trim();
+      const exists = Array.from(relationSelect.options).some(opt => opt.value.toLowerCase() === cleanVal.toLowerCase());
+      
+      if (!exists) {
+        const option = document.createElement("option");
+        option.value = cleanVal;
+        option.text = cleanVal;
+        relationSelect.appendChild(option);
+        relationSelect.value = cleanVal;
+      } else {
+        alert("This relation already exists in the list!");
+        relationSelect.value = Array.from(relationSelect.options).find(opt => opt.value.toLowerCase() === cleanVal.toLowerCase()).value;
+      }
+      saveFormData();
+    }
+}
+
 // ==========================================
 // Form Submit & Utility Functions
 // ==========================================
 
 async function handleCustomerFormSubmit(e) {
   e.preventDefault();
+
+  // 🟢 Number Validations before submission
+  const mobile = document.getElementById("mobileNo").value;
+  const aadhaar = document.getElementById("aadhaarNo").value;
+  const nomineeAadhaar = document.getElementById("nomineeAadhaar") ? document.getElementById("nomineeAadhaar").value : "";
+
+  if (mobile.length !== 10) {
+      alert("Mobile number must be exactly 10 digits.");
+      return;
+  }
+  if (aadhaar.length !== 12) {
+      alert("Aadhaar number must be exactly 12 digits.");
+      return;
+  }
+  if (nomineeAadhaar.length > 0 && nomineeAadhaar.length !== 12) {
+      alert("Nominee Aadhaar number must be exactly 12 digits.");
+      return;
+  }
 
   const submitBtn = document.getElementById("submit-btn");
   submitBtn.disabled = true;
@@ -260,7 +309,7 @@ async function handleCustomerFormSubmit(e) {
     guardianName: document.getElementById("guardianName").value.trim(),
     gender: document.getElementById("gender").value,
     dob: document.getElementById("dob").value,
-    religion: document.getElementById("religion").value.trim(),
+    religion: document.getElementById("religion").value,
     aadhaarNo: document.getElementById("aadhaarNo").value.trim(),
     mobileNo: document.getElementById("mobileNo").value.trim(),
     address: document.getElementById("address").value.trim(),
@@ -275,6 +324,7 @@ async function handleCustomerFormSubmit(e) {
     photoBase64: photoBase64,
     photoName: photoName,
     photoMimeType: photoMimeType,
+    
     nomineeName: document.getElementById("nomineeName").value.trim(),
     nomineeGuardianType: document.getElementById("nomineeGuardianType").value,
     nomineeGuardianName: document.getElementById("nomineeGuardianName").value.trim(),
@@ -282,7 +332,7 @@ async function handleCustomerFormSubmit(e) {
     nomineeOccupation: document.getElementById("nomineeOccupationSelect").value,
     nomineeDob: document.getElementById("nomineeDob").value,
     nomineeAadhaar: document.getElementById("nomineeAadhaar").value.trim(),
-    relationWithApplicant: document.getElementById("relationWithApplicant").value.trim()
+    relationWithApplicant: document.getElementById("relationWithApplicant").value
   };
 
   try {
@@ -322,6 +372,9 @@ function resetForm() {
     photoPreview.classList.add("hidden-preview");
   }
 
-  // ফর্ম সফলভাবে সাবমিট বা রিসেট হলে টেম্পোরারি ডেটা ডিলিট করে দেওয়া হবে
+  const rdLoanSection = document.getElementById("rd-loan-details");
+  if (rdLoanSection) rdLoanSection.classList.add("hidden");
+
+  // ফর্ম সফলভাবে সাবমিট বা রিসেট হলে টেম্পোরারি ডেটা ডিলিট করে দেওয়া হবে
   sessionStorage.removeItem(STORAGE_KEY);
 }

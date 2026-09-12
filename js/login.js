@@ -23,7 +23,12 @@ document.getElementById("login-form").addEventListener("submit", async e => {
 
         if (result.status === "success") {
             localStorage.setItem("loanLoggedIn", "true");
-            localStorage.setItem("loanAuth", JSON.stringify({ username: result.username }));
+            
+            // Settings এর রিকভারি ডেটা যেন মুছে না যায়, তাই আপডেট করা হচ্ছে
+            let currentAuth = JSON.parse(localStorage.getItem("loanAuth")) || {};
+            currentAuth.username = result.username || enteredUser;
+            currentAuth.password = enteredPass;
+            localStorage.setItem("loanAuth", JSON.stringify(currentAuth));
 
             messageEl.style.color = "green";
             messageEl.innerText = "Login Successful! Redirecting...";
@@ -44,61 +49,59 @@ document.getElementById("login-form").addEventListener("submit", async e => {
     }
 });
 
+// 🟢 Forgot Username 
 function forgotUsername() {
-    const email = prompt("Enter your recovery email:");
-    if (!email) return;
+    let currentAuth = JSON.parse(localStorage.getItem("loanAuth"));
     
-    fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "forgot_username", recoveryEmail: email })
-    })
-    .then(res => res.json())
-    .then(() => alert("If that email is registered, your username has been sent to it."))
-    .catch(() => alert("Something went wrong. Please try again."));
+    if (!currentAuth || !currentAuth.recoveryEmail) {
+        alert("No recovery data found! Please set it up from Settings first.");
+        return;
+    }
+
+    const email = prompt("Enter your registered recovery email:");
+    if (!email) return;
+
+    // সেটিংসে দেওয়া ইমেইলের সাথে মেলাচ্ছে
+    if (email.trim().toLowerCase() === currentAuth.recoveryEmail.toLowerCase()) {
+        const code = prompt("Email matched! Now enter your Secret Recovery Code:");
+        if (code === currentAuth.recoveryCode) {
+            alert(`✅ Verification Successful!\n\nYour Username is: ${currentAuth.username}`);
+        } else {
+            alert("❌ Incorrect Secret Code!");
+        }
+    } else {
+        alert("❌ Incorrect Email Address! This does not match your saved recovery email.");
+    }
 }
 
+// 🟢 Forgot Password
 function forgotPassword() {
-    const username = prompt("Enter your username:");
-    if (!username) return;
-    const email = prompt("Enter your recovery email:");
+    let currentAuth = JSON.parse(localStorage.getItem("loanAuth"));
+    
+    if (!currentAuth || !currentAuth.recoveryEmail) {
+        alert("No recovery data found! Please set it up from Settings first.");
+        return;
+    }
+
+    const email = prompt("Enter your registered recovery email:");
     if (!email) return;
 
-    fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "request_password_reset", username: username, recoveryEmail: email })
-    })
-    .then(res => res.json())
-    .then(result => {
-        if (result.status === "success") {
-            alert("A verification code has been sent to your email.");
-            const code = prompt("Enter the verification code:");
-            const newPassword = prompt("Enter your new password (min 6 characters):");
-            if (!code || !newPassword) return;
-
-            return fetch(APPS_SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify({
-                    action: "reset_password",
-                    username: username,
-                    recoveryEmail: email,
-                    code: code,
-                    newPassword: newPassword
-                })
-            }).then(res => res.json());
+    // সেটিংসে দেওয়া ইমেইলের সাথে মেলাচ্ছে
+    if (email.trim().toLowerCase() === currentAuth.recoveryEmail.toLowerCase()) {
+        const code = prompt("Email matched! Now enter your Secret Recovery Code:");
+        if (code === currentAuth.recoveryCode) {
+            alert(`✅ Verification Successful!\n\nYour Password is: ${currentAuth.password}\n\nPlease login and change it from settings if needed.`);
         } else {
-            alert(result.message || "Something went wrong.");
+            alert("❌ Incorrect Secret Code!");
         }
-    })
-    .then(result => {
-        if (result && result.status === "success") alert("Password reset successfully! Please login with your new password.");
-        else if (result) alert(result.message || "Failed to reset password.");
-    })
-    .catch(() => alert("Network error. Please try again."));
+    } else {
+        alert("❌ Incorrect Email Address! This does not match your saved recovery email.");
+    }
 }
 
 function requireLogin() {
-  const isLoginPage = window.location.pathname.toLowerCase().includes("login.html");
-  if (localStorage.getItem("loanLoggedIn") !== "true" && !isLoginPage) {
-    window.location.replace("Login.html");
-  }
+    const isLoginPage = window.location.pathname.toLowerCase().includes("login.html");
+    if (localStorage.getItem("loanLoggedIn") !== "true" && !isLoginPage) {
+        window.location.replace("Login.html");
+    }
 }
