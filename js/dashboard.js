@@ -5,6 +5,7 @@ let groupChartInstance = null;
 let financialPieChartInstance = null;
 
 document.addEventListener("DOMContentLoaded", async function () {
+  applyChartDefaults();
   await loadDashboardData();
 });
 
@@ -30,7 +31,29 @@ async function loadDashboardData() {
   }
 }
 
-// 🟢 RD Loan ক্যালকুলেশন লজিক (Interest% ছাড়া)
+// ============================================================
+// 🟢 Chart.js গ্লোবাল স্টাইল (নতুন)
+// ============================================================
+function applyChartDefaults() {
+  if (typeof Chart === "undefined") return;
+  Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+  Chart.defaults.color = "#64748b";
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.padding = 16;
+  Chart.defaults.plugins.tooltip.backgroundColor = "#0f172a";
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+  Chart.defaults.plugins.tooltip.titleFont = { weight: "600" };
+}
+
+function makeGradient(ctx, colorStart, colorEnd, height = 300) {
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, colorStart);
+  gradient.addColorStop(1, colorEnd);
+  return gradient;
+}
+
+// 🟢 RD Loan ক্যালকুলেশন লজিক (Interest% ছাড়া) — অপরিবর্তিত
 function updateRDLoanMetrics(activeCustomers, allCollections) {
   let totalRDAmount = 0;
   let totalRDCollection = 0;
@@ -55,10 +78,10 @@ function updateRDLoanMetrics(activeCustomers, allCollections) {
         }
       }
       
-      // যদি ডিউরেশন পাওয়া না যায় বা ০ হয়, তবে ডিফল্ট ৩৬৫ দিন
+      // যদি ডিউরেশন পাওয়া না যায় বা ০ হয়, তবে ডিফল্ট ৩৬৫ দিন
       if (isNaN(duration) || duration === 0) duration = 365;
 
-      // শুধুমাত্র আসল টাকা (Interest ছাড়া)
+      // শুধুমাত্র আসল টাকা (Interest ছাড়া)
       let principalAmount = unitAmount * duration;
       totalRDAmount += principalAmount;
     }
@@ -72,7 +95,7 @@ function updateRDLoanMetrics(activeCustomers, allCollections) {
     }
   });
 
-  // কালেকশন টেবিলে লোন টাইপ না থাকলে সেফটি হিসেবে টোটাল কালেকশন নেওয়া
+  // কালেকশন টেবিলে লোন টাইপ না থাকলে সেফটি হিসেবে টোটাল কালেকশন নেওয়া
   if (totalRDCollection === 0 && allCollections.length > 0) {
       allCollections.forEach(col => {
           totalRDCollection += parseFloat(col["Amount"] || 0);
@@ -90,6 +113,7 @@ function updateRDLoanMetrics(activeCustomers, allCollections) {
   if (rdColEl) rdColEl.innerText = "₹ " + totalRDCollection.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (rdDueEl) rdDueEl.innerText = "₹ " + rdDueAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  // ---- চার্ট: Financial Overview (নতুন স্টাইল — Doughnut + Gradient) ----
   const pieCanvas = document.getElementById("financialPieChart");
   if (pieCanvas) {
     const pieCtx = pieCanvas.getContext("2d");
@@ -99,26 +123,37 @@ function updateRDLoanMetrics(activeCustomers, allCollections) {
     if (totalRDCollection === 0 && rdDueAmount === 0) chartData = [0.1, 0.1];
 
     financialPieChartInstance = new Chart(pieCtx, {
-      type: "pie",
+      type: "doughnut",
       data: {
         labels: ["RD Collection", "RD Due"],
         datasets: [{
           data: chartData,
-          backgroundColor: ["#10b981", "#f43f5e"],
-          borderWidth: 2,
-          borderColor: "#ffffff",
-          hoverOffset: 6
+          backgroundColor: [
+            makeGradient(pieCtx, "#10b981", "#059669"),
+            makeGradient(pieCtx, "#f43f5e", "#e11d48")
+          ],
+          borderWidth: 0,
+          hoverOffset: 10,
+          spacing: 3
         }]
       },
       options: {
         responsive: true,
-        plugins: { legend: { position: "bottom" } }
+        cutout: "68%",
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: {
+            callbacks: {
+              label: (ctxItem) => ` ${ctxItem.label}: ₹ ${ctxItem.raw.toLocaleString('en-IN')}`
+            }
+          }
+        }
       }
     });
   }
 }
 
-// 🟢 ড্যাশবোর্ড চার্ট এবং কাউন্টার আপডেট
+// 🟢 ড্যাশবোর্ড চার্ট এবং কাউন্টার আপডেট — অপরিবর্তিত লজিক
 function updateDashboardCharts(activeCustomers) {
   let rdCount = 0, goldCount = 0, groupLoanCount = 0;
   let anondodharaCount = 0, ashaCount = 0, janoniCount = 0;
@@ -158,31 +193,67 @@ function updateDashboardCharts(activeCustomers) {
     if (el) el.innerText = count;
   }
 
+  // ---- চার্ট: Loan Type Overview (নতুন স্টাইল — Gradient + বড় cutout) ----
   const loanCanvas = document.getElementById("loanTypeChart");
   if (loanCanvas) {
     const loanCtx = loanCanvas.getContext("2d");
     if (loanChartInstance) loanChartInstance.destroy();
+
+    const loanColors = [
+      makeGradient(loanCtx, "#38bdf8", "#0284c7"),
+      makeGradient(loanCtx, "#a78bfa", "#7c3aed"),
+      makeGradient(loanCtx, "#fbbf24", "#d97706"),
+      makeGradient(loanCtx, "#10b981", "#059669"),
+      makeGradient(loanCtx, "#f97316", "#ea580c"),
+      makeGradient(loanCtx, "#f43f5e", "#e11d48")
+    ];
+
     loanChartInstance = new Chart(loanCtx, {
       type: "doughnut",
       data: {
         labels: Object.keys(loanCounts),
-        datasets: [{ data: Object.values(loanCounts), backgroundColor: ["#2563eb", "#38bdf8", "#eab308", "#10b981", "#f97316", "#8b5cf6"] }]
+        datasets: [{
+          data: Object.values(loanCounts),
+          backgroundColor: loanColors,
+          borderWidth: 0,
+          hoverOffset: 10,
+          spacing: 3
+        }]
       },
-      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+      options: {
+        responsive: true,
+        cutout: "60%",
+        plugins: { legend: { position: "bottom" } }
+      }
     });
   }
 
+  // ---- চার্ট: Group Wise Customers (নতুন স্টাইল — Gradient + Rounded Bar) ----
   const groupCanvas = document.getElementById("groupNameChart");
   if (groupCanvas) {
     const groupCtx = groupCanvas.getContext("2d");
     if (groupChartInstance) groupChartInstance.destroy();
+
     groupChartInstance = new Chart(groupCtx, {
       type: "bar",
       data: {
         labels: Object.keys(groupCounts),
-        datasets: [{ label: "Total Customers", data: Object.values(groupCounts), backgroundColor: "#38bdf8" }]
+        datasets: [{
+          label: "Total Customers",
+          data: Object.values(groupCounts),
+          backgroundColor: makeGradient(groupCtx, "#38bdf8", "#0ea5e9"),
+          borderRadius: 8,
+          maxBarThickness: 42
+        }]
       },
-      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: "#f1f5f9" } },
+          x: { grid: { display: false } }
+        }
+      }
     });
   }
 }

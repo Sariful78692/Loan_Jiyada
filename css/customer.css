@@ -1,3 +1,42 @@
+/* ===== Global Font — পরিষ্কার ও readable ===== */
+* {
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* হেডিং — bold serif বাদ দিয়ে পরিষ্কার sans-serif bold */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+}
+
+.brand h2 {
+  font-weight: 800;
+}
+
+/* টেবিল — data readability-এর জন্য সামান্য বেশি letter-spacing header-এ */
+table th {
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: #475569;
+}
+
+table td {
+  font-weight: 500;
+  color: #1e293b;
+  font-size: 13.5px;
+}
+
+
+
 .content-section h1 { margin-bottom: 20px; font-size: 24px; color: #0f172a; }
 
 /* Form Styling */

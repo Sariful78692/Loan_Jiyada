@@ -1,40 +1,213 @@
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
-body { background-color: #f4f6f9; color: #333; }
-.app-container { display: flex; min-height: 100vh; }
+/* ============================================================
+   SIDEBAR — Loan Management (attractive + animated)
+   এই পুরো ব্লকটা common.css-এ আপনার আগের .sidebar / .nav-menu
+   সংক্রান্ত CSS-এর জায়গায় বসান (পুরনোটা মুছে এটা রাখুন)
+   ============================================================ */
 
-/* Sidebar Styling */
-.sidebar { width: 260px; background-color: #1e293b; color: #fff; padding: 20px 0; display: flex; flex-direction: column; }
-.brand { padding: 0 20px 20px; border-bottom: 1px solid #334155; }
-.brand h2 { color: #38bdf8; font-size: 22px; }
-.nav-menu { list-style: none; margin-top: 15px; }
-.nav-item { width: 100%; }
-.nav-link { display: flex; align-items: center; padding: 12px 20px; color: #cbd5e1; text-decoration: none; font-size: 15px; transition: all 0.3s ease; }
-.nav-link i { margin-right: 12px; width: 18px; }
-.nav-link .arrow { margin-left: auto; transition: transform 0.3s; }
-.nav-link:hover, .nav-link.active { background-color: #334155; color: #38bdf8; }
+/* ===== Sidebar Base ===== */
+.main-content {
+  padding: 20px 24px; /* আগে হয়তো বেশি ছিল, top কমিয়ে দিলাম */
+}
 
-/* Submenu */
-.submenu { list-style: none; background-color: #0f172a; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
-.has-submenu.open .submenu { max-height: 500px; transition: max-height 0.3s ease-in; }
-.submenu li a { display: block; padding: 10px 10px 10px 50px; color: #94a3b8; text-decoration: none; font-size: 14px; }
-.submenu li a:hover { color: #fff; }
+.content-section h1 {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
 
-/* Main Content */
-.main-content { flex: 1; padding: 30px; overflow-y: auto; }
-.hidden { display: none !important; }
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  color: #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  position: relative;
+  box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+}
 
-/* Account actions anchored to the bottom of every sidebar */
-.sidebar-account { margin-top: auto; padding: 16px 12px 0; border-top: 1px solid #334155; }
-.account-user { display: flex; align-items: center; gap: 10px; padding: 0 8px 12px; color: #e2e8f0; font-size: 14px; }
-.account-user i { color: #38bdf8; font-size: 20px; }
-.account-user span { display: block; color: #94a3b8; font-size: 12px; margin-top: 2px; }
-.account-action { width: 100%; border: 0; border-radius: 7px; background: transparent; color: #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 8px; font: inherit; font-size: 14px; text-align: left; transition: .2s ease; }
-.account-action:hover { background: #334155; color: #fff; }
-.account-action.logout:hover { color: #fca5a5; }
+.sidebar .brand {
+  padding: 0 12px 24px 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar .brand h2 {
+  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar .brand h2::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 0 4px rgba(56,189,248,0.15);
+  flex-shrink: 0;
+}
 
-@media (max-width: 700px) {
-  .app-container { display: block; }
-  .sidebar { width: 100%; min-height: auto; }
-  .sidebar-account { margin-top: 16px; }
-  .main-content { padding: 20px; }
+/* ===== Nav Menu ===== */
+.nav-menu { list-style: none; margin: 0; padding: 0; flex: 1; }
+.nav-item { margin-bottom: 4px; }
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 14.5px;
+  font-weight: 500;
+  position: relative;
+  transition: color 0.25s ease, background 0.25s ease, transform 0.2s ease;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.nav-link i:first-child {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+  transition: transform 0.3s ease, color 0.25s ease;
+}
+
+/* sliding highlight background on hover */
+.nav-link::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(56,189,248,0.14), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.35s ease;
+  border-radius: 10px;
+  z-index: 0;
+}
+.nav-link:hover::before { transform: translateX(0); }
+.nav-link > * { position: relative; z-index: 1; }
+.nav-link:hover { color: #fff; transform: translateX(2px); }
+.nav-link:hover i:first-child { transform: scale(1.15); color: #38bdf8; }
+
+/* active page indicator */
+.nav-link.active,
+.submenu li a.active {
+  color: #fff;
+  background: rgba(56,189,248,0.12);
+}
+.nav-link.active::after,
+.submenu li a.active::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 3px;
+  border-radius: 3px;
+  background: #38bdf8;
+  box-shadow: 0 0 8px rgba(56,189,248,0.6);
+  z-index: 1;
+}
+
+/* chevron rotate */
+.nav-link .arrow { margin-left: auto; font-size: 12px; transition: transform 0.3s ease; }
+.nav-item.open > .nav-link .arrow { transform: rotate(180deg); }
+
+/* ===== Submenu — animated slide down ===== */
+.submenu {
+  list-style: none;
+  margin: 0 0 0 20px;
+  padding-left: 14px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.35s ease, opacity 0.3s ease, margin 0.3s ease;
+  border-left: 1px solid rgba(255,255,255,0.08);
+}
+.nav-item.open > .submenu {
+  max-height: 300px;
+  opacity: 1;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+.submenu li a {
+  display: block;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  color: #94a3b8;
+  text-decoration: none;
+  border-radius: 8px;
+  position: relative;
+  transition: color 0.2s ease, background 0.2s ease, padding-left 0.2s ease;
+}
+.submenu li a:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.05);
+  padding-left: 18px;
+}
+/* ===== Layout Container — এটা ছাড়া sidebar পাশে বসবে না ===== */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  flex-shrink: 0; /* sidebar যেন সংকুচিত না হয় */
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0; /* content overflow ঠেকাতে */
+  padding: 24px;
+  overflow-x: hidden;
+}
+
+/* ===== Bottom user block ===== */
+.sidebar > div:last-child,
+.sidebar .sidebar-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ===== Scrollbar (যদি মেনু লম্বা হয়) ===== */
+.sidebar::-webkit-scrollbar { width: 5px; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+/* ===== Mobile responsive ===== */
+@media (max-width: 768px) {
+  .sidebar { width: 220px; padding: 18px 12px; }
+}
+
+/* ============================================================
+   FORCE FONT — সবার শেষে, কিন্তু আইকন বাদ দিয়ে
+   (আগের ভার্সনে *  ব্যবহার করায় Font Awesome আইকন ভেঙে
+   গিয়েছিল, কারণ আইকনগুলো আসলে একটা আলাদা icon-font-এর glyph)
+   ============================================================ */
+body,
+h1, h2, h3, h4, h5, h6,
+.brand h2,
+.settings-header h1,
+table th, table td,
+.nav-link, .submenu li a,
+button, input, select, textarea,
+span, div, p, a, label {
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, sans-serif !important;
+}
+
+/* 🟢 Font Awesome আইকন — নিজের ফন্ট অক্ষত রাখা হলো */
+.fa-solid, .fa-regular, .fa-light, .fa-thin,
+[class*="fa-"] {
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900 !important;
+}
+.fa-brands {
+  font-family: "Font Awesome 6 Brands" !important;
+  font-weight: 400 !important;
+}
+.fa-regular {
+  font-weight: 400 !important;
 }

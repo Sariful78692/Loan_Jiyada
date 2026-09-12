@@ -7,6 +7,9 @@
   <link rel="stylesheet" href="css/common.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -71,17 +74,17 @@
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
                 <!-- Total RD Amount -->
-                <div style="background: linear-gradient(135deg, #0ea5e9, #0284c7); padding: 25px; border-radius: 10px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <div class="rd-card" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); padding: 25px; border-radius: 10px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                     <h3 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 500;"><i class="fa-solid fa-coins"></i> Total RD Amount</h3>
                     <p id="total-rd-amount" style="margin: 0; font-size: 26px; font-weight: bold;">₹ 0.00</p>
                 </div>
                 <!-- Total RD Collection -->
-                <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 25px; border-radius: 10px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <div class="rd-card" style="background: linear-gradient(135deg, #10b981, #059669); padding: 25px; border-radius: 10px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                     <h3 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 500;"><i class="fa-solid fa-hand-holding-dollar"></i> Total Collection</h3>
                     <p id="total-rd-collection" style="margin: 0; font-size: 26px; font-weight: bold;">₹ 0.00</p>
                 </div>
                 <!-- RD Due Amount -->
-                <div style="background: linear-gradient(135deg, #f43f5e, #e11d48); padding: 25px; border-radius: 10px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <div class="rd-card" style="background: linear-gradient(135deg, #f43f5e, #e11d48); padding: 25px; border-radius: 10px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                     <h3 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 500;"><i class="fa-solid fa-file-invoice-dollar"></i> Due Amount</h3>
                     <p id="rd-due-amount" style="margin: 0; font-size: 26px; font-weight: bold;">₹ 0.00</p>
                 </div>
