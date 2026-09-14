@@ -51,6 +51,7 @@ table td {
 /* Photo Preview Box */
 .preview-box { margin-top: 8px; }
 .hidden-preview { display: none; }
+.hidden { display: none !important; }
 #photoPreview { width: 70px; height: 70px; border-radius: 6px; object-fit: cover; border: 1px solid #cbd5e1; }
 .select-with-btn { display: flex; gap: 8px; }
 .select-with-btn select { flex: 1; }
