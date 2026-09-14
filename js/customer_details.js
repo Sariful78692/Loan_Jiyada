@@ -5,6 +5,8 @@ let selectedCustomerId = null;
 let selectedCustomerName = null;
 let selectedLoanType = null;
 let selectedAmount = null;
+let lastCollectionReceipt = null;
+let selectedCustomerDuration = 0;
 
 document.addEventListener("DOMContentLoaded", async function () {
   const urlParams = new URLSearchParams(window.location.search);
@@ -123,7 +125,7 @@ function renderTable(data) {
           <i class="fa-solid fa-unlock"></i> Re-open
         </button>
       `;
-    } else {
+    } else if (currentLoanFilter === "RD Loan") {
       let collectBtn = "";
       if (currentLoanFilter === "RD Loan" && durationDays > 0 && collectionCount >= durationDays) {
         collectBtn = `
@@ -147,8 +149,14 @@ function renderTable(data) {
         <button onclick="deleteCustomer('${custId}')" style="background: #ef4444; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Delete">
           <i class="fa-solid fa-trash"></i>
         </button>
-        <button onclick="closeCustomerLoan('${custId}')" style="background: #64748b; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer;" title="Close Loan & Archive">
-          <i class="fa-solid fa-box-archive"></i> Close
+      `;
+    } else {
+      actionButtonsHtml = `
+        <button onclick="editCustomer('${custId}')" style="background: #eab308; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Edit">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+        <button onclick="deleteCustomer('${custId}')" style="background: #ef4444; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer;" title="Delete">
+          <i class="fa-solid fa-trash"></i>
         </button>
       `;
     }
@@ -339,4 +347,144 @@ async function reopenCustomerLoan(customerId) {
   } catch (err) {
     alert("Failed to connect to the server.");
   }
+}
+
+// RD collection: accept a date range, save one installment for each selected day,
+// then keep the modal open so the saved payment can be printed as a receipt.
+function openCollectionModal(id) {
+  const cust = customersData.find(c => String(c["ID"]) === String(id));
+  if (!cust) return;
+
+  selectedCustomerId = cust["ID"];
+  selectedCustomerName = cust["Customer Name"];
+  selectedLoanType = cust["Loan Type"];
+  selectedAmount = cust["Loan Amount"] || "0.00";
+  selectedCustomerDuration = parseInt(cust["Duration (Days)"], 10) || 0;
+
+  const today = formatDateInput(new Date());
+  document.getElementById("collection-start-date").value = today;
+  document.getElementById("collection-end-date").value = today;
+  document.getElementById("collect-cust-name").innerText = selectedCustomerName;
+  document.getElementById("collect-cust-id").innerText = "ID: " + selectedCustomerId;
+  document.getElementById("print-receipt-btn").classList.add("hidden");
+  document.getElementById("confirm-pay-btn").classList.remove("hidden");
+  document.getElementById("close-collection-btn").innerText = "Cancel";
+  updateCollectionRangeSummary();
+  document.getElementById("collection-modal").classList.remove("hidden");
+}
+
+function getDateRange(startDate, endDate) {
+  const dates = [];
+  const cursor = new Date(startDate + "T00:00:00");
+  const end = new Date(endDate + "T00:00:00");
+  while (cursor <= end) {
+    dates.push(formatDateInput(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
+}
+
+function formatDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatMoney(amount) {
+  return "₹ " + Number(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function normalizeCollectionDate(value) {
+  const date = String(value || "").trim();
+  if (date.includes("T")) return date.split("T")[0];
+  const parts = date.split("-");
+  return parts.length === 3 && parts[0].length !== 4 ? `${parts[2]}-${parts[1]}-${parts[0]}` : date;
+}
+
+function updateCollectionRangeSummary() {
+  const startDate = document.getElementById("collection-start-date").value;
+  const endDate = document.getElementById("collection-end-date").value;
+  const daysEl = document.getElementById("collection-days");
+  const amountEl = document.getElementById("collect-amount");
+  if (!startDate || !endDate) {
+    daysEl.innerText = "Select a date range";
+    amountEl.innerText = "";
+  } else if (startDate > endDate) {
+    daysEl.innerText = "End date must be on or after the start date";
+    amountEl.innerText = "";
+  } else {
+    const days = getDateRange(startDate, endDate).length;
+    daysEl.innerText = `${days} day${days === 1 ? "" : "s"} payment (${startDate} to ${endDate})`;
+    amountEl.innerText = formatMoney(Number(selectedAmount) * days);
+  }
+}
+
+async function submitCollection() {
+  const startDate = document.getElementById("collection-start-date").value;
+  const endDate = document.getElementById("collection-end-date").value;
+  if (!startDate || !endDate || startDate > endDate) {
+    alert("Please select a valid date range.");
+    return;
+  }
+
+  const requestedDates = getDateRange(startDate, endDate);
+  const customerEntries = allCollectionsData.filter(col => String(col["Customer ID"]).trim() === String(selectedCustomerId).trim());
+  const existingDates = new Set(customerEntries.map(col => normalizeCollectionDate(col["Collection Date"])));
+  const datesToCollect = requestedDates.filter(date => !existingDates.has(date));
+  if (!datesToCollect.length) {
+    alert("All selected dates have already been collected.");
+    return;
+  }
+  if (selectedCustomerDuration && customerEntries.length + datesToCollect.length > selectedCustomerDuration) {
+    alert("Selected dates exceed this customer's loan duration.");
+    return;
+  }
+
+  const payBtn = document.getElementById("confirm-pay-btn");
+  payBtn.disabled = true;
+  payBtn.innerText = "Processing...";
+  try {
+    const collectedDates = [];
+    for (const collectionDate of datesToCollect) {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "collectInstallment", customerId: selectedCustomerId, customerName: selectedCustomerName, loanType: selectedLoanType, collectionDate, amount: selectedAmount })
+      });
+      const result = await res.json();
+      if (result.status === "success") {
+        collectedDates.push(collectionDate);
+        allCollectionsData.push({ "Customer ID": selectedCustomerId, "Collection Date": collectionDate, "Amount": selectedAmount });
+      } else if (result.message !== "DUPLICATE_COLLECTION") {
+        throw new Error(result.message || "Unable to save payment");
+      }
+    }
+    if (!collectedDates.length) throw new Error("The selected payments were already collected.");
+
+    lastCollectionReceipt = { customerId: selectedCustomerId, customerName: selectedCustomerName, loanType: selectedLoanType, dates: collectedDates, dailyAmount: Number(selectedAmount), totalAmount: Number(selectedAmount) * collectedDates.length, paidAt: new Date() };
+    document.getElementById("print-receipt-btn").classList.remove("hidden");
+    payBtn.classList.add("hidden");
+    document.getElementById("close-collection-btn").innerText = "Close";
+    alert(`Payment confirmed for ${collectedDates.length} day(s). You can now print the receipt.`);
+  } catch (err) {
+    alert("Payment could not be completed: " + err.message);
+    console.error(err);
+  } finally {
+    payBtn.disabled = false;
+    payBtn.innerText = "Confirm Payment";
+  }
+}
+
+function escapeReceiptHtml(value) {
+  return String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+}
+
+function printCollectionReceipt() {
+  if (!lastCollectionReceipt) return;
+  const receipt = lastCollectionReceipt;
+  const printWindow = window.open("", "_blank", "width=800,height=700");
+  if (!printWindow) { alert("Please allow pop-ups to print the receipt."); return; }
+  const dateList = receipt.dates.map(date => `<li>${escapeReceiptHtml(date)}</li>`).join("");
+  printWindow.document.write(`<!doctype html><html><head><title>Payment Receipt</title><style>body{font-family:Arial,sans-serif;color:#172033;padding:32px;max-width:650px;margin:auto}.head{border-bottom:3px solid #10b981;padding-bottom:16px;display:flex;justify-content:space-between}h1{margin:0;color:#047857;font-size:27px}.muted{color:#64748b}table{border-collapse:collapse;width:100%;margin:22px 0}td{padding:10px;border-bottom:1px solid #dbe3ed}.total{font-size:20px;font-weight:bold;color:#047857}ul{columns:2;padding-left:20px}@media print{body{padding:0}}</style></head><body><div class="head"><div><h1>Payment Receipt</h1><div class="muted">Loan Management</div></div><div class="muted">Issued: ${escapeReceiptHtml(receipt.paidAt.toLocaleString())}</div></div><table><tr><td>Customer Name</td><td><strong>${escapeReceiptHtml(receipt.customerName)}</strong></td></tr><tr><td>Customer ID</td><td>${escapeReceiptHtml(receipt.customerId)}</td></tr><tr><td>Loan Type</td><td>${escapeReceiptHtml(receipt.loanType)}</td></tr><tr><td>Daily Installment</td><td>${formatMoney(receipt.dailyAmount)}</td></tr><tr><td>Payment Dates (${receipt.dates.length})</td><td><ul>${dateList}</ul></td></tr><tr><td class="total">Total Paid</td><td class="total">${formatMoney(receipt.totalAmount)}</td></tr></table><p class="muted">This is a computer-generated payment receipt.</p><script>window.onload=()=>window.print();</script></body></html>`);
+  printWindow.document.close();
 }

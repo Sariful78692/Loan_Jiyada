@@ -37,13 +37,23 @@
       body { background: white !important; }
       
       /* মেইন অ্যাপ, সাইডবার, টেবিল এবং সব বাটন সম্পূর্ণ হাইড করা */
-      .app-container, .sidebar, .export-btns, .no-print, .table-responsive, #print-header { 
+      .sidebar, .export-btns, .no-print, #individual-print-section, .modal-overlay {
         display: none !important; 
       } 
+      .app-container, .main-content, .content-section, .table-responsive {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+      }
+      #print-header { display: block !important; }
+      #report-table { width: 100% !important; color: #000 !important; }
+      #report-table th, #report-table td { border: 1px solid #94a3b8 !important; color: #000 !important; }
       
       /* শুধু কাস্টমার ফর্ম ও কালেকশন হিস্ট্রি শো করানো */
       #individual-print-section { 
-        display: block !important; 
+        display: none !important;
         width: 100% !important;
         position: absolute !important;
         top: 0 !important;

@@ -407,6 +407,11 @@ function clearFilters() {
 // ========================================================
 
 function printReport() {
+  const heading = document.getElementById("report-heading");
+  const printTitle = document.getElementById("print-report-title");
+  const printDate = document.getElementById("print-date");
+  if (printTitle) printTitle.innerText = heading ? heading.innerText : "Report";
+  if (printDate) printDate.innerText = "Printed: " + new Date().toLocaleString("en-IN");
   window.print();
 }
 
@@ -448,6 +453,90 @@ function exportToExcel() {
   
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   XLSX.writeFile(workbook, `${sheetName}_Report.xlsx`);
+}
+
+// ========================================================
+// Collection edit / delete actions
+// ========================================================
+
+function toInputDate(value) {
+  const rawDate = String(value || "").trim();
+  if (!rawDate) return "";
+  if (rawDate.includes("T")) return rawDate.split("T")[0];
+  const parts = rawDate.split("-");
+  if (parts.length === 3 && parts[0].length !== 4) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return rawDate;
+}
+
+function findCollection(collectionId) {
+  return allCollectionsData.find(item => String(item["Collection ID"] || "").trim() === String(collectionId || "").trim());
+}
+
+function openEditModal(collectionId) {
+  const collection = findCollection(collectionId);
+  if (!collection) {
+    alert("Collection record not found. Please refresh the report and try again.");
+    return;
+  }
+
+  document.getElementById("edit-coll-id").value = collection["Collection ID"];
+  document.getElementById("edit-coll-date").value = toInputDate(collection["Collection Date"]);
+  document.getElementById("edit-coll-amount").value = collection["Amount"] || "";
+  document.getElementById("edit-collection-modal").classList.remove("hidden");
+}
+
+function closeEditModal() {
+  document.getElementById("edit-collection-modal").classList.add("hidden");
+}
+
+async function updateCollection() {
+  const collectionId = document.getElementById("edit-coll-id").value.trim();
+  const collectionDate = document.getElementById("edit-coll-date").value;
+  const amount = document.getElementById("edit-coll-amount").value.trim();
+  if (!collectionId || !collectionDate || amount === "" || Number(amount) < 0) {
+    alert("Please enter a valid collection date and amount.");
+    return;
+  }
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "update_collection", collectionId, id: collectionId, collectionDate, date: collectionDate, amount })
+    });
+    const result = await res.json();
+    if (result.status !== "success") throw new Error(result.message || "Update failed");
+    closeEditModal();
+    await fetchReportData();
+    alert("Collection updated successfully.");
+  } catch (err) {
+    console.error("Collection update failed", err);
+    alert("Could not update the collection: " + err.message);
+  }
+}
+
+async function deleteCollection(collectionId) {
+  const collection = findCollection(collectionId);
+  if (!collection) {
+    alert("Collection record not found. Please refresh the report and try again.");
+    return;
+  }
+  if (!confirm(`Delete the collection for ${collection["Customer Name"] || "this customer"} on ${formatDate(collection["Collection Date"])}?`)) return;
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "delete_collection", collectionId: String(collectionId), id: String(collectionId) })
+    });
+    const result = await res.json();
+    if (result.status !== "success") throw new Error(result.message || "Delete failed");
+    await fetchReportData();
+    alert("Collection deleted successfully.");
+  } catch (err) {
+    console.error("Collection deletion failed", err);
+    alert("Could not delete the collection: " + err.message);
+  }
 }
 
 // ========================================================
