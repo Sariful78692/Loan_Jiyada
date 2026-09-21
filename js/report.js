@@ -164,7 +164,7 @@ function formatDate(dateStr) {
 
 function getLoanSchedule(startValue, durationDays) {
   if (!startValue || !durationDays) {
-    return { startDate: "N/A", endDate: "N/A", dueDay: "N/A" };
+    return { startDate: "N/A", endDate: "N/A", dueDay: "N/A", dueDays: null };
   }
 
   const rawDate = String(startValue).split("T")[0];
@@ -176,7 +176,7 @@ function getLoanSchedule(startValue, durationDays) {
       : new Date(rawDate);
 
   if (Number.isNaN(start.getTime())) {
-    return { startDate: formatDate(startValue), endDate: "N/A", dueDay: "N/A" };
+    return { startDate: formatDate(startValue), endDate: "N/A", dueDay: "N/A", dueDays: null };
   }
 
   const end = new Date(start);
@@ -193,7 +193,8 @@ function getLoanSchedule(startValue, durationDays) {
   return {
     startDate: formatDate(startValue),
     endDate: end.toLocaleDateString("en-GB").replaceAll("/", "-"),
-    dueDay: `${dueDay} Days`
+    dueDay: `${dueDay} Days`,
+    dueDays: dueDay
   };
 }
 
@@ -211,12 +212,13 @@ function renderCollectionsTable(data, status) {
     <th style="padding: 12px;">Loan Type</th>
     <th style="padding: 12px;">Collection Date</th>
     <th style="padding: 12px;">Amount</th>
+    ${status === "Closed" ? '<th style="padding: 12px;">Archive Date</th>' : ''}
     <th class="no-print" style="padding: 12px; text-align: center;">Actions</th>
   `;
 
   tbody.innerHTML = "";
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${status === "Closed" ? 7 : 6}" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
     filterTableAndCalculateTotal(); 
     return;
   }
@@ -248,6 +250,7 @@ function renderCollectionsTable(data, status) {
       <td style="padding: 10px 15px; font-weight: bold; color: #0284c7;">${item["Loan Type"] || "N/A"}</td>
       <td style="padding: 10px 15px;">${formatDate(item["Collection Date"])}</td>
       <td style="padding: 10px 15px; font-weight: bold; color: #10b981;">₹ ${item["Amount"] || "0"}</td>
+      ${status === "Closed" ? `<td style="padding: 10px 15px;">${formatDate(item["Archive Date"])}</td>` : ''}
       <td class="no-print" style="padding: 10px 15px; text-align: center; white-space: nowrap;">${actionHtml}</td>
     `;
     tbody.appendChild(tr);
@@ -311,6 +314,14 @@ function renderCustomersTable(data, status) {
     const maturityAmount = maturityPrincipal + maturityInterest;
 
     const relationVal = cust["Relation With Applicant"] || cust["Relation"] || cust["Relation with Applicant"] || "N/A";
+    const isRdLoan = String(cust["Loan Type"] || "").trim().toLowerCase() === "rd loan";
+    const rdCloseButton = isRdLoan && loanSchedule.dueDays === 0 && status !== "Closed"
+      ? `
+          <button onclick="closeCustomerLoan('${custId}')" style="background: #dc2626; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-left: 5px;" title="Close RD Loan">
+            <i class="fa-solid fa-lock"></i> RD Close
+          </button>
+        `
+      : "";
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -335,6 +346,7 @@ function renderCustomersTable(data, status) {
         <button onclick="printCustomerProfile('${custId}')" style="background: #0284c7; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer;" title="Print Customer Form">
           <i class="fa-solid fa-print"></i>
         </button>
+        ${rdCloseButton}
       </td>
     `;
     tbody.appendChild(tr);
@@ -583,6 +595,35 @@ async function deleteCollection(collectionId) {
 // ========================================================
 // 🟢 Customer Profile Print Function (Deep Black & Bordered)
 // ========================================================
+
+async function closeCustomerLoan(customerId) {
+  if (!confirm("Are you sure you want to close this RD loan? Its collection records will be moved to the archive.")) {
+    return;
+  }
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "close_loan", customerId })
+    });
+    const result = await res.json();
+    if (result.status !== "success") throw new Error(result.message || "Could not close the loan.");
+
+    // Show the records that were just moved to Closed_Collections.
+    currentReportType = "collections";
+    document.getElementById("reportFilter").value = "collections";
+    document.getElementById("reportStatusFilter").value = "Closed";
+    document.getElementById("report-heading").innerText = "Archived Collections Report";
+    await fetchReportData();
+    const archivedCount = Number(result.archivedCollections || 0);
+    alert(archivedCount > 0
+      ? `RD loan closed. ${archivedCount} archived collection record(s) are now shown below.`
+      : "RD loan closed. No collection records were found to move to the archive.");
+  } catch (err) {
+    console.error("RD loan close failed", err);
+    alert("Could not close the RD loan: " + err.message);
+  }
+}
 
 function printCustomerProfile(custId) {
   const cust = allCustomersData.find(c => String(c["ID"]).trim() === custId);

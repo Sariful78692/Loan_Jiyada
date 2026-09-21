@@ -123,16 +123,19 @@ function renderTable(data) {
         <span style="color: #64748b; font-weight: bold; font-size: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 4px; margin-right: 5px; display: inline-block;">
           <i class="fa-solid fa-lock"></i> Closed
         </span>
-        <button onclick="deleteCustomer('${custId}')" style="background: #ef4444; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Delete Customer">
-          <i class="fa-solid fa-trash"></i>
-        </button>
         <button onclick="reopenCustomerLoan('${custId}')" style="background: #3b82f6; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer;" title="Re-activate Loan">
           <i class="fa-solid fa-unlock"></i> Re-open
         </button>
       `;
     } else if (currentLoanFilter === "RD Loan") {
       let collectBtn = "";
-      if (currentLoanFilter === "RD Loan" && durationDays > 0 && collectionCount >= durationDays) {
+      if (dates.dueDay === 0) {
+        collectBtn = `
+          <button onclick="closeCustomerLoan('${custId}')" style="background: #dc2626; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Close RD Loan">
+            <i class="fa-solid fa-lock"></i> RD Close
+          </button>
+        `;
+      } else if (durationDays > 0 && collectionCount >= durationDays) {
         collectBtn = `
           <span style="color: #10b981; font-weight: bold; font-size: 13px; background: #d1fae5; padding: 5px 10px; border-radius: 4px; margin-right: 5px; display: inline-block;">
             <i class="fa-solid fa-circle-check"></i> Completed
@@ -326,7 +329,10 @@ async function closeCustomerLoan(customerId) {
     });
     const result = await res.json();
     if (result.status === "success") {
-      alert("Loan closed and data archived successfully!");
+      const archivedCount = Number(result.archivedCollections || 0);
+      alert(archivedCount > 0
+        ? `Loan closed and ${archivedCount} collection record(s) archived successfully!`
+        : "Loan closed. No collection records were found to move to the archive.");
       window.location.reload(); 
     } else {
       alert("Failed to close loan: " + (result.message || "Unknown error"));
@@ -363,11 +369,12 @@ function getCustomerDates(customer, durationDays) {
   const startDate = start ? formatDisplayDate(start) : "—";
   // The start date is Day 1, so a 365-day RD ends 364 calendar days later.
   const endDate = start && durationDays > 0 ? formatDisplayDate(addDays(start, durationDays - 1)) : "—";
-  const dueDate = start && durationDays > 0
-    ? `${getRemainingDays(start, durationDays)} Days`
+  const dueDay = start && durationDays > 0 ? getRemainingDays(start, durationDays) : null;
+  const dueDate = dueDay !== null
+    ? `${dueDay} Days`
     : "—";
 
-  return { startDate, endDate, dueDate };
+  return { startDate, endDate, dueDate, dueDay };
 }
 
 function getRemainingDays(startDate, durationDays) {

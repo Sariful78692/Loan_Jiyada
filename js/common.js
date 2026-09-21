@@ -1,7 +1,7 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyvV4BTV6Rpp6lwcHwTARd8NjK56hOE1_rBrtaA3inMa_GkhjCKk_QxWWQ7Ft5Oi0RiOA/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuvfN4oBjZTZBlBpXkh-_Hr2uX5sLhRuEHtH0ZQstK0JJ7kJWOXcV-Z8wDmSubd178ag/exec";
 
 // App-wide floating notifications. Existing alert() calls are redirected here so
 // users never get a blocking browser popup for routine save/error/delete messages.

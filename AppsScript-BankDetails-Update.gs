@@ -243,9 +243,10 @@ function doPost(e) {
       var targetCustId = String(data.customerId).trim();
       
       var cRows = custSheet.getDataRange().getValues();
+      var statusColumn = cRows[0].indexOf("Status") + 1;
       for(var i = 1; i < cRows.length; i++) {
          if(String(cRows[i][0]).trim() === targetCustId) {
-            custSheet.getRange(i + 1, 29).setValue("Closed");
+            if (statusColumn > 0) custSheet.getRange(i + 1, statusColumn).setValue("Closed");
             break;
          }
       }
@@ -257,24 +258,38 @@ function doPost(e) {
         closedSheet.getRange(1, 1, 1, 8).setFontWeight("bold");
       }
 
+      var movedCount = 0;
       var allSheets = ss.getSheets();
       for (var s = 0; s < allSheets.length; s++) {
         var name = allSheets[s].getName();
         if (name === "Collections" || name.indexOf("Collections_") === 0) {
           var tSheet = allSheets[s];
           var tData = tSheet.getDataRange().getValues();
+          if (tData.length < 2) continue;
+          var collectionHeaders = tData[0].map(function(header) { return String(header).trim(); });
+          var customerIdColumn = collectionHeaders.indexOf("Customer ID");
+          if (customerIdColumn === -1) continue;
           for (var r = tData.length - 1; r >= 1; r--) {
-            if (String(tData[r][1]).trim() === targetCustId) {
-              var rowData = tData[r].slice();
-              rowData.push(new Date()); 
-              closedSheet.appendRow(rowData);
+            if (String(tData[r][customerIdColumn]).trim() === targetCustId) {
+              var archivedRow = [
+                tData[r][collectionHeaders.indexOf("Collection ID")] || "",
+                tData[r][customerIdColumn] || "",
+                tData[r][collectionHeaders.indexOf("Customer Name")] || "",
+                tData[r][collectionHeaders.indexOf("Loan Type")] || "",
+                tData[r][collectionHeaders.indexOf("Collection Date")] || "",
+                tData[r][collectionHeaders.indexOf("Amount")] || "",
+                tData[r][collectionHeaders.indexOf("Timestamp")] || "",
+                new Date()
+              ];
+              closedSheet.appendRow(archivedRow);
               tSheet.deleteRow(r + 1);
+              movedCount++;
             }
           }
         }
       }
       clearDashboardCache();
-      return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", archivedCollections: movedCount })).setMimeType(ContentService.MimeType.JSON);
     }
 
     else if (data.action === "reopen_loan") {
