@@ -137,7 +137,38 @@
                   <button type="button" class="btn-small bg-blue" onclick="promptAddNewOccupation()" title="Add Occupation">
                     <i class="fa-solid fa-plus"></i>
                   </button>
+                  <button type="button" class="btn-small bg-yellow" onclick="promptEditSelectedOption('occupationSelect', 'Occupation')" title="Edit selected occupation"><i class="fa-solid fa-pen"></i></button>
+                  <button type="button" class="btn-small bg-red" onclick="deleteSelectedOption('occupationSelect', 'Occupation')" title="Delete selected occupation"><i class="fa-solid fa-trash"></i></button>
                 </div>
+              </div>
+
+              <div class="form-group">
+                <label>Bank Details</label>
+                <div class="select-with-btn">
+                  <select id="bankName">
+                    <option value="">Select Bank</option>
+                    <option value="State Bank of India">State Bank of India</option>
+                    <option value="HDFC Bank">HDFC Bank</option>
+                    <option value="ICICI Bank">ICICI Bank</option>
+                    <option value="Axis Bank">Axis Bank</option>
+                    <option value="Punjab National Bank">Punjab National Bank</option>
+                  </select>
+                  <button type="button" class="btn-small bg-blue" onclick="promptAddNewBank()" title="Add Bank">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                  <button type="button" class="btn-small bg-yellow" onclick="promptEditSelectedBank()" title="Edit selected bank">
+                    <i class="fa-solid fa-pen"></i>
+                  </button>
+                  <button type="button" class="btn-small bg-red" onclick="deleteSelectedBank()" title="Delete selected bank">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              <div id="bank-detail-fields" style="display: contents;">
+                <div class="form-group"><label>Branch</label><input type="text" id="bankBranch" placeholder="Enter branch name"></div>
+                <div class="form-group"><label>IFSC Code</label><input type="text" id="ifscCode" maxlength="11" placeholder="e.g. SBIN0001234" style="text-transform: uppercase;"></div>
+                <div class="form-group"><label>Account Holder's Name</label><input type="text" id="accountHolderName" placeholder="Enter account holder's name"></div>
+                <div class="form-group"><label>Account Number</label><input type="text" id="accountNumber" inputmode="numeric" placeholder="Enter account number"></div>
               </div>
 
               <div class="form-group">
@@ -152,6 +183,8 @@
                   <button type="button" class="btn-small bg-blue" onclick="promptAddNewLoanType()" title="Add Loan Type">
                     <i class="fa-solid fa-plus"></i>
                   </button>
+                  <button type="button" class="btn-small bg-yellow" onclick="promptEditSelectedOption('loanTypeSelect', 'Loan Type')" title="Edit selected loan type"><i class="fa-solid fa-pen"></i></button>
+                  <button type="button" class="btn-small bg-red" onclick="deleteSelectedOption('loanTypeSelect', 'Loan Type')" title="Delete selected loan type"><i class="fa-solid fa-trash"></i></button>
                 </div>
               </div>
 
@@ -219,6 +252,8 @@
                   <button type="button" class="btn-small bg-blue" onclick="promptAddNewNomineeOccupation()" title="Add Nominee Occupation">
                     <i class="fa-solid fa-plus"></i>
                   </button>
+                  <button type="button" class="btn-small bg-yellow" onclick="promptEditSelectedOption('nomineeOccupationSelect', 'Nominee Occupation')" title="Edit selected nominee occupation"><i class="fa-solid fa-pen"></i></button>
+                  <button type="button" class="btn-small bg-red" onclick="deleteSelectedOption('nomineeOccupationSelect', 'Nominee Occupation')" title="Delete selected nominee occupation"><i class="fa-solid fa-trash"></i></button>
                 </div>
               </div>
 
@@ -245,6 +280,8 @@
                   <button type="button" class="btn-small bg-blue" onclick="promptAddNewRelation()" title="Add Custom Relation">
                     <i class="fa-solid fa-plus"></i>
                   </button>
+                  <button type="button" class="btn-small bg-yellow" onclick="promptEditSelectedOption('relationWithApplicant', 'Relation')" title="Edit selected relation"><i class="fa-solid fa-pen"></i></button>
+                  <button type="button" class="btn-small bg-red" onclick="deleteSelectedOption('relationWithApplicant', 'Relation')" title="Delete selected relation"><i class="fa-solid fa-trash"></i></button>
                 </div>
               </div>
 

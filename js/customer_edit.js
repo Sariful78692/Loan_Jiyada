@@ -26,6 +26,12 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("mobileNo").value = data["Mobile No"] || "";
   document.getElementById("address").value = data["Address"] || "";
   document.getElementById("occupationSelect").value = data["Occupation"] || "";
+  setSelectValue("bankName", data["Bank Name"] || "");
+  document.getElementById("bankBranch").value = data["Bank Branch"] || "";
+  document.getElementById("ifscCode").value = data["IFSC Code"] || "";
+  document.getElementById("accountHolderName").value = data["Account Holder Name"] || "";
+  document.getElementById("accountNumber").value = data["Account Number"] || "";
+  toggleBankDetailFields();
   document.getElementById("loanTypeSelect").value = data["Loan Type"] || "";
   
   // Nominee ডেটা
@@ -93,6 +99,11 @@ async function handleCustomerUpdateSubmit(e) {
     mobileNo: document.getElementById("mobileNo").value.trim(),
     address: document.getElementById("address").value.trim(),
     occupation: document.getElementById("occupationSelect").value,
+    bankName: document.getElementById("bankName").value,
+    bankBranch: document.getElementById("bankBranch").value.trim(),
+    ifscCode: document.getElementById("ifscCode").value.trim().toUpperCase(),
+    accountHolderName: document.getElementById("accountHolderName").value.trim(),
+    accountNumber: document.getElementById("accountNumber").value.trim(),
     loanType: document.getElementById("loanTypeSelect").value,
     loanAmount: document.getElementById("loanAmount") ? document.getElementById("loanAmount").value : "",
     startDate: document.getElementById("startDate") ? document.getElementById("startDate").value : "",
@@ -136,4 +147,20 @@ function convertFileToBase64(file) {
     reader.onerror = (error) => reject(error);
     reader.readAsDataURL(file);
   });
+}
+
+function setSelectValue(selectId, value) {
+  const select = document.getElementById(selectId);
+  if (!select || !value) return;
+  if (!Array.from(select.options).some(option => option.value === value)) {
+    select.add(new Option(value, value));
+  }
+  select.value = value;
+}
+
+function toggleBankDetailFields() {
+  const bankSelect = document.getElementById("bankName");
+  const bankDetailFields = document.getElementById("bank-detail-fields");
+  if (!bankSelect || !bankDetailFields) return;
+  bankDetailFields.classList.toggle("hidden", !bankSelect.value);
 }

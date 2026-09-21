@@ -66,11 +66,15 @@ function renderTable(data) {
   tbody.innerHTML = `
     <tr style="background-color: #f8fafc; text-align: left; color: #0284c7; font-size: 13px; text-transform: uppercase; border-bottom: 2px solid #e2e8f0;">
       <th style="padding: 15px; font-weight: bold;">Photo</th>
+      <th style="padding: 15px; font-weight: bold;">ID</th>
       <th style="padding: 15px; font-weight: bold;">Name</th>
       <th style="padding: 15px; font-weight: bold;">Mobile No</th>
       <th style="padding: 15px; font-weight: bold;">Address</th>
       <th style="padding: 15px; font-weight: bold;">Loan Type</th>
       <th style="padding: 15px; font-weight: bold;">Occupation</th>
+      <th style="padding: 15px; font-weight: bold;">Start Date</th>
+      <th style="padding: 15px; font-weight: bold;">End Date</th>
+      <th style="padding: 15px; font-weight: bold;">Due Day</th>
       <th style="padding: 15px; font-weight: bold; text-align: center;">Actions</th>
     </tr>
   `;
@@ -78,7 +82,7 @@ function renderTable(data) {
   if (data.length === 0) {
     tbody.innerHTML += `
       <tr>
-        <td colspan="7" style="text-align: center; padding: 40px; color: #ef4444; font-size: 18px; font-weight: bold; background: #fef2f2;">
+        <td colspan="11" style="text-align: center; padding: 40px; color: #ef4444; font-size: 18px; font-weight: bold; background: #fef2f2;">
           <i class="fa-solid fa-folder-open" style="font-size: 40px; margin-bottom: 15px; display: block; color: #f87171;"></i>
           No Data Available Here
         </td>
@@ -110,6 +114,7 @@ function renderTable(data) {
 
     const customerCollections = allCollectionsData.filter(col => String(col["Customer ID"]).trim() === custId);
     const collectionCount = customerCollections.length;
+    const dates = getCustomerDates(cust, durationDays);
 
     let actionButtonsHtml = ""; 
     
@@ -163,11 +168,15 @@ function renderTable(data) {
 
     tr.innerHTML = `
       <td style="padding: 10px 15px;">${imgHtml}</td>
+      <td style="padding: 10px 15px; white-space: nowrap;">${custId || "N/A"}</td>
       <td style="padding: 10px 15px; font-weight: 500; color: #0f172a;">${cust["Customer Name"] || "N/A"}</td>
       <td style="padding: 10px 15px;">${cust["Mobile No"] || "N/A"}</td>
       <td style="padding: 10px 15px;">${cust["Address"] || "N/A"}</td>
       <td style="padding: 10px 15px; font-weight: bold; color: #0284c7;">${cust["Loan Type"] || "N/A"}</td>
       <td style="padding: 10px 15px;">${cust["Occupation"] || "N/A"}</td>
+      <td style="padding: 10px 15px; white-space: nowrap;">${dates.startDate}</td>
+      <td style="padding: 10px 15px; white-space: nowrap;">${dates.endDate}</td>
+      <td style="padding: 10px 15px; white-space: nowrap;">${dates.dueDate}</td>
       <td style="padding: 10px 15px; text-align: center; white-space: nowrap;">
         ${actionButtonsHtml}
       </td>
@@ -347,6 +356,53 @@ async function reopenCustomerLoan(customerId) {
   } catch (err) {
     alert("Failed to connect to the server.");
   }
+}
+
+function getCustomerDates(customer, durationDays) {
+  const start = parseStoredDate(customer["Start Date"]);
+  const startDate = start ? formatDisplayDate(start) : "—";
+  // The start date is Day 1, so a 365-day RD ends 364 calendar days later.
+  const endDate = start && durationDays > 0 ? formatDisplayDate(addDays(start, durationDays - 1)) : "—";
+  const dueDate = start && durationDays > 0
+    ? `${getRemainingDays(start, durationDays)} Days`
+    : "—";
+
+  return { startDate, endDate, dueDate };
+}
+
+function getRemainingDays(startDate, durationDays) {
+  const today = new Date();
+  // Count both the start date and today: start date is Day 1.
+  const elapsedDays = getCalendarDayDifference(startDate, today) + 1;
+  const completedDays = Math.min(durationDays, Math.max(0, elapsedDays));
+  return durationDays - completedDays;
+}
+
+function getCalendarDayDifference(fromDate, toDate) {
+  const fromUtc = Date.UTC(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  const toUtc = Date.UTC(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+  return Math.round((toUtc - fromUtc) / 86400000);
+}
+
+function parseStoredDate(value) {
+  if (!value) return null;
+  const rawValue = String(value).trim();
+  const normalized = normalizeCollectionDate(rawValue);
+  let date = new Date(`${normalized}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    date = new Date(rawValue);
+  }
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function addDays(date, days) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+function formatDisplayDate(date) {
+  return formatDateInput(date).split("-").reverse().join("-");
 }
 
 // RD collection: accept a date range, save one installment for each selected day,

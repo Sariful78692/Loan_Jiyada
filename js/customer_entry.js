@@ -3,7 +3,15 @@ const FORM_ID = "customer-form";
 
 document.addEventListener("DOMContentLoaded", function () {
   // ১. পেজ লোড হওয়ার পর সেভ করা ডেটা ফর্মে বসিয়ে দেওয়া
+  loadCustomBanks();
+  loadEditableSelectOptions();
   restoreFormData();
+
+  const bankSelect = document.getElementById("bankName");
+  if (bankSelect) {
+    bankSelect.addEventListener("change", toggleBankDetailFields);
+    toggleBankDetailFields();
+  }
 
   // ২. Main Form & Auto Save Logic
   const form = document.getElementById(FORM_ID);
@@ -194,6 +202,7 @@ function promptAddNewOccupation() {
     option.textContent = cleanOcc;
     select.appendChild(option);
     select.value = cleanOcc;
+    saveEditableSelectOptions("occupationSelect");
     saveFormData();
   }
 }
@@ -208,8 +217,120 @@ function promptAddNewNomineeOccupation() {
     option.textContent = cleanOcc;
     select.appendChild(option);
     select.value = cleanOcc;
+    saveEditableSelectOptions("nomineeOccupationSelect");
     saveFormData();
   }
+}
+
+function promptAddNewBank() {
+  const newBank = prompt("Enter bank name:");
+  if (!newBank || !newBank.trim()) return;
+
+  const cleanBank = newBank.trim();
+  const bankSelect = document.getElementById("bankName");
+  if (!bankSelect) return;
+
+  const banks = getBankNames(bankSelect);
+  const existingOption = banks.find(bank => bank.toLowerCase() === cleanBank.toLowerCase());
+  if (existingOption) {
+    bankSelect.value = existingOption;
+  } else {
+    banks.push(cleanBank);
+    saveBankNames(banks);
+    renderBankOptions(bankSelect, banks, cleanBank);
+  }
+  toggleBankDetailFields();
+  saveFormData();
+}
+
+function loadCustomBanks() {
+  const bankSelect = document.getElementById("bankName");
+  if (!bankSelect) return;
+  const savedBanks = getSavedBankNames();
+  const defaultBanks = Array.from(bankSelect.options)
+    .map(option => option.value)
+    .filter(Boolean);
+  const banks = savedBanks.length ? savedBanks : [...new Set([...defaultBanks, ...getLegacyCustomBanks()])];
+  renderBankOptions(bankSelect, banks, bankSelect.value);
+}
+
+function promptEditSelectedBank() {
+  const bankSelect = document.getElementById("bankName");
+  if (!bankSelect || !bankSelect.value) {
+    alert("Please select a bank to edit.");
+    return;
+  }
+
+  const oldBank = bankSelect.value;
+  const newBank = prompt("Edit bank name:", oldBank);
+  if (!newBank || !newBank.trim()) return;
+
+  const cleanBank = newBank.trim();
+  const banks = getBankNames(bankSelect);
+  if (banks.some(bank => bank.toLowerCase() === cleanBank.toLowerCase() && bank !== oldBank)) {
+    alert("This bank already exists in the list.");
+    return;
+  }
+
+  saveBankNames(banks.map(bank => bank === oldBank ? cleanBank : bank));
+  renderBankOptions(bankSelect, getSavedBankNames(), cleanBank);
+  saveFormData();
+}
+
+function deleteSelectedBank() {
+  const bankSelect = document.getElementById("bankName");
+  if (!bankSelect || !bankSelect.value) {
+    alert("Please select a bank to delete.");
+    return;
+  }
+
+  const bankToDelete = bankSelect.value;
+  if (!confirm(`Delete \"${bankToDelete}\" from the bank list?`)) return;
+
+  const remainingBanks = getBankNames(bankSelect).filter(bank => bank !== bankToDelete);
+  saveBankNames(remainingBanks);
+  renderBankOptions(bankSelect, remainingBanks, "");
+  toggleBankDetailFields();
+  saveFormData();
+}
+
+function getLegacyCustomBanks() {
+  try {
+    const banks = JSON.parse(localStorage.getItem("customBanks"));
+    return Array.isArray(banks) ? banks.filter(bank => typeof bank === "string" && bank.trim()).map(bank => bank.trim()) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function getSavedBankNames() {
+  try {
+    const banks = JSON.parse(localStorage.getItem("bankOptions"));
+    return Array.isArray(banks) ? banks.filter(bank => typeof bank === "string" && bank.trim()).map(bank => bank.trim()) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function getBankNames(bankSelect) {
+  return Array.from(bankSelect.options).map(option => option.value).filter(Boolean);
+}
+
+function saveBankNames(banks) {
+  localStorage.setItem("bankOptions", JSON.stringify(banks));
+}
+
+function renderBankOptions(bankSelect, banks, selectedValue) {
+  bankSelect.replaceChildren(new Option("Select Bank", ""));
+  banks.forEach(bank => bankSelect.add(new Option(bank, bank)));
+  bankSelect.value = selectedValue || "";
+}
+
+function toggleBankDetailFields() {
+  const bankSelect = document.getElementById("bankName");
+  const bankDetailFields = document.getElementById("bank-detail-fields");
+  if (!bankSelect || !bankDetailFields) return;
+  bankDetailFields.classList.toggle("hidden", !bankSelect.value);
 }
 
 function promptAddNewLoanType() {
@@ -235,6 +356,7 @@ function promptAddNewLoanType() {
       customLoans.push(cleanLoan);
       localStorage.setItem('customLoans', JSON.stringify(customLoans));
     }
+    saveEditableSelectOptions("loanTypeSelect");
     saveFormData();
   }
 }
@@ -257,8 +379,115 @@ function promptAddNewRelation() {
         alert("This relation already exists in the list!");
         relationSelect.value = Array.from(relationSelect.options).find(opt => opt.value.toLowerCase() === cleanVal.toLowerCase()).value;
       }
+      saveEditableSelectOptions("relationWithApplicant");
       saveFormData();
     }
+}
+
+// Edit/Delete controls for the selectable form lists.
+function promptEditSelectedOption(selectId, label) {
+  const select = document.getElementById(selectId);
+  if (!select || !select.value) {
+    alert(`Please select a ${label.toLowerCase()} to edit.`);
+    return;
+  }
+
+  const oldValue = select.value;
+  const newValue = prompt(`Edit ${label}:`, oldValue);
+  if (!newValue || !newValue.trim()) return;
+
+  const cleanValue = newValue.trim();
+  const alreadyExists = Array.from(select.options).some(option =>
+    option.value.toLowerCase() === cleanValue.toLowerCase() && option.value !== oldValue
+  );
+  if (alreadyExists) {
+    alert(`This ${label.toLowerCase()} already exists in the list.`);
+    return;
+  }
+
+  const selectedOption = select.options[select.selectedIndex];
+  selectedOption.value = cleanValue;
+  selectedOption.textContent = cleanValue;
+  select.value = cleanValue;
+  saveEditableSelectOptions(selectId);
+  updateLoanTypeLinks(selectId, oldValue, cleanValue);
+  saveFormData();
+}
+
+function deleteSelectedOption(selectId, label) {
+  const select = document.getElementById(selectId);
+  if (!select || !select.value) {
+    alert(`Please select a ${label.toLowerCase()} to delete.`);
+    return;
+  }
+
+  const valueToDelete = select.value;
+  if (!confirm(`Delete \"${valueToDelete}\" from the ${label} list?`)) return;
+
+  select.remove(select.selectedIndex);
+  saveEditableSelectOptions(selectId);
+  updateLoanTypeLinks(selectId, valueToDelete, "");
+  saveFormData();
+}
+
+function loadEditableSelectOptions() {
+  ["occupationSelect", "loanTypeSelect", "nomineeOccupationSelect", "relationWithApplicant"].forEach(selectId => {
+    const select = document.getElementById(selectId);
+    const savedOptions = getEditableSelectOptions(selectId);
+    if (!select || !savedOptions.length) return;
+
+    const placeholder = select.options[0];
+    select.replaceChildren(new Option(placeholder.textContent, ""));
+    savedOptions.forEach(value => select.add(new Option(value, value)));
+  });
+}
+
+function saveEditableSelectOptions(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+
+  const savedLists = getStoredEditableSelectLists();
+  savedLists[selectId] = Array.from(select.options)
+    .map(option => option.value)
+    .filter(Boolean);
+  localStorage.setItem("editableSelectOptions", JSON.stringify(savedLists));
+}
+
+function getEditableSelectOptions(selectId) {
+  const options = getStoredEditableSelectLists()[selectId];
+  return Array.isArray(options) ? options.filter(option => typeof option === "string" && option.trim()) : [];
+}
+
+function getStoredEditableSelectLists() {
+  try {
+    const savedLists = JSON.parse(localStorage.getItem("editableSelectOptions"));
+    return savedLists && typeof savedLists === "object" && !Array.isArray(savedLists) ? savedLists : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function updateLoanTypeLinks(selectId, oldValue, newValue) {
+  if (selectId !== "loanTypeSelect") return;
+
+  const link = Array.from(document.querySelectorAll("#sidebar-loan-list a"))
+    .find(anchor => anchor.textContent.trim() === oldValue);
+  if (link) {
+    if (newValue) {
+      link.textContent = newValue;
+      link.href = `CustomerDetails.html?loan=${encodeURIComponent(newValue)}`;
+    } else {
+      link.closest("li").remove();
+    }
+  }
+
+  const customLoans = JSON.parse(localStorage.getItem("customLoans")) || [];
+  if (customLoans.includes(oldValue)) {
+    const updatedLoans = newValue
+      ? customLoans.map(loan => loan === oldValue ? newValue : loan)
+      : customLoans.filter(loan => loan !== oldValue);
+    localStorage.setItem("customLoans", JSON.stringify(updatedLoans));
+  }
 }
 
 // ==========================================
@@ -314,6 +543,11 @@ async function handleCustomerFormSubmit(e) {
     mobileNo: document.getElementById("mobileNo").value.trim(),
     address: document.getElementById("address").value.trim(),
     occupation: document.getElementById("occupationSelect").value,
+    bankName: document.getElementById("bankName").value,
+    bankBranch: document.getElementById("bankBranch").value.trim(),
+    ifscCode: document.getElementById("ifscCode").value.trim().toUpperCase(),
+    accountHolderName: document.getElementById("accountHolderName").value.trim(),
+    accountNumber: document.getElementById("accountNumber").value.trim(),
     loanType: document.getElementById("loanTypeSelect").value,
     
     loanAmount: document.getElementById("loanAmount") ? document.getElementById("loanAmount").value : "",
