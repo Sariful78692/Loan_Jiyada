@@ -162,6 +162,41 @@ function formatDate(dateStr) {
   return dateStr;
 }
 
+function getLoanSchedule(startValue, durationDays) {
+  if (!startValue || !durationDays) {
+    return { startDate: "N/A", endDate: "N/A", dueDay: "N/A" };
+  }
+
+  const rawDate = String(startValue).split("T")[0];
+  const parts = rawDate.split("-");
+  const start = parts.length === 3 && parts[0].length === 4
+    ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+    : parts.length === 3 && parts[2].length === 4
+      ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]))
+      : new Date(rawDate);
+
+  if (Number.isNaN(start.getTime())) {
+    return { startDate: formatDate(startValue), endDate: "N/A", dueDay: "N/A" };
+  }
+
+  const end = new Date(start);
+  // Start date counts as the first installment day.
+  end.setDate(end.getDate() + durationDays - 1);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startAtMidnight = new Date(start);
+  startAtMidnight.setHours(0, 0, 0, 0);
+  const elapsedDays = Math.floor((today - startAtMidnight) / 86400000) + 1;
+  const dueDay = Math.max(0, durationDays - Math.max(0, elapsedDays));
+
+  return {
+    startDate: formatDate(startValue),
+    endDate: end.toLocaleDateString("en-GB").replaceAll("/", "-"),
+    dueDay: `${dueDay} Days`
+  };
+}
+
 // ========================================================
 // 🟢 টেবিল রেন্ডারিং সেকশন 
 // ========================================================
@@ -238,6 +273,8 @@ function renderCustomersTable(data, status) {
     <th style="padding: 10px; font-size: 12px; white-space: nowrap;">Relation</th>
     <th style="padding: 10px; font-size: 12px; white-space: nowrap;">RD Amount</th>
     <th style="padding: 10px; font-size: 12px; white-space: nowrap;">Start Date</th>
+    <th style="padding: 10px; font-size: 12px; white-space: nowrap;">End Date</th>
+    <th style="padding: 10px; font-size: 12px; white-space: nowrap;">Due Day</th>
     <th style="padding: 10px; font-size: 12px; white-space: nowrap;">Total Amount</th>
     <th style="padding: 10px; font-size: 12px; white-space: nowrap;">G.Total</th>
     <th style="padding: 10px; font-size: 12px; white-space: nowrap; color: #d97706;">Maturity Amount</th>
@@ -246,7 +283,7 @@ function renderCustomersTable(data, status) {
 
   tbody.innerHTML = "";
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; padding: 20px; color: #64748b;">No records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="18" style="text-align: center; padding: 20px; color: #64748b;">No records found.</td></tr>`;
     filterTableAndCalculateTotal();
     return;
   }
@@ -267,6 +304,8 @@ function renderCustomersTable(data, status) {
     let duration = parseFloat(cust["Duration (Days)"] || cust["Duration Days"] || cust["Duration"]) || 0;
     if (duration === 0) duration = 365; 
 
+    const loanSchedule = getLoanSchedule(cust["Start Date"], duration);
+
     const maturityPrincipal = unitAmount * duration;
     const maturityInterest = (maturityPrincipal * interestPercent) / 100;
     const maturityAmount = maturityPrincipal + maturityInterest;
@@ -286,7 +325,9 @@ function renderCustomersTable(data, status) {
       <td style="padding: 8px 10px; font-size: 12px;">${cust["Nominee Gender"] || "N/A"}</td>
       <td style="padding: 8px 10px; font-size: 12px;">${relationVal}</td>
       <td style="padding: 8px 10px; font-size: 12px; font-weight: bold;">₹ ${unitAmount}</td>
-      <td style="padding: 8px 10px; font-size: 12px;" class="date-column">${formatDate(cust["Start Date"])}</td>
+      <td style="padding: 8px 10px; font-size: 12px;" class="date-column">${loanSchedule.startDate}</td>
+      <td style="padding: 8px 10px; font-size: 12px; white-space: nowrap;">${loanSchedule.endDate}</td>
+      <td style="padding: 8px 10px; font-size: 12px; white-space: nowrap;">${loanSchedule.dueDay}</td>
       <td style="padding: 8px 10px; font-size: 12px; font-weight: bold; color: #2563eb;">₹ ${totalAmount}</td>
       <td style="padding: 8px 10px; font-size: 12px; font-weight: bold; color: #10b981;">₹ ${gTotalAmount.toFixed(2)}</td>
       <td style="padding: 8px 10px; font-size: 12px; font-weight: bold; color: #d97706;">₹ ${maturityAmount.toFixed(2)}</td>
@@ -329,7 +370,7 @@ function filterTableAndCalculateTotal() {
   let totalCollection = 0;
   const isCollectionReport = (currentReportType === "collections");
   const dateColIndex = isCollectionReport ? 3 : 11; 
-  const amountColIndex = isCollectionReport ? 4 : 13; 
+  const amountColIndex = isCollectionReport ? 4 : 15;
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
