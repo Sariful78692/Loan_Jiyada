@@ -309,6 +309,18 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": "Customer not found"})).setMimeType(ContentService.MimeType.JSON);
     }
 
+    else if (data.action === "delete_gold_loan") {
+      var deletedGoldLoan = deleteGoldLoanRecord(goldSheet, data.id);
+      if (deletedGoldLoan) clearDashboardCache();
+      return ContentService.createTextOutput(JSON.stringify({ status: deletedGoldLoan ? "success" : "error", message: deletedGoldLoan ? "" : "Gold loan not found" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    else if (data.action === "update_gold_loan") {
+      var updatedGoldLoan = updateGoldLoanRecord(goldSheet, data);
+      if (updatedGoldLoan) clearDashboardCache();
+      return ContentService.createTextOutput(JSON.stringify({ status: updatedGoldLoan ? "success" : "error", message: updatedGoldLoan ? "" : "Gold loan not found" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     else if (data.action === "create_gold_loan") {
       var goldId = "GL-" + new Date().getTime();
       var timestamp = new Date();
@@ -316,14 +328,31 @@ function doPost(e) {
       var nomineePhotoUrl = uploadImageToDrive(data.nomineeImgBase64, data.nomineeImgType, data.nomineeImgName, folderId);
       var goldItemPhotoUrl = uploadImageToDrive(data.goldItemImgBase64, data.goldItemImgType, data.goldItemImgName, folderId);
       
-      goldSheet.appendRow([
-        goldId, timestamp, data.appNo || "", data.appDate || "", data.branchName || "", 
-        data.branchCode || "", data.officerName || "", data.cspLocation || "", data.monthlyIncome || "", 
-        nomineePhotoUrl, goldItemPhotoUrl, data.goldArticles || "", data.loanAmount || "", 
-        data.loanTenure || "", data.purpose || "", data.scheme || "", data.interestRate || "", 
-        data.emiAmount || "", data.disbursementMode || "", data.bankName || "", data.acHolderName || "", 
-        data.acNumber || "", data.ifscCode || "", data.bankBranch || "", data.submittedDocuments || "", "Active"
-      ]);
+      appendGoldLoanRecord(goldSheet, {
+        "ID": goldId, "Timestamp": timestamp, "Application No": data.appNo || "", "Application Date": data.appDate || "",
+        "Branch Name": data.branchName || "", "Branch Code": data.branchCode || "", "Loan Officer Name": data.officerName || "",
+        "CSP Location": data.cspLocation || "", "Borrower Name": data.borrowerName || "", "Mobile No": data.mobileNo || "",
+        "Identity No": data.identityNo || "", "Address": data.address || "", "Monthly Income": data.monthlyIncome || "",
+        "Guardian Type": data.guardianType || "", "Guardian Name": data.guardianName || "", "Gender": data.gender || "",
+        "DOB": data.dob || "", "Religion": data.religion || "", "Aadhaar No": data.aadhaarNo || "", "Occupation": data.occupation || "",
+        "Customer Bank Name": data.customerBankName || "", "Customer Bank Branch": data.customerBankBranch || "",
+        "Customer IFSC Code": data.customerIfscCode || "", "Customer Account Holder": data.customerAccountHolder || "",
+        "Customer Account Number": data.customerAccountNumber || "", "Nominee Name": data.nomineeName || "",
+        "Nominee Guardian Type": data.nomineeGuardianType || "", "Nominee Guardian Name": data.nomineeGuardianName || "",
+        "Nominee Gender": data.nomineeGender || "", "Nominee Occupation": data.nomineeOccupation || "",
+        "Nominee DOB": data.nomineeDob || "", "Nominee Aadhaar": data.nomineeAadhaar || "",
+        "Relation With Applicant": data.relationWithApplicant || "",
+        "Nominee Photo URL": nomineePhotoUrl, "Gold Item Photo URL": goldItemPhotoUrl, "Gold Articles Details": data.goldArticles || "",
+        "Valuation Date": data.valuationDate || "", "Total Gross Weight (g)": data.totalGrossWeight || "",
+        "Total Net Weight (g)": data.totalNetWeight || "", "Total Assessed Value": data.assessedValue || "",
+        "LTV (%)": data.ltvPercent || "", "Eligible Amount": data.eligibleAmount || "", "Loan Amount Requested": data.loanAmount || "",
+        "Loan Tenure": data.loanTenure || "", "Purpose of Loan": data.purpose || "", "Scheme": data.scheme || "",
+        "Rate of Interest (%)": data.interestRate || "", "Repayment Method": data.repaymentType || "",
+        "Installment Amount": data.installmentAmount || "", "Total Interest": data.totalInterest || "",
+        "Total Payable": data.totalPayable || "", "Maturity Date": data.maturityDate || "", "Disbursement Mode": data.disbursementMode || "",
+        "Bank Name": data.bankName || "", "A/C Holder Name": data.acHolderName || "", "A/C Number": data.acNumber || "",
+        "IFSC Code": data.ifscCode || "", "Branch": data.bankBranch || "", "Submitted Documents": data.submittedDocuments || "", "Status": "Active"
+      });
       
       clearDashboardCache();
       return ContentService.createTextOutput(JSON.stringify({ status: "success", id: goldId })).setMimeType(ContentService.MimeType.JSON);
@@ -469,6 +498,37 @@ function getOrCreateGoldSheet(ss) {
     sheet.getRange(1, 1, 1, 26).setFontWeight("bold");
   }
   return sheet;
+}
+
+// Keeps existing Gold_Loans data intact and adds any fields introduced by the application form.
+function appendGoldLoanRecord(sheet, record) {
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+  var missingHeaders = Object.keys(record).filter(function(header) { return headers.indexOf(header) === -1; });
+  if (missingHeaders.length) {
+    sheet.getRange(1, headers.length + 1, 1, missingHeaders.length).setValues([missingHeaders]);
+    sheet.getRange(1, headers.length + 1, 1, missingHeaders.length).setFontWeight("bold");
+    headers = headers.concat(missingHeaders);
+  }
+  sheet.appendRow(headers.map(function(header) { return Object.prototype.hasOwnProperty.call(record, header) ? record[header] : ""; }));
+}
+
+function deleteGoldLoanRecord(sheet, id) {
+  var values = sheet.getDataRange().getValues();
+  var idColumn = values[0].indexOf("ID");
+  for (var row = 1; row < values.length; row++) {
+    if (String(values[row][idColumn]).trim() === String(id).trim()) { sheet.deleteRow(row + 1); return true; }
+  }
+  return false;
+}
+
+function updateGoldLoanRecord(sheet, data) {
+  var values = sheet.getDataRange().getValues(), headers = values[0].map(function(header) { return String(header).trim(); });
+  var idColumn = headers.indexOf("ID"), rowNumber = -1;
+  for (var row = 1; row < values.length; row++) if (String(values[row][idColumn]).trim() === String(data.id).trim()) { rowNumber = row + 1; break; }
+  if (rowNumber === -1) return false;
+  var fields = { "Borrower Name": data.borrowerName, "Mobile No": data.mobileNo, "Identity No": data.identityNo, "Address": data.address, "Monthly Income": data.monthlyIncome, "Guardian Type": data.guardianType, "Guardian Name": data.guardianName, "Gender": data.gender, "DOB": data.dob, "Religion": data.religion, "Aadhaar No": data.aadhaarNo, "Occupation": data.occupation, "Customer Bank Name": data.customerBankName, "Customer Bank Branch": data.customerBankBranch, "Customer IFSC Code": data.customerIfscCode, "Customer Account Holder": data.customerAccountHolder, "Customer Account Number": data.customerAccountNumber, "Nominee Name": data.nomineeName, "Nominee Guardian Type": data.nomineeGuardianType, "Nominee Guardian Name": data.nomineeGuardianName, "Nominee Gender": data.nomineeGender, "Nominee Occupation": data.nomineeOccupation, "Nominee DOB": data.nomineeDob, "Nominee Aadhaar": data.nomineeAadhaar, "Relation With Applicant": data.relationWithApplicant, "Gold Articles Details": data.goldArticles, "Valuation Date": data.valuationDate, "Total Gross Weight (g)": data.totalGrossWeight, "Total Net Weight (g)": data.totalNetWeight, "Total Assessed Value": data.assessedValue, "LTV (%)": data.ltvPercent, "Eligible Amount": data.eligibleAmount, "Loan Amount Requested": data.loanAmount, "Loan Tenure": data.loanTenure, "Rate of Interest (%)": data.interestRate, "Repayment Method": data.repaymentType, "Installment Amount": data.installmentAmount, "Total Interest": data.totalInterest, "Total Payable": data.totalPayable, "Maturity Date": data.maturityDate, "Purpose of Loan": data.purpose, "Scheme": data.scheme, "Disbursement Mode": data.disbursementMode, "Submitted Documents": data.submittedDocuments };
+  Object.keys(fields).forEach(function(header) { var column = headers.indexOf(header); if (column !== -1) sheet.getRange(rowNumber, column + 1).setValue(fields[header] || ""); });
+  return true;
 }
 
 // ===== Authentication module =====

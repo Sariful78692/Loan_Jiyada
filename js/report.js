@@ -110,6 +110,8 @@ function changeReportType() {
   
   if (currentReportType === "collections") {
     heading.innerText = "Collections Report";
+  } else if (currentReportType === "emiPayments") {
+    heading.innerText = "EMI Payment Report";
   } else if (currentReportType === "All") {
     heading.innerText = "All Customers Report";
   } else {
@@ -123,7 +125,7 @@ function renderCurrentReport() {
   const statusFilterEl = document.getElementById("reportStatusFilter");
   const currentStatus = statusFilterEl ? statusFilterEl.value : "Active";
 
-  if (currentReportType === "collections") {
+  if (currentReportType === "collections" || currentReportType === "emiPayments") {
     renderCollectionsTable(currentStatus === "Closed" ? allClosedCollectionsData : allCollectionsData, currentStatus);
   } else {
     let filteredCustomers = allCustomersData.filter(c => {
@@ -205,6 +207,13 @@ function getLoanSchedule(startValue, durationDays) {
 function renderCollectionsTable(data, status) {
   const headerRow = document.getElementById("table-header-row");
   const tbody = document.getElementById("report-table-body");
+  const loanTypeFilter = document.getElementById("emiLoanTypeFilter")?.value || "All";
+  const isEmiPaymentReport = currentReportType === "emiPayments";
+  const filteredCollections = data.filter(item => {
+    const loanType = String(item["Loan Type"] || "").trim();
+    if (isEmiPaymentReport && loanType.toLowerCase() === "rd loan") return false;
+    return isEmiPaymentReport || loanTypeFilter === "All" || loanType === loanTypeFilter;
+  });
   
   headerRow.innerHTML = `
     <th style="padding: 12px;">Collection ID</th>
@@ -220,13 +229,13 @@ function renderCollectionsTable(data, status) {
   `;
 
   tbody.innerHTML = "";
-  if (data.length === 0) {
+  if (filteredCollections.length === 0) {
     tbody.innerHTML = `<tr><td colspan="${status === "Closed" ? 10 : 9}" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
     filterTableAndCalculateTotal(); 
     return;
   }
 
-  data.forEach((item) => {
+  filteredCollections.forEach((item) => {
     const customerId = String(item["Customer ID"] || "").trim();
     const customer = allCustomersData.find(c => String(c["ID"] || "").trim() === customerId);
     const duration = Number(customer && (customer["Duration (Days)"] || customer["Duration Days"] || customer["Duration"])) || 365;
@@ -392,7 +401,7 @@ function filterTableAndCalculateTotal() {
   const rows = tbody.getElementsByTagName("tr");
 
   let totalCollection = 0;
-  const isCollectionReport = (currentReportType === "collections");
+  const isCollectionReport = (currentReportType === "collections" || currentReportType === "emiPayments");
   const dateColIndex = isCollectionReport ? 6 : 12;
   const amountColIndex = isCollectionReport ? 7 : 16;
 
@@ -442,6 +451,8 @@ function filterTableAndCalculateTotal() {
   if (totalLabel) {
     if (currentReportType === "collections") {
       totalLabel.innerText = "Total Collection";
+    } else if (currentReportType === "emiPayments") {
+      totalLabel.innerText = "Total EMI Payment";
     } else if (currentReportType === "All") {
       totalLabel.innerText = "All Customers Total Amount";
     } else {

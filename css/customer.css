@@ -113,3 +113,19 @@ table td {
   background-color: #fffde7 !important;
   border: 1px solid #d4d4d8 !important;
 }
+
+/* Professional Gold Loan workspace */
+.gold-page-header { display:flex; justify-content:space-between; gap:20px; align-items:center; padding:24px 28px; color:#fff; background:linear-gradient(125deg,#6f4a08,#b8860b 58%,#e5b947); border-radius:14px 14px 0 0; }
+.gold-page-header h1 { margin:3px 0 5px; color:#fff; font-size:25px; }
+.gold-page-header p { margin:0; color:#fff8de; font-size:13px; }.gold-eyebrow { font-size:10px!important; letter-spacing:.16em; font-weight:800; }
+.gold-loan-form { padding:24px; background:#fffcf4; border:1px solid #eadfbe; border-top:0; border-radius:0 0 14px 14px; }
+.gold-form-note { color:#755715; background:#fff3cd; border:1px solid #f0d890; border-radius:8px; padding:11px 13px; margin-bottom:20px; font-size:13px; }
+.gold-panel,.gold-upload-grid { background:#fff; border:1px solid #e8dfc9; padding:18px; margin-bottom:20px; }.gold-upload-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
+.gold-section-title { background:linear-gradient(90deg,#7d5608,#b8860b); margin:20px 0 0; border-radius:8px 8px 0 0; letter-spacing:.05em; }
+.gold-loan-form .form-group input,.gold-loan-form .form-group select { background:#fffdf7; }.gold-loan-form input[readonly] { background:#f4f1e9; color:#6b5a2e; font-weight:700; }
+.gold-wide { grid-column:span 2; }.gold-table { background:#fff; }.gold-table td { background:#fffdf7; }.gold-table th { background:#7d5608; }.gold-input { min-width:86px; color:#1e293b; }
+.gold-assessed-value { display:block; min-width:110px; padding:8px; color:#18794e; font-weight:800; text-align:right; }.btn-delete { border:0; color:#c43b2d; background:transparent; cursor:pointer; padding:8px; }.gold-add-row { background:#fff; border:1px solid #b8860b; border-radius:7px; color:#815907; padding:9px 13px; margin:12px 0 20px; font-weight:700; cursor:pointer; }
+.gold-valuation-summary,.gold-repayment-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; overflow:hidden; margin-bottom:20px; background:#e8dfc9; border:1px solid #e8dfc9; border-radius:10px; }.gold-valuation-summary div,.gold-repayment-summary div { padding:15px; background:#fff; }.gold-valuation-summary span,.gold-repayment-summary span { display:block; color:#6b7280; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }.gold-valuation-summary strong,.gold-repayment-summary strong { display:block; color:#23402a; margin-top:6px; font-size:16px; }.gold-repayment-summary { background:#b8860b; border-color:#b8860b; }.gold-repayment-summary strong { color:#825d0d; }.gold-documents { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; }.gold-documents label { font-size:13px; color:#4b5563; }.gold-submit { background:#8a6108; }
+@media (max-width:800px) { .gold-page-header { align-items:flex-start; flex-direction:column; }.gold-upload-grid,.gold-valuation-summary,.gold-repayment-summary,.gold-documents { grid-template-columns:1fr 1fr; }.gold-wide { grid-column:span 1; } }
+@media (max-width:520px) { .gold-loan-form { padding:14px; }.gold-upload-grid,.gold-valuation-summary,.gold-repayment-summary,.gold-documents { grid-template-columns:1fr; } }
+.gold-status { padding:4px 8px; border-radius:12px; background:#e7f7ec; color:#18794e; font-size:12px; font-weight:700; }.gold-action { border:0; border-radius:5px; padding:7px 9px; margin:2px; cursor:pointer; display:inline-block; }.gold-edit { background:#e9b949; color:#fff; }.gold-delete { background:#dc4b41; color:#fff; }

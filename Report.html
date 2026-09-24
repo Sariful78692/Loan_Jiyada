@@ -89,8 +89,11 @@
           <ul class="submenu" id="sidebar-loan-list">
             <li><a href="CustomerDetails.html?loan=RD Loan">RD Loan</a></li>
             <li><a href="CustomerDetails.html?loan=Group Loan">Group Loan</a></li>
-            <li><a href="CustomerDetails.html?loan=Gold Loan">Gold Loan</a></li>
           </ul>
+        </li>
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-coins"></i> Gold Loan <i class="fa-solid fa-chevron-down arrow"></i></a>
+          <ul class="submenu"><li><a href="GoldLoanEntry.html">Gold Loan Customer Entry</a></li><li><a href="GoldLoanDetails.html">Gold Loan Customer Details</a></li></ul>
         </li>
 
         <li class="nav-item"><a href="Report.html" class="nav-link" style="color: #fff;"><i class="fa-solid fa-file-invoice"></i> Reports</a></li>
@@ -109,6 +112,7 @@
             <div>
               <select id="reportFilter" onchange="changeReportType()" style="padding: 10px 15px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; outline: none; background: white; color: #1e293b; cursor: pointer;">
                 <option value="collections">Collections Report</option>
+                <option value="emiPayments">EMI Payment Report</option>
                 <option value="All">All Customers Report</option>
               </select>
             </div>
@@ -135,6 +139,12 @@
             </select>
 
             <!-- 🟢 Date Range Filters -->
+            <select id="emiLoanTypeFilter" onchange="renderCurrentReport()" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; background: white; cursor: pointer; font-weight: bold; color: #475569;">
+              <option value="All">All Loan Types</option>
+              <option value="RD Loan">RD Loan</option>
+              <option value="Group Loan">Group Loan</option>
+            </select>
+
             <div style="display: flex; align-items: center; gap: 5px; border-left: 2px solid #cbd5e1; padding-left: 15px;">
               <label style="font-weight: bold; color: #555; font-size: 14px;">From:</label>
               <input type="date" id="startDate" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; outline: none;">

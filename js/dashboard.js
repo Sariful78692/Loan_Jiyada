@@ -22,8 +22,12 @@ async function loadDashboardData() {
     });
 
     const allCollections = data.collections || [];
+    const activeGoldLoans = (data.gold_loans || []).filter((loan) => {
+      const status = String(loan["Status"] || "").trim().toLowerCase();
+      return status !== "disabled" && status !== "closed";
+    });
 
-    updateDashboardCharts(activeCustomers);
+    updateDashboardCharts(activeCustomers, activeGoldLoans.length);
     updateRDLoanMetrics(activeCustomers, allCollections);
 
   } catch (err) {
@@ -154,8 +158,8 @@ function updateRDLoanMetrics(activeCustomers, allCollections) {
 }
 
 // 🟢 ড্যাশবোর্ড চার্ট এবং কাউন্টার আপডেট — অপরিবর্তিত লজিক
-function updateDashboardCharts(activeCustomers) {
-  let rdCount = 0, goldCount = 0, groupLoanCount = 0;
+function updateDashboardCharts(activeCustomers, goldLoanCount = 0) {
+  let rdCount = 0, goldCount = goldLoanCount, groupLoanCount = 0;
   let anondodharaCount = 0, ashaCount = 0, janoniCount = 0;
   const loanCounts = {};
   const groupCounts = {};
@@ -165,7 +169,6 @@ function updateDashboardCharts(activeCustomers) {
     const group = (cust["Group Name"] || "").trim();
 
     if (loan.toLowerCase() === "rd loan") rdCount++;
-    if (loan.toLowerCase() === "gold loan") goldCount++;
     if (loan.toLowerCase() === "group loan") groupLoanCount++;
 
     if (group === "Anondodhara Group") anondodharaCount++;

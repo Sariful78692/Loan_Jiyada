@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 async function generateGoldApplicationId() {
-  const appNoField = document.getElementById("applicationNo") || document.querySelector("input[placeholder*='Auto']");
+  const appNoField = document.getElementById("goldAppNo");
   
   if (!appNoField) return;
 
