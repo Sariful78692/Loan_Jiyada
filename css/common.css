@@ -178,8 +178,24 @@
 .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
 
 /* ===== Mobile responsive ===== */
+.mobile-menu-toggle { display: none; }
+
 @media (max-width: 768px) {
-  .sidebar { width: 220px; padding: 18px 12px; }
+  .app-container { display: block; }
+  .sidebar { box-sizing: border-box; width: 100%; min-height: 0; padding: 12px 16px; position: sticky; top: 0; z-index: 100; }
+  .sidebar .brand { display: flex; align-items: center; justify-content: space-between; padding: 0 0 12px; margin: 0; }
+  .mobile-menu-toggle { display: grid; width: 40px; height: 40px; place-items: center; color: #fff; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); border-radius: 8px; cursor: pointer; font-size: 17px; }
+  .sidebar .nav-menu, .sidebar .sidebar-account { display: none; }
+  .sidebar.mobile-menu-open .nav-menu { display: block; flex: none; padding-top: 10px; max-height: calc(100vh - 78px); overflow-y: auto; }
+  .sidebar.mobile-menu-open .sidebar-account { display: block; }
+  .main-content { padding: 16px; overflow-x: hidden; }
+  .content-section h1 { font-size: 22px; margin-bottom: 16px; }
+}
+
+@media (max-width: 480px) {
+  .sidebar { padding: 10px 12px; }
+  .sidebar .brand h2 { font-size: 17px; }
+  .main-content { padding: 12px; }
 }
 
 /* ============================================================

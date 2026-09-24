@@ -58,6 +58,7 @@ window.alert = function (message) { showToast(message); };
 document.addEventListener("DOMContentLoaded", function () {
   requireLogin(); // সবার আগে লগইন চেক
   addAccountMenu();
+  addMobileMenuToggle();
   loadCustomLoanTypes();
 
   // সাইডবার সাবমেনু খোলা/বন্ধ
@@ -115,6 +116,26 @@ function addAccountMenu() {
     localStorage.removeItem("loanLoggedIn");
     window.location.replace("Login.html");
   });
+}
+
+function addMobileMenuToggle() {
+  const sidebar = document.querySelector(".sidebar");
+  const brand = sidebar?.querySelector(".brand");
+  if (!sidebar || !brand || brand.querySelector(".mobile-menu-toggle")) return;
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "mobile-menu-toggle";
+  toggle.setAttribute("aria-label", "Open navigation menu");
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.innerHTML = '<i class="fa-solid fa-bars" aria-hidden="true"></i>';
+  toggle.addEventListener("click", () => {
+    const isOpen = sidebar.classList.toggle("mobile-menu-open");
+    toggle.setAttribute("aria-expanded", String(isOpen));
+    toggle.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
+    toggle.innerHTML = `<i class="fa-solid fa-${isOpen ? "xmark" : "bars"}" aria-hidden="true"></i>`;
+  });
+  brand.appendChild(toggle);
 }
 
 function loadCustomLoanTypes() {

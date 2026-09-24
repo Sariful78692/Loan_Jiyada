@@ -129,3 +129,18 @@ table td {
 @media (max-width:800px) { .gold-page-header { align-items:flex-start; flex-direction:column; }.gold-upload-grid,.gold-valuation-summary,.gold-repayment-summary,.gold-documents { grid-template-columns:1fr 1fr; }.gold-wide { grid-column:span 1; } }
 @media (max-width:520px) { .gold-loan-form { padding:14px; }.gold-upload-grid,.gold-valuation-summary,.gold-repayment-summary,.gold-documents { grid-template-columns:1fr; } }
 .gold-status { padding:4px 8px; border-radius:12px; background:#e7f7ec; color:#18794e; font-size:12px; font-weight:700; }.gold-action { border:0; border-radius:5px; padding:7px 9px; margin:2px; cursor:pointer; display:inline-block; }.gold-edit { background:#e9b949; color:#fff; }.gold-delete { background:#dc4b41; color:#fff; }
+
+@media (max-width: 640px) {
+  .form-card { padding: 14px; }
+  .form-grid { grid-template-columns: 1fr; gap: 12px; }
+  .form-group input, .form-group select { box-sizing: border-box; width: 100%; min-height: 42px; }
+  .select-with-btn { align-items: stretch; }
+  .form-actions { flex-direction: column; gap: 10px; }
+  .form-actions .btn-primary, .form-actions .btn-secondary, .form-actions .btn-danger { width: 100%; }
+  .table-responsive { padding: 10px; margin-left: -2px; margin-right: -2px; }
+  .gold-page-header { padding: 18px; gap: 14px; }
+  .gold-page-header h1 { font-size: 21px; }
+  .gold-page-header .btn-danger, .gold-page-header .btn-primary { width: 100%; text-align: center; }
+  .gold-panel { padding: 14px; }
+  .gold-table { min-width: 820px; }
+}
