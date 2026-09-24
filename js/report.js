@@ -208,8 +208,11 @@ function renderCollectionsTable(data, status) {
   
   headerRow.innerHTML = `
     <th style="padding: 12px;">Collection ID</th>
+    <th style="padding: 12px; white-space: nowrap;">Customer ID</th>
     <th style="padding: 12px;">Customer Name</th>
     <th style="padding: 12px;">Loan Type</th>
+    <th style="padding: 12px; white-space: nowrap;">Start Date</th>
+    <th style="padding: 12px; white-space: nowrap;">End Date</th>
     <th style="padding: 12px;">Collection Date</th>
     <th style="padding: 12px;">Amount</th>
     ${status === "Closed" ? '<th style="padding: 12px;">Archive Date</th>' : ''}
@@ -218,12 +221,16 @@ function renderCollectionsTable(data, status) {
 
   tbody.innerHTML = "";
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${status === "Closed" ? 7 : 6}" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${status === "Closed" ? 10 : 9}" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
     filterTableAndCalculateTotal(); 
     return;
   }
 
   data.forEach((item) => {
+    const customerId = String(item["Customer ID"] || "").trim();
+    const customer = allCustomersData.find(c => String(c["ID"] || "").trim() === customerId);
+    const duration = Number(customer && (customer["Duration (Days)"] || customer["Duration Days"] || customer["Duration"])) || 365;
+    const loanSchedule = customer ? getLoanSchedule(customer["Start Date"], duration) : { startDate: "N/A", endDate: "N/A" };
     let actionHtml = '';
     
     if (status === "Closed") {
@@ -246,8 +253,11 @@ function renderCollectionsTable(data, status) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td style="padding: 10px 15px;">${item["Collection ID"] || "N/A"}</td>
+      <td style="padding: 10px 15px; white-space: nowrap;">${customerId || "N/A"}</td>
       <td style="padding: 10px 15px; font-weight: 500;">${item["Customer Name"] || "N/A"}</td>
       <td style="padding: 10px 15px; font-weight: bold; color: #0284c7;">${item["Loan Type"] || "N/A"}</td>
+      <td style="padding: 10px 15px; white-space: nowrap;">${loanSchedule.startDate}</td>
+      <td style="padding: 10px 15px; white-space: nowrap;">${loanSchedule.endDate}</td>
       <td style="padding: 10px 15px;">${formatDate(item["Collection Date"])}</td>
       <td style="padding: 10px 15px; font-weight: bold; color: #10b981;">₹ ${item["Amount"] || "0"}</td>
       ${status === "Closed" ? `<td style="padding: 10px 15px;">${formatDate(item["Archive Date"])}</td>` : ''}
@@ -264,6 +274,7 @@ function renderCustomersTable(data, status) {
   const tbody = document.getElementById("report-table-body");
   
   headerRow.innerHTML = `
+    <th style="padding: 10px; font-size: 12px; white-space: nowrap;">Customer ID</th>
     <th style="padding: 10px; font-size: 12px; white-space: nowrap;">Customer Name</th>
     <th style="padding: 10px; font-size: 12px; white-space: nowrap;">DOB</th>
     <th style="padding: 10px; font-size: 12px; white-space: nowrap;">Guardian Name</th>
@@ -286,7 +297,7 @@ function renderCustomersTable(data, status) {
 
   tbody.innerHTML = "";
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="18" style="text-align: center; padding: 20px; color: #64748b;">No records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="19" style="text-align: center; padding: 20px; color: #64748b;">No records found.</td></tr>`;
     filterTableAndCalculateTotal();
     return;
   }
@@ -325,6 +336,7 @@ function renderCustomersTable(data, status) {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
+      <td style="padding: 8px 10px; font-size: 12px; white-space: nowrap;">${custId || "N/A"}</td>
       <td style="padding: 8px 10px; font-size: 12px; font-weight: 500;">${cust["Customer Name"] || "N/A"}</td>
       <td style="padding: 8px 10px; font-size: 12px;">${formatDate(cust["DOB"])}</td>
       <td style="padding: 8px 10px; font-size: 12px;">${cust["Guardian Name"] || "N/A"}</td>
@@ -381,8 +393,8 @@ function filterTableAndCalculateTotal() {
 
   let totalCollection = 0;
   const isCollectionReport = (currentReportType === "collections");
-  const dateColIndex = isCollectionReport ? 3 : 11; 
-  const amountColIndex = isCollectionReport ? 4 : 15;
+  const dateColIndex = isCollectionReport ? 6 : 12;
+  const amountColIndex = isCollectionReport ? 7 : 16;
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];

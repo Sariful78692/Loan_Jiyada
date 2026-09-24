@@ -1,5 +1,6 @@
 let currentEditId = null;
 let existingPhotoUrl = "";
+let isReopenMode = false;
 
 document.addEventListener("DOMContentLoaded", function () {
   // ১. সেশন থেকে ডেটা নিয়ে ফর্মে বসানো
@@ -12,8 +13,14 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   const data = JSON.parse(editDataStr);
+  isReopenMode = sessionStorage.getItem("reopenCustomerLoan") === "true";
   currentEditId = data["ID"];
   existingPhotoUrl = data["Photo URL"] || "";
+
+  if (isReopenMode) {
+    const formTitle = document.getElementById("form-title");
+    if (formTitle) formTitle.innerText = "Re-open Customer Loan";
+  }
 
   // ফিল্ডগুলোতে ডেটা বসানো
   document.getElementById("customerName").value = data["Customer Name"] || "";
@@ -58,7 +65,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // বাটন টেক্সট Update করা
   const submitBtn = document.getElementById("submit-btn");
   if (submitBtn) {
-    submitBtn.innerText = "Update Customer";
+    submitBtn.innerText = isReopenMode ? "Re-open Loan" : "Update Customer";
     submitBtn.style.backgroundColor = "#eab308";
   }
 
@@ -73,7 +80,7 @@ async function handleCustomerUpdateSubmit(e) {
   
   const submitBtn = document.getElementById("submit-btn");
   submitBtn.disabled = true;
-  submitBtn.innerText = "Updating...";
+  submitBtn.innerText = isReopenMode ? "Re-opening..." : "Updating...";
 
   const photoFileInput = document.getElementById("photoInput");
   let photoBase64 = "", photoName = "", photoMimeType = "";
@@ -126,8 +133,27 @@ async function handleCustomerUpdateSubmit(e) {
     const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
     const result = await res.json();
     if (result.status === "success") {
-      alert("Customer updated successfully!");
+      if (isReopenMode) {
+        const reopenResponse = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "reopen_loan", customerId: currentEditId })
+        });
+        const reopenResult = await reopenResponse.json();
+        if (reopenResult.status !== "success") {
+          alert("Customer data was updated, but the loan could not be re-opened: " + (reopenResult.message || "Unknown error"));
+          return;
+        }
+      }
+
+      alert(isReopenMode ? "Loan re-opened successfully!" : "Customer updated successfully!");
       sessionStorage.removeItem("editCustomerData");
+      const returnUrl = sessionStorage.getItem("reopenReturnUrl");
+      sessionStorage.removeItem("reopenCustomerLoan");
+      sessionStorage.removeItem("reopenReturnUrl");
+      if (returnUrl) {
+        window.location.href = returnUrl;
+        return;
+      }
       window.location.href = "CustomerDetails.html"; // আপডেট শেষে Details পেজে ফিরে যাবে
     } else {
       alert("Error: " + result.message);
@@ -136,7 +162,7 @@ async function handleCustomerUpdateSubmit(e) {
     alert("Submission failed. Check network or script URL.");
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerText = "Update Customer";
+    submitBtn.innerText = isReopenMode ? "Re-open Loan" : "Update Customer";
   }
 }
 

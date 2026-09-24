@@ -36,8 +36,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 async function fetchCustomers() {
   const tbody = document.getElementById("customer-table-body");
+  const isRdLoanPage = String(currentLoanFilter || "").trim().toLowerCase() === "rd loan";
   if(tbody) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; font-size:18px; color:#0284c7;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${isRdLoanPage ? 11 : 8}" style="text-align:center; padding:40px; font-size:18px; color:#0284c7;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>`;
   }
 
   try {
@@ -62,6 +63,11 @@ async function fetchCustomers() {
 function renderTable(data) {
   const tbody = document.getElementById("customer-table-body");
   if (!tbody) return;
+  const isRdLoanPage = String(currentLoanFilter || "").trim().toLowerCase() === "rd loan";
+  const dateColumns = isRdLoanPage ? `
+      <th style="padding: 15px; font-weight: bold; white-space: nowrap;">Start Date</th>
+      <th style="padding: 15px; font-weight: bold; white-space: nowrap;">End Date</th>
+      <th style="padding: 15px; font-weight: bold; white-space: nowrap;">Due Days</th>` : "";
   
   tbody.innerHTML = `
     <tr style="background-color: #f8fafc; text-align: left; color: #0284c7; font-size: 13px; text-transform: uppercase; border-bottom: 2px solid #e2e8f0;">
@@ -72,9 +78,7 @@ function renderTable(data) {
       <th style="padding: 15px; font-weight: bold;">Address</th>
       <th style="padding: 15px; font-weight: bold;">Loan Type</th>
       <th style="padding: 15px; font-weight: bold;">Occupation</th>
-      <th style="padding: 15px; font-weight: bold;">Start Date</th>
-      <th style="padding: 15px; font-weight: bold;">End Date</th>
-      <th style="padding: 15px; font-weight: bold;">Due Day</th>
+      ${dateColumns}
       <th style="padding: 15px; font-weight: bold; text-align: center;">Actions</th>
     </tr>
   `;
@@ -82,7 +86,7 @@ function renderTable(data) {
   if (data.length === 0) {
     tbody.innerHTML += `
       <tr>
-        <td colspan="11" style="text-align: center; padding: 40px; color: #ef4444; font-size: 18px; font-weight: bold; background: #fef2f2;">
+        <td colspan="${isRdLoanPage ? 11 : 8}" style="text-align: center; padding: 40px; color: #ef4444; font-size: 18px; font-weight: bold; background: #fef2f2;">
           <i class="fa-solid fa-folder-open" style="font-size: 40px; margin-bottom: 15px; display: block; color: #f87171;"></i>
           No Data Available Here
         </td>
@@ -114,7 +118,7 @@ function renderTable(data) {
 
     const customerCollections = allCollectionsData.filter(col => String(col["Customer ID"]).trim() === custId);
     const collectionCount = customerCollections.length;
-    const dates = getCustomerDates(cust, durationDays);
+    const dates = isRdLoanPage ? getCustomerDates(cust, durationDays) : null;
 
     let actionButtonsHtml = ""; 
     
@@ -127,7 +131,7 @@ function renderTable(data) {
           <i class="fa-solid fa-unlock"></i> Re-open
         </button>
       `;
-    } else if (currentLoanFilter === "RD Loan") {
+    } else if (isRdLoanPage) {
       let collectBtn = "";
       if (dates.dueDay === 0) {
         collectBtn = `
@@ -177,9 +181,10 @@ function renderTable(data) {
       <td style="padding: 10px 15px;">${cust["Address"] || "N/A"}</td>
       <td style="padding: 10px 15px; font-weight: bold; color: #0284c7;">${cust["Loan Type"] || "N/A"}</td>
       <td style="padding: 10px 15px;">${cust["Occupation"] || "N/A"}</td>
+      ${isRdLoanPage ? `
       <td style="padding: 10px 15px; white-space: nowrap;">${dates.startDate}</td>
       <td style="padding: 10px 15px; white-space: nowrap;">${dates.endDate}</td>
-      <td style="padding: 10px 15px; white-space: nowrap;">${dates.dueDate}</td>
+      <td style="padding: 10px 15px; white-space: nowrap;">${dates.dueDate}</td>` : ""}
       <td style="padding: 10px 15px; text-align: center; white-space: nowrap;">
         ${actionButtonsHtml}
       </td>
@@ -312,6 +317,8 @@ async function deleteCustomer(id) {
 function editCustomer(id) {
   const customerToEdit = customersData.find(c => c["ID"] === id); 
   if(customerToEdit) {
+    sessionStorage.removeItem("reopenCustomerLoan");
+    sessionStorage.removeItem("reopenReturnUrl");
     sessionStorage.setItem("editCustomerData", JSON.stringify(customerToEdit));
     window.location.href = "CustomerEdit.html";
   }
@@ -342,26 +349,18 @@ async function closeCustomerLoan(customerId) {
   }
 }
 
-async function reopenCustomerLoan(customerId) {
-  if (!confirm("Are you sure you want to RE-OPEN this closed loan? \n\nThis will mark the customer as 'Active' again.")) {
+function reopenCustomerLoan(customerId) {
+  const customerToReopen = customersData.find(c => String(c["ID"]) === String(customerId));
+  if (!customerToReopen) {
+    alert("Customer data could not be found. Please refresh and try again.");
     return;
   }
 
-  try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "reopen_loan", customerId: customerId })
-    });
-    const result = await res.json();
-    if (result.status === "success") {
-      alert("Loan re-opened and marked as Active successfully!");
-      window.location.reload(); 
-    } else {
-      alert("Failed to re-open loan. Server message: " + (result.message || "Unknown error"));
-    }
-  } catch (err) {
-    alert("Failed to connect to the server.");
-  }
+  // Show the customer's existing data before re-opening so it can be reviewed or updated.
+  sessionStorage.setItem("editCustomerData", JSON.stringify(customerToReopen));
+  sessionStorage.setItem("reopenCustomerLoan", "true");
+  sessionStorage.setItem("reopenReturnUrl", window.location.href);
+  window.location.href = "CustomerEdit.html?mode=reopen";
 }
 
 function getCustomerDates(customer, durationDays) {
