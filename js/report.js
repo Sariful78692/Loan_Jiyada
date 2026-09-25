@@ -1,12 +1,19 @@
 document.addEventListener("DOMContentLoaded", async function () {
   populateLoanDropdownFromSidebar();
+  const reportType = new URLSearchParams(window.location.search).get("type");
+  if (reportType && Array.from(document.getElementById("reportFilter").options).some(option => option.value === reportType)) {
+    document.getElementById("reportFilter").value = reportType;
+    currentReportType = reportType;
+  }
   await fetchReportData();
+  if (currentReportType === "goldEmiPayments") changeReportType();
 });
 
 let allCollectionsData = [];
 let allClosedCollectionsData = []; 
 let allCustomersData = [];
 let allGoldLoansData = [];
+let allGoldEmiPaymentsData = [];
 let currentReportType = "collections";
 
 // 🟢 সাইডবার থেকে লোন টাইপগুলো রিড করে ড্রপডাউনে বসানো
@@ -95,6 +102,7 @@ async function fetchReportData() {
     });
 
     allGoldLoansData = data.gold_loans || [];
+    allGoldEmiPaymentsData = normalizeGoldEmiReportPayments(data.gold_emi_payments || [], data.collections || []);
     
     populateDynamicYears(); // 🟢 ডেটা ফেচ হওয়ার পর ইয়ার ড্রপডাউন আপডেট করা হচ্ছে
     renderCurrentReport();
@@ -102,6 +110,26 @@ async function fetchReportData() {
     console.error("Failed to load report data", err);
     tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; color: red; padding: 20px;">Failed to load report data.</td></tr>`;
   }
+}
+
+function normalizeGoldEmiReportPayments(savedPayments, collections) {
+  const payments = new Map();
+  savedPayments.forEach(payment => {
+    const loanId = String(payment["Loan ID"] || "");
+    const date = String(payment["Payment Date"] || payment["Paid Date"] || payment["Due Date"] || "").slice(0, 10);
+    payments.set(`${loanId}|${date}`, payment);
+  });
+  collections.filter(item => String(item["Loan Type"] || "").trim().toLowerCase() === "gold loan").forEach(item => {
+    const loanId = String(item["Customer ID"] || "");
+    const date = String(item["Collection Date"] || "").slice(0, 10);
+    const key = `${loanId}|${date}`;
+    if (!payments.has(key)) payments.set(key, {
+      "Loan ID": loanId, "Receipt ID": item["Collection ID"] || "", "Application No": "",
+      "Customer Name": item["Customer Name"] || "", "Mobile No": "", "Installment Number": "",
+      "Payment Date": date, "EMI Amount": item.Amount || 0, "Fine Amount": 0, "Total Paid": item.Amount || 0
+    });
+  });
+  return Array.from(payments.values());
 }
 
 function changeReportType() {
@@ -112,6 +140,8 @@ function changeReportType() {
     heading.innerText = "Collections Report";
   } else if (currentReportType === "emiPayments") {
     heading.innerText = "EMI Payment Report";
+  } else if (currentReportType === "goldEmiPayments") {
+    heading.innerText = "Gold Loan EMI Report";
   } else if (currentReportType === "All") {
     heading.innerText = "All Customers Report";
   } else {
@@ -122,6 +152,12 @@ function changeReportType() {
 }
 
 function renderCurrentReport() {
+  const loanTypeFilter = document.getElementById("emiLoanTypeFilter");
+  if (loanTypeFilter) loanTypeFilter.style.display = currentReportType === "goldEmiPayments" ? "none" : "";
+  if (currentReportType === "goldEmiPayments") {
+    renderGoldEmiPaymentsTable();
+    return;
+  }
   const statusFilterEl = document.getElementById("reportStatusFilter");
   const currentStatus = statusFilterEl ? statusFilterEl.value : "Active";
 
@@ -148,6 +184,19 @@ function renderCurrentReport() {
     
     renderCustomersTable(filteredCustomers, currentStatus);
   }
+}
+
+function renderGoldEmiPaymentsTable() {
+  const header = document.getElementById("table-header-row");
+  const body = document.getElementById("report-table-body");
+  header.innerHTML = `<th>Receipt ID</th><th>Application No</th><th>Customer Name</th><th>Mobile No</th><th>Installment No.</th><th>Due Date</th><th>Payment Date</th><th>EMI Amount</th><th>Fine Amount</th><th>Total Paid</th>`;
+  if (!allGoldEmiPaymentsData.length) {
+    body.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;color:#64748b">No Gold Loan EMI payments found.</td></tr>';
+    filterTableAndCalculateTotal();
+    return;
+  }
+  body.innerHTML = allGoldEmiPaymentsData.map(payment => `<tr><td>${payment["Receipt ID"] || payment["Payment ID"] || "—"}</td><td>${payment["Application No"] || "—"}</td><td>${payment["Customer Name"] || "—"}</td><td>${payment["Mobile No"] || "—"}</td><td>${payment["Installment Number"] || "—"}</td><td>${formatDate(payment["Due Date"])}</td><td>${formatDate(payment["Payment Date"] || payment["Paid Date"])}</td><td>₹ ${Number(payment["EMI Amount"] || payment.Amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>₹ ${Number(payment["Fine Amount"] || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>₹ ${Number(payment["Total Paid"] || payment.Amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>`).join("");
+  filterTableAndCalculateTotal();
 }
 
 function formatDate(dateStr) {
@@ -401,9 +450,10 @@ function filterTableAndCalculateTotal() {
   const rows = tbody.getElementsByTagName("tr");
 
   let totalCollection = 0;
-  const isCollectionReport = (currentReportType === "collections" || currentReportType === "emiPayments");
-  const dateColIndex = isCollectionReport ? 6 : 12;
-  const amountColIndex = isCollectionReport ? 7 : 16;
+  const isGoldEmiReport = currentReportType === "goldEmiPayments";
+  const isCollectionReport = (currentReportType === "collections" || currentReportType === "emiPayments" || isGoldEmiReport);
+  const dateColIndex = isGoldEmiReport ? 6 : isCollectionReport ? 6 : 12;
+  const amountColIndex = isGoldEmiReport ? 9 : isCollectionReport ? 7 : 16;
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -453,6 +503,8 @@ function filterTableAndCalculateTotal() {
       totalLabel.innerText = "Total Collection";
     } else if (currentReportType === "emiPayments") {
       totalLabel.innerText = "Total EMI Payment";
+    } else if (currentReportType === "goldEmiPayments") {
+      totalLabel.innerText = "Total Gold Loan EMI Paid";
     } else if (currentReportType === "All") {
       totalLabel.innerText = "All Customers Total Amount";
     } else {

@@ -84,11 +84,28 @@ function doGet(e) {
     }
   }
 
+  var goldEmiSheet = getOrCreateGoldEmiPaymentsSheet(ss);
+  var goldEmiData = goldEmiSheet.getDataRange().getValues();
+  var goldEmiResult = [];
+  if (goldEmiData.length > 1) {
+    var goldEmiHeaders = goldEmiData[0];
+    for (var i = 1; i < goldEmiData.length; i++) {
+      var obj = {};
+      for (var j = 0; j < goldEmiHeaders.length; j++) {
+        var val = goldEmiData[i][j];
+        if (val instanceof Date) val = Utilities.formatDate(val, tz, "yyyy-MM-dd'T'HH:mm:ss");
+        obj[String(goldEmiHeaders[j]).trim()] = val;
+      }
+      goldEmiResult.push(obj);
+    }
+  }
+
   var finalOutput = JSON.stringify({ 
     customers: custResult, 
     collections: collResult,
     closed_collections: closedResult, 
-    gold_loans: goldResult
+    gold_loans: goldResult,
+    gold_emi_payments: goldEmiResult
   });
 
   try {
@@ -315,13 +332,31 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({ status: deletedGoldLoan ? "success" : "error", message: deletedGoldLoan ? "" : "Gold loan not found" })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    else if (data.action === "record_gold_emi_payment") {
+      var emiResult = recordGoldEmiPayment(ss, goldSheet, data);
+      if (emiResult.status === "success") clearDashboardCache();
+      return jsonResponse(emiResult);
+    }
+
+    else if (data.action === "record_gold_emi_installment") {
+      var installmentResult = recordGoldEmiInstallment(ss, goldSheet, data);
+      if (installmentResult.status === "success") clearDashboardCache();
+      return jsonResponse(installmentResult);
+    }
+
     else if (data.action === "update_gold_loan") {
+      if (!/^\d{10}$/.test(String(data.mobileNo || "")) || !/^\d{12}$/.test(String(data.aadhaarNo || "")) || (data.nomineeAadhaar && !/^\d{12}$/.test(String(data.nomineeAadhaar)))) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Mobile must be 10 digits and Aadhaar numbers must be 12 digits." })).setMimeType(ContentService.MimeType.JSON);
+      }
       var updatedGoldLoan = updateGoldLoanRecord(goldSheet, data);
       if (updatedGoldLoan) clearDashboardCache();
       return ContentService.createTextOutput(JSON.stringify({ status: updatedGoldLoan ? "success" : "error", message: updatedGoldLoan ? "" : "Gold loan not found" })).setMimeType(ContentService.MimeType.JSON);
     }
 
     else if (data.action === "create_gold_loan") {
+      if (!/^\d{10}$/.test(String(data.mobileNo || "")) || !/^\d{12}$/.test(String(data.aadhaarNo || "")) || (data.nomineeAadhaar && !/^\d{12}$/.test(String(data.nomineeAadhaar)))) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Mobile must be 10 digits and Aadhaar numbers must be 12 digits." })).setMimeType(ContentService.MimeType.JSON);
+      }
       var goldId = "GL-" + new Date().getTime();
       var timestamp = new Date();
       
@@ -346,10 +381,12 @@ function doPost(e) {
         "Valuation Date": data.valuationDate || "", "Total Gross Weight (g)": data.totalGrossWeight || "",
         "Total Net Weight (g)": data.totalNetWeight || "", "Total Assessed Value": data.assessedValue || "",
         "LTV (%)": data.ltvPercent || "", "Eligible Amount": data.eligibleAmount || "", "Loan Amount Requested": data.loanAmount || "",
+        "Processing Charge": data.processingCharge || 0, "Document Charge": data.documentCharge || 0,
+        "Net Disbursement Amount": data.netDisbursementAmount || 0,
         "Loan Tenure": data.loanTenure || "", "Purpose of Loan": data.purpose || "", "Scheme": data.scheme || "",
         "Rate of Interest (%)": data.interestRate || "", "Repayment Method": data.repaymentType || "",
         "Installment Amount": data.installmentAmount || "", "Total Interest": data.totalInterest || "",
-        "Total Payable": data.totalPayable || "", "Maturity Date": data.maturityDate || "", "Disbursement Mode": data.disbursementMode || "",
+        "Total Payable": data.totalPayable || "", "First EMI Date": data.firstEmiDate || "", "EMI Close Date": data.emiCloseDate || data.maturityDate || "", "Maturity Date": data.maturityDate || data.emiCloseDate || "", "Disbursement Mode": data.disbursementMode || "",
         "Bank Name": data.bankName || "", "A/C Holder Name": data.acHolderName || "", "A/C Number": data.acNumber || "",
         "IFSC Code": data.ifscCode || "", "Branch": data.bankBranch || "", "Submitted Documents": data.submittedDocuments || "", "Status": "Active"
       });
@@ -483,6 +520,166 @@ function uploadImageToDrive(base64Data, mimeType, fileName, folderId) {
   }
 }
 
+function getOrCreateGoldEmiPaymentsSheet(ss) {
+  var sheet = ss.getSheetByName("Gold_Loan_EMI_Payments");
+  if (!sheet) {
+    sheet = ss.insertSheet("Gold_Loan_EMI_Payments");
+    sheet.appendRow(["Payment ID", "Receipt ID", "Loan ID", "Application No", "Customer Name", "Installment Month", "Paid Date", "Amount", "Timestamp"]);
+    sheet.getRange(1, 1, 1, 9).setFontWeight("bold");
+  }
+  return sheet;
+}
+
+function parseGoldLoanDate(value) {
+  if (value instanceof Date) return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  var text = String(value || "").trim();
+  var iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+  var dmy = text.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+  if (dmy) return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
+  return null;
+}
+
+function goldLoanDateIso(date) {
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), "yyyy-MM-dd");
+}
+
+function recordGoldEmiInstallment(ss, goldSheet, data) {
+  var loanId = String(data.loanId || "").trim();
+  var goldValues = goldSheet.getDataRange().getValues();
+  var goldHeaders = goldValues[0].map(function(header) { return String(header).trim(); });
+  var idColumn = goldHeaders.indexOf("ID"), loanRow = null;
+  for (var i = 1; i < goldValues.length; i++) {
+    if (String(goldValues[i][idColumn]).trim() === loanId) { loanRow = goldValues[i]; break; }
+  }
+  if (!loanRow) return { status: "error", message: "Gold loan was not found." };
+  var loan = {};
+  goldHeaders.forEach(function(header, index) { loan[header] = loanRow[index]; });
+  if (String(loan["Repayment Method"] || "").toLowerCase() !== "emi") return { status: "error", message: "This loan does not use monthly EMI repayment." };
+
+  var tenure = Math.max(0, parseInt(loan["Loan Tenure"], 10) || 0);
+  var emiAmount = Number(loan["Installment Amount"] || loan["EMI Amount"] || 0);
+  if (!tenure || !(emiAmount > 0)) return { status: "error", message: "The EMI amount or loan tenure is missing." };
+  var firstDue = parseGoldLoanDate(loan["First EMI Date"]);
+  if (!firstDue) {
+    firstDue = parseGoldLoanDate(loan["Application Date"]);
+    if (firstDue) firstDue.setDate(firstDue.getDate() + 30);
+  }
+  if (!firstDue) return { status: "error", message: "The first EMI date is missing." };
+
+  var paymentSheet = getOrCreateGoldEmiPaymentsSheet(ss);
+  var requiredHeaders = ["Mobile No", "Installment Number", "Due Date", "Payment Date", "EMI Amount", "Fine Amount", "Total Paid"];
+  var headers = paymentSheet.getRange(1, 1, 1, paymentSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+  var missing = requiredHeaders.filter(function(header) { return headers.indexOf(header) === -1; });
+  if (missing.length) {
+    paymentSheet.getRange(1, headers.length + 1, 1, missing.length).setValues([missing]);
+    paymentSheet.getRange(1, headers.length + 1, 1, missing.length).setFontWeight("bold");
+    headers = headers.concat(missing);
+  }
+  var rows = paymentSheet.getDataRange().getValues();
+  var loanColumn = headers.indexOf("Loan ID"), paidCount = 0;
+  for (var r = 1; r < rows.length; r++) if (String(rows[r][loanColumn]).trim() === loanId) paidCount++;
+  if (paidCount >= tenure) return { status: "error", message: "All installments for this loan have already been paid." };
+
+  var installmentNumber = paidCount + 1;
+  var dueDate = new Date(firstDue.getTime());
+  dueDate.setDate(dueDate.getDate() + paidCount * 30);
+  var dueDateIso = goldLoanDateIso(dueDate);
+  if (String(data.dueDate || "") !== dueDateIso) return { status: "error", message: "The EMI due date has changed. Refresh the page and try again." };
+
+  var paymentDate = parseGoldLoanDate(data.paymentDate);
+  if (!paymentDate) return { status: "error", message: "Select a valid payment date." };
+  var now = new Date();
+  now.setHours(0, 0, 0, 0);
+  if (paymentDate > now) return { status: "error", message: "Payment date cannot be in the future." };
+  var fineAmount = Number(data.fineAmount || 0);
+  if (!isFinite(fineAmount) || fineAmount < 0) return { status: "error", message: "Fine amount must be zero or more." };
+  var paymentDateIso = goldLoanDateIso(paymentDate);
+  if (paymentDateIso !== goldLoanDateIso(now)) return { status: "error", message: "EMI payment date must be today." };
+  var isLate = paymentDateIso > dueDateIso;
+  if (isLate && !(fineAmount > 0)) return { status: "error", message: "A fine amount is required for a missed EMI." };
+  if (!isLate) fineAmount = 0;
+
+  var receiptId = "GEMI-" + new Date().getTime();
+  var record = {
+    "Payment ID": receiptId, "Receipt ID": receiptId, "Loan ID": loanId,
+    "Application No": loan["Application No"] || "", "Customer Name": loan["Borrower Name"] || "", "Mobile No": loan["Mobile No"] || "",
+    "Installment Month": dueDateIso.slice(0, 7), "Installment Number": installmentNumber,
+    "Due Date": dueDateIso, "Paid Date": paymentDateIso, "Payment Date": paymentDateIso,
+    "Amount": emiAmount + fineAmount, "EMI Amount": emiAmount, "Fine Amount": fineAmount,
+    "Total Paid": emiAmount + fineAmount, "Timestamp": new Date()
+  };
+  paymentSheet.appendRow(headers.map(function(header) { return Object.prototype.hasOwnProperty.call(record, header) ? record[header] : ""; }));
+  return {
+    status: "success", receiptId: receiptId, loanId: loanId,
+    applicationNo: loan["Application No"] || "", customerName: loan["Borrower Name"] || "",
+    mobileNo: loan["Mobile No"] || "", installmentNumber: installmentNumber,
+    dueDate: dueDateIso, paymentDate: paymentDateIso, emiAmount: emiAmount,
+    fineAmount: fineAmount, totalPaid: emiAmount + fineAmount,
+    nextEmiDate: installmentNumber < tenure ? goldLoanDateIso(new Date(dueDate.getTime() + 30 * 86400000)) : ""
+  };
+}
+
+function recordGoldEmiPayment(ss, goldSheet, data) {
+  var loanId = String(data.loanId || "").trim();
+  var startDate = String(data.startDate || "").trim();
+  var endDate = String(data.endDate || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || startDate > endDate) {
+    return { status: "error", message: "Select a valid EMI date range." };
+  }
+  var startValue = new Date(startDate + "T00:00:00"), endValue = new Date(endDate + "T00:00:00");
+  if (isNaN(startValue.getTime()) || isNaN(endValue.getTime()) || Utilities.formatDate(startValue, Session.getScriptTimeZone(), "yyyy-MM-dd") !== startDate || Utilities.formatDate(endValue, Session.getScriptTimeZone(), "yyyy-MM-dd") !== endDate) {
+    return { status: "error", message: "Select valid calendar dates for EMI payment." };
+  }
+  var goldValues = goldSheet.getDataRange().getValues();
+  var goldHeaders = goldValues[0].map(function(header) { return String(header).trim(); });
+  var idCol = goldHeaders.indexOf("ID"), loanRow = null;
+  for (var i = 1; i < goldValues.length; i++) {
+    if (String(goldValues[i][idCol]).trim() === loanId) { loanRow = goldValues[i]; break; }
+  }
+  if (!loanRow) return { status: "error", message: "Gold loan was not found." };
+  var loan = {};
+  goldHeaders.forEach(function(header, index) { loan[header] = loanRow[index]; });
+  if (String(loan["Repayment Method"]).toLowerCase() !== "emi") return { status: "error", message: "EMI collection is only available for Monthly EMI loans." };
+  var installmentAmount = Number(loan["Installment Amount"] || loan["EMI Amount"] || 0);
+  var tenure = Math.max(0, parseInt(loan["Loan Tenure"], 10) || 0);
+  if (!(installmentAmount > 0) || !tenure) return { status: "error", message: "The saved EMI amount or loan tenure is missing." };
+  var requestedMonths = (endValue.getFullYear() - startValue.getFullYear()) * 12 + endValue.getMonth() - startValue.getMonth() + 1;
+  if (requestedMonths < 1 || requestedMonths > tenure) return { status: "error", message: "The date range must include between one month and the loan tenure." };
+
+  var months = [], cursor = new Date(startDate + "T00:00:00"), last = new Date(endDate + "T00:00:00");
+  cursor.setDate(1); last.setDate(1);
+  while (cursor <= last) {
+    months.push(Utilities.formatDate(cursor, Session.getScriptTimeZone(), "yyyy-MM"));
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  var paymentSheet = getOrCreateGoldEmiPaymentsSheet(ss);
+  var paymentValues = paymentSheet.getDataRange().getValues();
+  var paymentHeaders = paymentValues[0].map(function(header) { return String(header).trim(); });
+  var loanCol = paymentHeaders.indexOf("Loan ID"), monthCol = paymentHeaders.indexOf("Installment Month");
+  var existingMonths = {}, paidCount = 0;
+  for (var p = 1; p < paymentValues.length; p++) {
+    if (String(paymentValues[p][loanCol]).trim() === loanId) {
+      existingMonths[String(paymentValues[p][monthCol]).trim()] = true;
+      paidCount++;
+    }
+  }
+  if (months.some(function(month) { return existingMonths[month]; })) return { status: "error", message: "An EMI has already been recorded for at least one month in this date range." };
+  if (paidCount + months.length > tenure) return { status: "error", message: "The payment range exceeds the remaining loan installments." };
+
+  var receiptId = "GEMI-" + new Date().getTime(), paidDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+  months.forEach(function(month, index) {
+    paymentSheet.appendRow([receiptId + "-" + (index + 1), receiptId, loanId, loan["Application No"] || "", loan["Borrower Name"] || "", month, paidDate, installmentAmount, new Date()]);
+  });
+  return {
+    status: "success", receiptId: receiptId, loanId: loanId,
+    applicationNo: loan["Application No"] || "", customerName: loan["Borrower Name"] || "",
+    mobileNo: loan["Mobile No"] || "", installmentAmount: installmentAmount,
+    installmentCount: months.length, totalAmount: installmentAmount * months.length,
+    installmentMonths: months, paidDate: paidDate
+  };
+}
+
 function getOrCreateGoldSheet(ss) {
   var sheet = ss.getSheetByName("Gold_Loans");
   if (!sheet) {
@@ -526,7 +723,13 @@ function updateGoldLoanRecord(sheet, data) {
   var idColumn = headers.indexOf("ID"), rowNumber = -1;
   for (var row = 1; row < values.length; row++) if (String(values[row][idColumn]).trim() === String(data.id).trim()) { rowNumber = row + 1; break; }
   if (rowNumber === -1) return false;
-  var fields = { "Borrower Name": data.borrowerName, "Mobile No": data.mobileNo, "Identity No": data.identityNo, "Address": data.address, "Monthly Income": data.monthlyIncome, "Guardian Type": data.guardianType, "Guardian Name": data.guardianName, "Gender": data.gender, "DOB": data.dob, "Religion": data.religion, "Aadhaar No": data.aadhaarNo, "Occupation": data.occupation, "Customer Bank Name": data.customerBankName, "Customer Bank Branch": data.customerBankBranch, "Customer IFSC Code": data.customerIfscCode, "Customer Account Holder": data.customerAccountHolder, "Customer Account Number": data.customerAccountNumber, "Nominee Name": data.nomineeName, "Nominee Guardian Type": data.nomineeGuardianType, "Nominee Guardian Name": data.nomineeGuardianName, "Nominee Gender": data.nomineeGender, "Nominee Occupation": data.nomineeOccupation, "Nominee DOB": data.nomineeDob, "Nominee Aadhaar": data.nomineeAadhaar, "Relation With Applicant": data.relationWithApplicant, "Gold Articles Details": data.goldArticles, "Valuation Date": data.valuationDate, "Total Gross Weight (g)": data.totalGrossWeight, "Total Net Weight (g)": data.totalNetWeight, "Total Assessed Value": data.assessedValue, "LTV (%)": data.ltvPercent, "Eligible Amount": data.eligibleAmount, "Loan Amount Requested": data.loanAmount, "Loan Tenure": data.loanTenure, "Rate of Interest (%)": data.interestRate, "Repayment Method": data.repaymentType, "Installment Amount": data.installmentAmount, "Total Interest": data.totalInterest, "Total Payable": data.totalPayable, "Maturity Date": data.maturityDate, "Purpose of Loan": data.purpose, "Scheme": data.scheme, "Disbursement Mode": data.disbursementMode, "Submitted Documents": data.submittedDocuments };
+  var fields = { "Branch Name": data.branchName, "Branch Code": data.branchCode, "Loan Officer Name": data.officerName, "CSP Location": data.cspLocation, "Borrower Name": data.borrowerName, "Mobile No": data.mobileNo, "Identity No": data.identityNo, "Address": data.address, "Monthly Income": data.monthlyIncome, "Guardian Type": data.guardianType, "Guardian Name": data.guardianName, "Gender": data.gender, "DOB": data.dob, "Religion": data.religion, "Aadhaar No": data.aadhaarNo, "Occupation": data.occupation, "Customer Bank Name": data.customerBankName, "Customer Bank Branch": data.customerBankBranch, "Customer IFSC Code": data.customerIfscCode, "Customer Account Holder": data.customerAccountHolder, "Customer Account Number": data.customerAccountNumber, "Nominee Name": data.nomineeName, "Nominee Guardian Type": data.nomineeGuardianType, "Nominee Guardian Name": data.nomineeGuardianName, "Nominee Gender": data.nomineeGender, "Nominee Occupation": data.nomineeOccupation, "Nominee DOB": data.nomineeDob, "Nominee Aadhaar": data.nomineeAadhaar, "Relation With Applicant": data.relationWithApplicant, "Gold Articles Details": data.goldArticles, "Valuation Date": data.valuationDate, "Total Gross Weight (g)": data.totalGrossWeight, "Total Net Weight (g)": data.totalNetWeight, "Total Assessed Value": data.assessedValue, "LTV (%)": data.ltvPercent, "Eligible Amount": data.eligibleAmount, "Loan Amount Requested": data.loanAmount, "Processing Charge": data.processingCharge, "Document Charge": data.documentCharge, "Net Disbursement Amount": data.netDisbursementAmount, "Loan Tenure": data.loanTenure, "Rate of Interest (%)": data.interestRate, "Repayment Method": data.repaymentType, "Installment Amount": data.installmentAmount, "Total Interest": data.totalInterest, "Total Payable": data.totalPayable, "First EMI Date": data.firstEmiDate, "EMI Close Date": data.emiCloseDate || data.maturityDate, "Maturity Date": data.maturityDate || data.emiCloseDate, "Purpose of Loan": data.purpose, "Scheme": data.scheme, "Disbursement Mode": data.disbursementMode, "Submitted Documents": data.submittedDocuments };
+  var newHeaders = ["Processing Charge", "Document Charge", "Net Disbursement Amount", "First EMI Date", "EMI Close Date"].filter(function(header) { return headers.indexOf(header) === -1; });
+  if (newHeaders.length) {
+    sheet.getRange(1, headers.length + 1, 1, newHeaders.length).setValues([newHeaders]);
+    sheet.getRange(1, headers.length + 1, 1, newHeaders.length).setFontWeight("bold");
+    headers = headers.concat(newHeaders);
+  }
   Object.keys(fields).forEach(function(header) { var column = headers.indexOf(header); if (column !== -1) sheet.getRange(rowNumber, column + 1).setValue(fields[header] || ""); });
   return true;
 }

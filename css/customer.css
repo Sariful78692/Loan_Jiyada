@@ -100,6 +100,11 @@ table td {
   background-color: #fffde7;
 }
 
+.gold-table td.row-sl {
+  text-align: center;
+  vertical-align: middle;
+}
+
 .gold-input {
   width: 100%;
   border: none;
@@ -144,3 +149,28 @@ table td {
   .gold-panel { padding: 14px; }
   .gold-table { min-width: 820px; }
 }
+
+.gold-date-filters { display:flex; align-items:end; flex-wrap:wrap; gap:12px; padding:14px; margin:0 0 16px; background:#fff; border:1px solid #e8dfc9; border-radius:8px; }
+.gold-date-filters label,.gold-modal-fields label { display:grid; gap:6px; color:#475569; font-size:12px; font-weight:700; }
+.gold-date-filters input,.gold-modal-fields input { min-height:38px; padding:7px 10px; border:1px solid #cbd5e1; border-radius:5px; font:inherit; }
+.gold-details-table th,.gold-details-table td { padding:9px 8px; white-space:nowrap; vertical-align:middle; }
+.gold-details-photo { width:42px; height:42px; object-fit:cover; border:1px solid #d6d3d1; border-radius:5px; cursor:zoom-in; }
+.gold-row-actions { white-space:nowrap; }
+.gold-print { background:#2563eb; color:#fff; }
+.gold-pay { background:#169966; color:#fff; }
+.gold-emi-count { display:block; margin-top:4px; color:#64748b; font-size:10px; }
+.gold-photo-preview { display:none; position:fixed; z-index:2000; pointer-events:none; padding:5px; background:#fff; border:1px solid #d6d3d1; border-radius:8px; box-shadow:0 12px 36px #0004; }
+.gold-photo-preview.visible { display:block; }
+.gold-photo-preview img { display:block; max-width:min(360px,70vw); max-height:min(360px,70vh); object-fit:contain; }
+.gold-modal.hidden { display:none; }
+.gold-modal { position:fixed; inset:0; z-index:1500; display:grid; place-items:center; padding:20px; background:#0f172a99; }
+.gold-modal-card { position:relative; width:min(480px,100%); padding:26px; background:#fff; border-radius:12px; box-shadow:0 20px 60px #0003; }
+.gold-modal-card h2 { margin:0 35px 8px 0; color:#805b08; }
+.gold-modal-close { position:absolute; top:12px; right:15px; border:0; background:none; font-size:28px; cursor:pointer; }
+.gold-modal-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:18px 0; }
+.gold-emi-preview { min-height:22px; color:#475569; font-weight:700; }
+.gold-fine-field.hidden { display:none; }
+.gold-fine-field { display:grid; gap:6px; margin:12px 0; color:#475569; font-size:12px; font-weight:700; }
+.gold-fine-field input { min-height:38px; padding:7px 10px; border:1px solid #cbd5e1; border-radius:5px; font:inherit; }
+.gold-modal-actions { display:flex; flex-wrap:wrap; gap:10px; }
+@media (max-width:520px) { .gold-modal-fields { grid-template-columns:1fr; } }

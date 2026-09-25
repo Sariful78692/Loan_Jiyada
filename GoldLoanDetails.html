@@ -1,1 +1,67 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Gold Loan Customers</title><link rel="stylesheet" href="css/common.css"><link rel="stylesheet" href="css/customer.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></head><body><div class="app-container"><aside class="sidebar"><div class="brand"><h2>Loan Management</h2></div><ul class="nav-menu"><li class="nav-item"><a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li><li class="nav-item has-submenu"><a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-users"></i> Customer Information <i class="fa-solid fa-chevron-down arrow"></i></a><ul class="submenu"><li><a href="CustomerEntry.html">Customer Entry</a></li><li><a href="CustomerDetails.html">Customer Details</a></li></ul></li><li class="nav-item has-submenu"><a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-hand-holding-dollar"></i> Loan Type <i class="fa-solid fa-chevron-down arrow"></i></a><ul class="submenu" id="sidebar-loan-list"><li><a href="CustomerDetails.html?loan=RD Loan">RD Loan</a></li><li><a href="CustomerDetails.html?loan=Group Loan">Group Loan</a></li></ul></li><li class="nav-item has-submenu open"><a href="#" class="nav-link submenu-toggle active"><i class="fa-solid fa-coins"></i> Gold Loan <i class="fa-solid fa-chevron-down arrow"></i></a><ul class="submenu" style="display:block"><li><a href="GoldLoanEntry.html">Gold Loan Customer Entry</a></li><li><a href="GoldLoanDetails.html" style="color:#fff">Gold Loan Customer Details</a></li></ul></li><li class="nav-item"><a href="Report.html" class="nav-link"><i class="fa-solid fa-file-invoice"></i> Reports</a></li></ul></aside><main class="main-content"><section class="content-section"><div class="gold-page-header"><div><p class="gold-eyebrow">SECURED LENDING</p><h1><i class="fa-solid fa-users"></i> Gold Loan Customers</h1><p>Review, edit or remove Gold Loan applications.</p></div><a href="GoldLoanEntry.html" class="btn-primary gold-submit"><i class="fa-solid fa-plus"></i> New Gold Loan</a></div><div class="table-container" style="overflow-x:auto;background:#fff;padding:10px"><table class="data-table" style="width:100%;border-collapse:collapse"><thead><tr><th>Application</th><th>Borrower</th><th>Mobile</th><th>Net Wt.</th><th>Eligible Amount</th><th>Loan Amount</th><th>Maturity</th><th>Status</th><th>Actions</th></tr></thead><tbody id="gold-loan-details-body"><tr><td colspan="9" style="padding:30px;text-align:center">Loading Gold Loan customers…</td></tr></tbody></table></div></section></main></div><script src="js/common.js"></script><script src="js/gold_loan_details.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gold Loan Customers</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/customer.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="brand"><h2>Loan Management</h2></div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+                <li class="nav-item has-submenu"><a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-users"></i> Customer Information <i class="fa-solid fa-chevron-down arrow"></i></a>
+                    <ul class="submenu"><li><a href="CustomerEntry.html">Customer Entry</a></li><li><a href="CustomerDetails.html">Customer Details</a></li></ul>
+                </li>
+                <li class="nav-item has-submenu"><a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-hand-holding-dollar"></i> Loan Type <i class="fa-solid fa-chevron-down arrow"></i></a>
+                    <ul class="submenu" id="sidebar-loan-list"><li><a href="CustomerDetails.html?loan=RD Loan">RD Loan</a></li><li><a href="CustomerDetails.html?loan=Group Loan">Group Loan</a></li></ul>
+                </li>
+                <li class="nav-item has-submenu open"><a href="#" class="nav-link submenu-toggle active"><i class="fa-solid fa-coins"></i> Gold Loan <i class="fa-solid fa-chevron-down arrow"></i></a>
+                    <ul class="submenu" style="display:block"><li><a href="GoldLoanEntry.html">Gold Loan Customer Entry</a></li><li><a href="GoldLoanDetails.html" style="color:#fff">Gold Loan Customer Details</a></li><li><a href="GoldLoanEMI.html">Pay Gold Loan EMI</a></li></ul>
+                </li>
+                <li class="nav-item"><a href="Report.html" class="nav-link"><i class="fa-solid fa-file-invoice"></i> Reports</a></li>
+            </ul>
+        </aside>
+        <main class="main-content">
+            <section class="content-section">
+                <div class="gold-page-header">
+                    <div><p class="gold-eyebrow">SECURED LENDING</p><h1><i class="fa-solid fa-users"></i> Gold Loan Customers</h1><p>Review, print or edit Gold Loan applications.</p></div>
+                    <a href="GoldLoanEntry.html" class="btn-primary gold-submit"><i class="fa-solid fa-plus"></i> New Gold Loan</a>
+                </div>
+                <div class="gold-date-filters">
+                    <label>Application start date <input id="gold-filter-start" type="date"></label>
+                    <label>Application end date <input id="gold-filter-end" type="date"></label>
+                    <button id="gold-filter-apply" type="button" class="btn-primary">Filter</button>
+                    <button id="gold-filter-clear" type="button" class="btn-secondary">Clear</button>
+                </div>
+                <div class="table-container" style="overflow-x:auto;background:#fff;padding:10px">
+                    <table class="data-table gold-details-table" style="width:100%;border-collapse:collapse">
+                        <thead><tr><th>Application</th><th>Borrower</th><th>Mobile</th><th>Customer Photo</th><th>Gold Photo</th><th>Net Wt.</th><th>Eligible Amount</th><th>Loan Amount</th><th>First EMI</th><th>EMI Close</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="gold-loan-details-body"><tr><td colspan="12" style="padding:30px;text-align:center">Loading Gold Loan customers…</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    <div id="gold-emi-modal" class="gold-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gold-emi-title">
+        <form id="gold-emi-form" class="gold-modal-card">
+            <button type="button" id="gold-emi-close" class="gold-modal-close" aria-label="Close">&times;</button>
+            <h2 id="gold-emi-title">Pay Gold Loan EMI</h2>
+            <p id="gold-emi-customer"></p>
+            <div class="gold-modal-fields">
+                <label>Start date <input id="gold-emi-start" type="date" required></label>
+                <label>End date <input id="gold-emi-end" type="date" required></label>
+            </div>
+            <p id="gold-emi-preview" class="gold-emi-preview"></p>
+            <div class="gold-modal-actions"><button type="submit" id="gold-emi-submit" class="btn-primary">Save EMI & Print Receipt</button><button type="button" id="gold-emi-cancel" class="btn-secondary">Cancel</button></div>
+        </form>
+    </div>
+    <div id="gold-photo-preview" class="gold-photo-preview" aria-hidden="true"><img alt="Photo preview"></div>
+    <script src="js/common.js"></script>
+    <script src="js/gold_loan_details.js"></script>
+</body>
+</html>
