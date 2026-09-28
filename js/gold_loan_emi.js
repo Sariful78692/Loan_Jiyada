@@ -191,7 +191,7 @@ async function submitGoldEmiPayment(event) {
   submit.disabled = true;
   submit.textContent = "Saving payment…";
   try {
-    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "record_gold_emi_installment", loanId: currentGoldEmiLoan.ID, dueDate, paymentDate, fineAmount }) });
+    const response = await postAppData({ action: "record_gold_emi_installment", loanId: currentGoldEmiLoan.ID, dueDate, paymentDate, fineAmount });
     const result = await response.json();
     if (result.status !== "success") throw new Error(result.message || "Could not save EMI payment.");
     printGoldEmiPaymentReceipt(receiptWindow, result);

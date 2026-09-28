@@ -699,10 +699,7 @@ async function updateCollection() {
   }
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "update_collection", collectionId, id: collectionId, collectionDate, date: collectionDate, amount })
-    });
+    const res = await postAppData({ action: "update_collection", collectionId, id: collectionId, collectionDate, date: collectionDate, amount });
     const result = await res.json();
     if (result.status !== "success") throw new Error(result.message || "Update failed");
     closeEditModal();
@@ -723,10 +720,7 @@ async function deleteCollection(collectionId) {
   if (!confirm(`Delete the collection for ${collection["Customer Name"] || "this customer"} on ${formatDate(collection["Collection Date"])}?`)) return;
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "delete_collection", collectionId: String(collectionId), id: String(collectionId) })
-    });
+    const res = await postAppData({ action: "delete_collection", collectionId: String(collectionId), id: String(collectionId) });
     const result = await res.json();
     if (result.status !== "success") throw new Error(result.message || "Delete failed");
     await fetchReportData();
@@ -747,10 +741,7 @@ async function closeCustomerLoan(customerId) {
   }
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "close_loan", customerId })
-    });
+    const res = await postAppData({ action: "close_loan", customerId });
     const result = await res.json();
     if (result.status !== "success") throw new Error(result.message || "Could not close the loan.");
 

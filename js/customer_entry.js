@@ -570,7 +570,7 @@ async function handleCustomerFormSubmit(e) {
   };
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+    const res = await postAppData(payload);
     const result = await res.json();
 
     if (result.status === "success") {

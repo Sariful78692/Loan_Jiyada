@@ -7,7 +7,30 @@ const APPS_SCRIPT_READ_URLS = [
   "https://script.google.com/macros/s/AKfycbxIzWRQjVyjFNNkugEpHj5pgNJxIGe20QkDJXyomx8pr_6o-GzxbAkxOrpyIkuYsTs6_g/exec"
 ];
 
+const APP_DATA_CACHE_KEY = "loanAppDataCache_v1";
+const APP_DATA_CACHE_MAX_AGE_MS = 60000;
+let appDataRequest = null;
+
 async function fetchAppData() {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(APP_DATA_CACHE_KEY) || "null");
+    if (cached && cached.savedAt && Date.now() - cached.savedAt < APP_DATA_CACHE_MAX_AGE_MS && cached.data) {
+      return cached.data;
+    }
+  } catch (_) {
+    invalidateAppDataCache();
+  }
+
+  if (appDataRequest) return appDataRequest;
+  appDataRequest = fetchFreshAppData();
+  try {
+    return await appDataRequest;
+  } finally {
+    appDataRequest = null;
+  }
+}
+
+async function fetchFreshAppData() {
   let lastError = null;
   for (let urlIndex = 0; urlIndex < APPS_SCRIPT_READ_URLS.length; urlIndex++) {
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -22,6 +45,11 @@ async function fetchAppData() {
         } catch (_) {
           throw new Error("Apps Script returned a non-JSON response.");
         }
+        try {
+          sessionStorage.setItem(APP_DATA_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data }));
+        } catch (cacheError) {
+          console.warn("Could not cache app data in this browser tab.", cacheError);
+        }
         if (urlIndex > 0) console.warn("Primary Apps Script URL failed; loaded data from the backup URL.");
         return data;
       } catch (error) {
@@ -30,6 +58,19 @@ async function fetchAppData() {
     }
   }
   throw lastError || new Error("Could not load data from Apps Script.");
+}
+
+function invalidateAppDataCache() {
+  try {
+    sessionStorage.removeItem(APP_DATA_CACHE_KEY);
+  } catch (_) {
+    // Continue with the API write even when browser storage is unavailable.
+  }
+}
+
+async function postAppData(payload) {
+  invalidateAppDataCache();
+  return fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
 }
 
 // App-wide floating notifications. Existing alert() calls are redirected here so

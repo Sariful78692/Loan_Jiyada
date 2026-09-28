@@ -157,7 +157,7 @@ async function handleGoldLoanSubmit(event) {
       disbursementMode: document.getElementById("goldDisbursementMode").value, bankName: document.getElementById("goldBankName").value, acHolderName: document.getElementById("goldAcHolderName").value, acNumber: document.getElementById("goldAcNumber").value, ifscCode: document.getElementById("goldIfscCode").value, bankBranch: document.getElementById("goldBankBranch").value, submittedDocuments: getChecklists(),
       nomineeImgBase64: nominee ? await fileAsBase64(nominee) : "", nomineeImgName: nominee?.name || "", nomineeImgType: nominee?.type || "", goldItemImgBase64: item ? await fileAsBase64(item) : "", goldItemImgName: item?.name || "", goldItemImgType: item?.type || ""
     };
-    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) }); const result = await response.json();
+    const response = await postAppData(payload); const result = await response.json();
     if (result.status !== "success") throw new Error(result.message || "Could not save the application.");
     alert(goldEditId ? "Gold loan customer updated successfully." : `Gold loan application ${payload.appNo} saved successfully.`);
     submit.classList.add("hidden");

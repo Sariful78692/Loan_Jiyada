@@ -188,7 +188,7 @@ async function submitGoldEmiPayment(event) {
   button.disabled = true;
   button.textContent = "Saving payment…";
   try {
-    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "record_gold_emi_payment", loanId: selectedGoldLoan.ID, startDate, endDate }) });
+    const response = await postAppData({ action: "record_gold_emi_payment", loanId: selectedGoldLoan.ID, startDate, endDate });
     const result = await response.json();
     if (result.status !== "success") throw new Error(result.message || "EMI payment could not be saved.");
     closeGoldEmiModal();
@@ -212,7 +212,7 @@ function printGoldEmiReceipt(popup, receipt) {
 async function deleteGoldLoan(id) {
   if (!confirm("Delete this Gold Loan customer? This cannot be undone.")) return;
   try {
-    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "delete_gold_loan", id }) });
+    const response = await postAppData({ action: "delete_gold_loan", id });
     const result = await response.json();
     if (result.status !== "success") throw new Error(result.message);
     await loadGoldLoanCustomers();

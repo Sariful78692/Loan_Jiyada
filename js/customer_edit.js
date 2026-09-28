@@ -130,14 +130,11 @@ async function handleCustomerUpdateSubmit(e) {
   };
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+    const res = await postAppData(payload);
     const result = await res.json();
     if (result.status === "success") {
       if (isReopenMode) {
-        const reopenResponse = await fetch(APPS_SCRIPT_URL, {
-          method: "POST",
-          body: JSON.stringify({ action: "reopen_loan", customerId: currentEditId })
-        });
+        const reopenResponse = await postAppData({ action: "reopen_loan", customerId: currentEditId });
         const reopenResult = await reopenResponse.json();
         if (reopenResult.status !== "success") {
           alert("Customer data was updated, but the loan could not be re-opened: " + (reopenResult.message || "Unknown error"));

@@ -326,10 +326,7 @@ async function submitCollection() {
   };
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
+    const res = await postAppData(payload);
     const result = await res.json();
 
     if (result.status === "success") {
@@ -353,7 +350,7 @@ async function submitCollection() {
 async function deleteCustomer(id) {
   if (!confirm("Are you sure you want to delete this customer?")) return;
   try {
-    const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "delete", id: id }) });
+    const res = await postAppData({ action: "delete", id: id });
     const result = await res.json();
     if (result.status === "success") { alert("Customer deleted!"); location.reload(); }
   } catch (err) { alert("Error deleting."); }
@@ -375,10 +372,7 @@ async function closeCustomerLoan(customerId) {
   }
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "close_loan", customerId: customerId })
-    });
+    const res = await postAppData({ action: "close_loan", customerId: customerId });
     const result = await res.json();
     if (result.status === "success") {
       const archivedCount = Number(result.archivedCollections || 0);
@@ -397,10 +391,7 @@ async function closeCustomerLoan(customerId) {
 async function reopenCustomerLoan(customerId) {
   if (!confirm("Re-open this loan and move the customer back to the active Customers sheet?")) return;
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "reopen_loan", customerId })
-    });
+    const res = await postAppData({ action: "reopen_loan", customerId });
     const result = await res.json();
     if (result.status === "success") {
       alert("Loan re-opened successfully!");
@@ -558,17 +549,14 @@ async function submitCollection() {
   payBtn.disabled = true;
   payBtn.innerText = "Processing...";
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({
+    const res = await postAppData({
         action: "collectInstallments",
         customerId: selectedCustomerId,
         customerName: selectedCustomerName,
         loanType: selectedLoanType,
         amount: selectedAmount,
         dates: datesToCollect
-      })
-    });
+      });
     const result = await res.json();
     if (result.status !== "success") {
       const message = /action not matched|unknown action/i.test(String(result.message || ""))
