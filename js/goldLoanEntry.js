@@ -12,8 +12,7 @@ async function generateGoldApplicationId() {
   appNoField.readOnly = true;
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL + "?t=" + new Date().getTime());
-    const data = await res.json();
+    const data = await fetchAppData();
     const goldLoans = data.gold_loans || [];
     
     if (goldLoans.length > 0) {

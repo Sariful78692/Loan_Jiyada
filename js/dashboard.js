@@ -11,8 +11,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 async function loadDashboardData() {
   try {
-    const res = await fetch(APPS_SCRIPT_URL + "?t=" + new Date().getTime());
-    const data = await res.json();
+    const data = await fetchAppData();
 
     console.log("Dashboard Data Loaded Successfully:", data);
 

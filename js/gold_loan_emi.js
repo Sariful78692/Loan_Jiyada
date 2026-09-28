@@ -22,8 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
 async function fetchGoldEmiData() {
   const body = document.getElementById("gold-emi-body");
   try {
-    const response = await fetch(APPS_SCRIPT_URL + "?t=" + Date.now());
-    const data = await response.json();
+    const data = await fetchAppData();
     goldEmiLoans = data.gold_loans || [];
     goldEmiPayments = normalizeGoldEmiPayments(data.gold_emi_payments || [], data.collections || []);
     renderGoldEmiLoans();

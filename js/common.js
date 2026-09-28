@@ -2,6 +2,35 @@
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyIDE4lWwzE6FNGKdDj8km9M0WpF19GM8mTkk6NqtVGJS44Vtu6Z30ixXIzixMrt1d-pA/exec";
+const APPS_SCRIPT_READ_URLS = [
+  APPS_SCRIPT_URL,
+  "https://script.google.com/macros/s/AKfycbxIzWRQjVyjFNNkugEpHj5pgNJxIGe20QkDJXyomx8pr_6o-GzxbAkxOrpyIkuYsTs6_g/exec"
+];
+
+async function fetchAppData() {
+  let lastError = null;
+  for (let urlIndex = 0; urlIndex < APPS_SCRIPT_READ_URLS.length; urlIndex++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const separator = APPS_SCRIPT_READ_URLS[urlIndex].includes("?") ? "&" : "?";
+        const response = await fetch(`${APPS_SCRIPT_READ_URLS[urlIndex]}${separator}t=${Date.now()}-${attempt}`, { cache: "no-store" });
+        const body = await response.text();
+        if (!response.ok) throw new Error(`Apps Script returned HTTP ${response.status}`);
+        let data;
+        try {
+          data = JSON.parse(body);
+        } catch (_) {
+          throw new Error("Apps Script returned a non-JSON response.");
+        }
+        if (urlIndex > 0) console.warn("Primary Apps Script URL failed; loaded data from the backup URL.");
+        return data;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+  }
+  throw lastError || new Error("Could not load data from Apps Script.");
+}
 
 // App-wide floating notifications. Existing alert() calls are redirected here so
 // users never get a blocking browser popup for routine save/error/delete messages.

@@ -86,8 +86,7 @@ async function fetchReportData() {
   if (!tbody) return;
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL + "?t=" + new Date().getTime());
-    const data = await res.json();
+    const data = await fetchAppData();
     
     allCollectionsData = data.collections || [];
     allClosedCollectionsData = data.closed_collections || [];
