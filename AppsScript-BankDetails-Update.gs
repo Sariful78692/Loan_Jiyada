@@ -125,6 +125,26 @@ function clearDashboardCache() {
   }
 }
 
+// Run this function once from the Apps Script editor to install a cache warmer.
+// It primes the cache immediately and keeps it warm between normal page visits.
+function installDashboardCacheWarmer() {
+  warmDashboardCache();
+
+  var alreadyInstalled = ScriptApp.getProjectTriggers().some(function(trigger) {
+    return trigger.getHandlerFunction() === "warmDashboardCache";
+  });
+  if (!alreadyInstalled) {
+    ScriptApp.newTrigger("warmDashboardCache").timeBased().everyMinutes(1).create();
+  }
+}
+
+function warmDashboardCache() {
+  var cache = CacheService.getScriptCache();
+  if (cache.get("dashboard_data") === null) {
+    doGet({ parameter: {} });
+  }
+}
+
 // Adds the Bank Details columns to existing customer sheets only once.
 // The columns are appended so current customer data and Status remain unchanged.
 function ensureCustomerBankColumns(custSheet) {
