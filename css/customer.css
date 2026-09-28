@@ -154,7 +154,8 @@ table td {
 .gold-date-filters label,.gold-modal-fields label { display:grid; gap:6px; color:#475569; font-size:12px; font-weight:700; }
 .gold-date-filters input,.gold-modal-fields input { min-height:38px; padding:7px 10px; border:1px solid #cbd5e1; border-radius:5px; font:inherit; }
 .gold-details-table th,.gold-details-table td { padding:9px 8px; white-space:nowrap; vertical-align:middle; }
-.gold-details-photo { width:42px; height:42px; object-fit:cover; border:1px solid #d6d3d1; border-radius:5px; cursor:zoom-in; }
+.gold-details-photo { position:relative; z-index:1; width:42px; height:42px; object-fit:cover; border:1px solid #d6d3d1; border-radius:5px; cursor:zoom-in; transition:transform 180ms ease,box-shadow 180ms ease; transform-origin:center; }
+.gold-details-photo:hover { z-index:20; transform:scale(2.5); box-shadow:0 5px 18px #0f172a59; }
 .gold-row-actions { white-space:nowrap; }
 .gold-print { background:#2563eb; color:#fff; }
 .gold-pay { background:#169966; color:#fff; }

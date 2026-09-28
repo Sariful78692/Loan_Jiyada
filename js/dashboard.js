@@ -213,7 +213,7 @@ function updateDashboardCharts(activeCustomers, goldLoanCount = 0) {
     loanChartInstance = new Chart(loanCtx, {
       type: "doughnut",
       data: {
-        labels: Object.keys(loanCounts),
+        labels: Object.keys(loanCounts).map(label => label.trim().toLowerCase() === "rd loan" ? "RD" : label),
         datasets: [{
           data: Object.values(loanCounts),
           backgroundColor: loanColors,

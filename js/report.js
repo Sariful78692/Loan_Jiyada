@@ -336,7 +336,7 @@ function renderCollectionsTable(data, status) {
       <td style="padding: 10px 15px;">${item["Collection ID"] || "N/A"}</td>
       <td style="padding: 10px 15px; white-space: nowrap;">${customerId || "N/A"}</td>
       <td style="padding: 10px 15px; font-weight: 500;">${item["Customer Name"] || "N/A"}</td>
-      <td style="padding: 10px 15px; font-weight: bold; color: #0284c7;">${item["Loan Type"] || "N/A"}</td>
+      <td style="padding: 10px 15px; font-weight: bold; color: #0284c7;">${String(item["Loan Type"] || "N/A").trim().toLowerCase() === "rd loan" ? "RD" : (item["Loan Type"] || "N/A")}</td>
       <td style="padding: 10px 15px; white-space: nowrap;">${loanSchedule.startDate}</td>
       <td style="padding: 10px 15px; white-space: nowrap;">${loanSchedule.endDate}</td>
       <td style="padding: 10px 15px;">${formatDate(item["Collection Date"])}</td>
@@ -419,7 +419,7 @@ function renderCustomersTable(data, status) {
     const isRdLoan = String(cust["Loan Type"] || "").trim().toLowerCase() === "rd loan";
     const rdCloseButton = isRdLoan && loanSchedule.dueDays === 0 && status !== "Closed"
       ? `
-          <button onclick="closeCustomerLoan('${custId}')" style="background: #dc2626; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-left: 5px;" title="Close RD Loan">
+          <button onclick="closeCustomerLoan('${custId}')" style="background: #dc2626; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-left: 5px;" title="Close RD">
             <i class="fa-solid fa-lock"></i> RD Close
           </button>
         `
@@ -742,7 +742,7 @@ async function deleteCollection(collectionId) {
 // ========================================================
 
 async function closeCustomerLoan(customerId) {
-  if (!confirm("Are you sure you want to close this RD loan? Its collection records will be moved to the archive.")) {
+  if (!confirm("Are you sure you want to close this RD account? Its collection records will be moved to the archive.")) {
     return;
   }
 
@@ -762,11 +762,11 @@ async function closeCustomerLoan(customerId) {
     await fetchReportData();
     const archivedCount = Number(result.archivedCollections || 0);
     alert(archivedCount > 0
-      ? `RD loan closed. ${archivedCount} archived collection record(s) are now shown below.`
-      : "RD loan closed. No collection records were found to move to the archive.");
+      ? `RD closed. ${archivedCount} archived collection record(s) are now shown below.`
+      : "RD closed. No collection records were found to move to the archive.");
   } catch (err) {
-    console.error("RD loan close failed", err);
-    alert("Could not close the RD loan: " + err.message);
+    console.error("RD close failed", err);
+    alert("Could not close the RD: " + err.message);
   }
 }
 
@@ -887,7 +887,7 @@ function printCustomerProfile(custId) {
       <div class="section">
         <h3>Loan Details</h3>
         <div class="grid">
-          <div class="item"><strong>Loan Type:</strong> ${cust["Loan Type"] || "N/A"}</div>
+          <div class="item"><strong>Loan Type:</strong> ${String(cust["Loan Type"] || "N/A").trim().toLowerCase() === "rd loan" ? "RD" : (cust["Loan Type"] || "N/A")}</div>
           <div class="item"><strong>Start Date:</strong> ${formatDate(cust["Start Date"])}</div>
           <div class="item"><strong>RD Amount:</strong> ₹ ${unitAmount}</div>
           <div class="item"><strong>Interest Rate:</strong> ${interestPercent}%</div>

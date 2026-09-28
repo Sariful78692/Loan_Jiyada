@@ -16,7 +16,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   const pageTitle = document.getElementById("page-title");
   if (currentLoanFilter && pageTitle) {
-    pageTitle.innerHTML = `<i class="fa-solid fa-users"></i> ${currentLoanFilter} Customers`;
+    const displayLoanName = String(currentLoanFilter).trim().toLowerCase() === "rd loan" ? "RD" : currentLoanFilter;
+    pageTitle.innerHTML = `<i class="fa-solid fa-users"></i> ${displayLoanName} Customers`;
   } else if (pageTitle) {
     pageTitle.innerHTML = `<i class="fa-solid fa-users"></i> All Customers`;
   }
@@ -124,7 +125,7 @@ function renderTable(data) {
       const fileIdMatch = cust["Photo URL"].match(/id=([a-zA-Z0-9_-]+)/);
       if (fileIdMatch && fileIdMatch[1]) {
         const newUrl = `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}&sz=w150-h150`;
-        imgHtml = `<img src="${newUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';" alt="Profile" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border: 1px solid #cbd5e1;">`;
+        imgHtml = `<img class="customer-photo-zoom" src="${newUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';" alt="Profile" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border: 1px solid #cbd5e1;">`;
       }
     }
 
@@ -159,7 +160,7 @@ function renderTable(data) {
       let collectBtn = "";
       if (dates.dueDay === 0 || (durationDays > 0 && payDays >= durationDays)) {
         collectBtn = `
-          <button onclick="closeCustomerLoan('${custId}')" style="background: #dc2626; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Close RD Loan">
+          <button onclick="closeCustomerLoan('${custId}')" style="background: #dc2626; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Close RD">
             <i class="fa-solid fa-lock"></i> RD Close
           </button>
         `;
@@ -203,7 +204,7 @@ function renderTable(data) {
       <td style="padding: 10px 15px; font-weight: 500; color: #0f172a;">${cust["Customer Name"] || "N/A"}</td>
       <td style="padding: 10px 15px;">${cust["Mobile No"] || "N/A"}</td>
       <td style="padding: 10px 15px;">${cust["Address"] || "N/A"}</td>
-      <td style="padding: 10px 15px; font-weight: bold; color: #0284c7;">${cust["Loan Type"] || "N/A"}</td>
+      <td style="padding: 10px 15px; font-weight: bold; color: #0284c7;">${String(cust["Loan Type"] || "N/A").trim().toLowerCase() === "rd loan" ? "RD" : (cust["Loan Type"] || "N/A")}</td>
       ${isRdLoanPage ? "" : `<td style="padding: 10px 15px;">${cust["Occupation"] || "N/A"}</td>`}
       ${isRdLoanPage ? `
       <td style="padding: 10px 15px; white-space: nowrap;">${dates.startDate}</td>
@@ -612,6 +613,7 @@ function printCollectionReceipt() {
   const printWindow = window.open("", "_blank", "width=800,height=700");
   if (!printWindow) { alert("Please allow pop-ups to print the receipt."); return; }
   const dateList = receipt.dates.map(date => `<li>${escapeReceiptHtml(date)}</li>`).join("");
+  const receiptLoanType = String(receipt.loanType).trim().toLowerCase() === "rd loan" ? "RD" : receipt.loanType;
   printWindow.document.write(`<!doctype html><html><head><title>Payment Receipt</title><style>body{font-family:Arial,sans-serif;color:#172033;padding:32px;max-width:650px;margin:auto}.head{border-bottom:3px solid #10b981;padding-bottom:16px;display:flex;justify-content:space-between}h1{margin:0;color:#047857;font-size:27px}.muted{color:#64748b}table{border-collapse:collapse;width:100%;margin:22px 0}td{padding:10px;border-bottom:1px solid #dbe3ed}.total{font-size:20px;font-weight:bold;color:#047857}ul{columns:2;padding-left:20px}@media print{body{padding:0}}</style></head><body><div class="head"><div><h1>Payment Receipt</h1><div class="muted">Loan Management</div></div><div class="muted">Issued: ${escapeReceiptHtml(receipt.paidAt.toLocaleString())}</div></div><table><tr><td>Customer Name</td><td><strong>${escapeReceiptHtml(receipt.customerName)}</strong></td></tr><tr><td>Customer ID</td><td>${escapeReceiptHtml(receipt.customerId)}</td></tr><tr><td>Loan Type</td><td>${escapeReceiptHtml(receipt.loanType)}</td></tr><tr><td>Daily Installment</td><td>${formatMoney(receipt.dailyAmount)}</td></tr><tr><td>Payment Dates (${receipt.dates.length})</td><td><ul>${dateList}</ul></td></tr><tr><td class="total">Total Paid</td><td class="total">${formatMoney(receipt.totalAmount)}</td></tr></table><p class="muted">This is a computer-generated payment receipt.</p><script>window.onload=()=>window.print();</script></body></html>`);
   printWindow.document.close();
 }
