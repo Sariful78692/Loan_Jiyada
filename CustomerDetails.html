@@ -106,6 +106,19 @@
         </div>
 
         <!-- Table Section -->
+        <div class="customer-pagination no-print" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+          <label style="display:flex;align-items:center;gap:8px;color:#475569;font-weight:600;">Customers per page
+            <select id="customerPageSize" onchange="changeCustomerPageSize()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;">
+              <option value="10" selected>10</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="customerPageInfo" aria-live="polite" style="color:#64748b;font-size:14px;">Showing 0–0 of 0</span>
+            <button type="button" id="customerPrevPage" onclick="changeCustomerPage(-1)" style="padding:7px 11px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;cursor:pointer;">Previous</button>
+            <button type="button" id="customerNextPage" onclick="changeCustomerPage(1)" style="padding:7px 11px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;cursor:pointer;">Next</button>
+          </div>
+        </div>
         <div class="table-container" style="width: 100%; overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
           <table class="data-table" style="width: 100%; border-collapse: collapse;">
             <tbody id="customer-table-body">

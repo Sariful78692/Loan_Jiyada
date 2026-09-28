@@ -1,6 +1,8 @@
 let customersData = []; 
 let allCollectionsData = []; 
 let currentLoanFilter = "";
+let currentCustomerPage = 1;
+let currentFilteredCustomerData = [];
 let selectedCustomerId = null;
 let selectedCustomerName = null;
 let selectedLoanType = null;
@@ -63,6 +65,13 @@ async function fetchCustomers() {
 function renderTable(data) {
   const tbody = document.getElementById("customer-table-body");
   if (!tbody) return;
+  currentFilteredCustomerData = data;
+  const pageSizeSelect = document.getElementById("customerPageSize");
+  const pageSize = pageSizeSelect?.value === "all" ? Math.max(data.length, 1) : Number(pageSizeSelect?.value || 10);
+  const pageCount = Math.max(1, Math.ceil(data.length / pageSize));
+  currentCustomerPage = Math.min(Math.max(1, currentCustomerPage), pageCount);
+  const firstIndex = (currentCustomerPage - 1) * pageSize;
+  const pageData = data.slice(firstIndex, firstIndex + pageSize);
   const isRdLoanPage = String(currentLoanFilter || "").trim().toLowerCase() === "rd loan";
   const dateColumns = isRdLoanPage ? `
       <th style="padding: 15px; font-weight: bold; white-space: nowrap;">Start Date</th>
@@ -92,10 +101,9 @@ function renderTable(data) {
         </td>
       </tr>
     `;
-    return;
   }
 
-  data.forEach((cust) => {
+  pageData.forEach((cust) => {
     const tr = document.createElement("tr");
     tr.style.borderBottom = "1px solid #e2e8f0";
 
@@ -191,6 +199,22 @@ function renderTable(data) {
     `;
     tbody.appendChild(tr);
   });
+  const pageInfo = document.getElementById("customerPageInfo");
+  if (pageInfo) pageInfo.textContent = `Showing ${data.length ? firstIndex + 1 : 0}–${Math.min(firstIndex + pageData.length, data.length)} of ${data.length}`;
+  const previous = document.getElementById("customerPrevPage");
+  const next = document.getElementById("customerNextPage");
+  if (previous) previous.disabled = pageSizeSelect?.value === "all" || currentCustomerPage <= 1;
+  if (next) next.disabled = pageSizeSelect?.value === "all" || currentCustomerPage >= pageCount;
+}
+
+function changeCustomerPage(offset) {
+  currentCustomerPage += offset;
+  renderTable(currentFilteredCustomerData);
+}
+
+function changeCustomerPageSize() {
+  currentCustomerPage = 1;
+  renderTable(currentFilteredCustomerData);
 }
 
 // 🟢 ইয়ার ফিল্টার এবং সার্চ লজিক (আপডেট করা হয়েছে)
@@ -200,6 +224,7 @@ function searchCustomers() {
   
   const input = inputEl ? inputEl.value.toLowerCase().trim() : "";
   const yearFilter = yearFilterEl ? yearFilterEl.value : "All";
+  currentCustomerPage = 1;
 
   const filteredData = customersData.filter(cust => {
     const name = String(cust["Customer Name"] || "").toLowerCase();

@@ -84,6 +84,21 @@ function getPaymentCount(loanId) {
   return goldEmiPayments.filter(payment => String(payment["Loan ID"] || "") === String(loanId)).length;
 }
 
+function getGoldEmiPaymentMonth(payment) {
+  const value = String(payment["Payment Date"] || payment["Paid Date"] || payment["Installment Month"] || payment["Due Date"] || "").trim();
+  const isoMonth = value.match(/^(\d{4}-\d{2})/);
+  if (isoMonth) return isoMonth[1];
+  const parsedDate = parseGoldEmiDate(value);
+  return parsedDate ? dateToIso(parsedDate).slice(0, 7) : "";
+}
+
+function hasGoldEmiPaidThisMonth(loanId) {
+  const thisMonth = dateToIso(new Date()).slice(0, 7);
+  return goldEmiPayments.some(payment =>
+    String(payment["Loan ID"] || "") === String(loanId) && getGoldEmiPaymentMonth(payment) === thisMonth
+  );
+}
+
 function nextGoldEmiDueDate(loan) {
   const firstDate = getFirstEmiDate(loan);
   if (!firstDate) return null;
@@ -106,12 +121,17 @@ function renderGoldEmiLoans() {
     const firstCell = `${goldEmiEscape(displayGoldEmiDate(firstDate))}<small class="gold-emi-count">Next EMI: ${goldEmiEscape(displayGoldEmiDate(nextDate))} (${paid}/${tenure} paid)</small>`;
     const action = paid >= tenure
       ? '<span class="gold-status">Paid in full</span>'
+      : hasGoldEmiPaidThisMonth(loan.ID)
+        ? '<span class="gold-status">EMI paid this month</span>'
       : `<button type="button" class="gold-action gold-pay" data-loan-id="${goldEmiEscape(loan.ID)}"><i class="fa-solid fa-money-bill-wave"></i> Pay EMI #${paid + 1}</button>`;
     return `<tr><td>${goldEmiEscape(loan["Application No"] || loan.ID)}</td><td><strong>${goldEmiEscape(loan["Borrower Name"] || "—")}</strong></td><td>${goldEmiEscape(loan["Mobile No"] || "—")}</td><td>${goldEmiMoney(loan["Loan Amount Requested"])}</td><td>${firstCell}</td><td>${goldEmiEscape(displayGoldEmiDate(loan["EMI Close Date"] || loan["Maturity Date"]))}</td><td>${action}</td></tr>`;
   }).join("");
 }
 
 function openGoldEmiPayment() {
+  if (hasGoldEmiPaidThisMonth(currentGoldEmiLoan.ID)) {
+    return alert("This month's EMI has already been paid for this loan.");
+  }
   const dueDate = nextGoldEmiDueDate(currentGoldEmiLoan);
   if (!dueDate) return alert("The application or first EMI date is missing.");
   const today = new Date();
@@ -155,6 +175,11 @@ function closeGoldEmiPayment() {
 async function submitGoldEmiPayment(event) {
   event.preventDefault();
   if (!currentGoldEmiLoan) return;
+  if (hasGoldEmiPaidThisMonth(currentGoldEmiLoan.ID)) {
+    closeGoldEmiPayment();
+    renderGoldEmiLoans();
+    return alert("This month's EMI has already been paid for this loan.");
+  }
   const dueDate = document.getElementById("gold-emi-due-date").value;
   const paymentDate = document.getElementById("gold-emi-payment-date").value;
   if (!dueDate || !paymentDate) return alert("Due date and payment date are required.");
@@ -167,30 +192,8 @@ async function submitGoldEmiPayment(event) {
   submit.disabled = true;
   submit.textContent = "Saving payment…";
   try {
-    let response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "record_gold_emi_installment", loanId: currentGoldEmiLoan.ID, dueDate, paymentDate, fineAmount }) });
-    let result = await response.json();
-    if (result.status !== "success" && /action not matched|unknown action/i.test(String(result.message || ""))) {
-      response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({
-        action: "collectInstallment", customerId: currentGoldEmiLoan.ID,
-        customerName: currentGoldEmiLoan["Borrower Name"] || "", loanType: "Gold Loan",
-        collectionDate: paymentDate,
-        amount: Number(currentGoldEmiLoan["Installment Amount"] || currentGoldEmiLoan["EMI Amount"] || 0) + fineAmount
-      }) });
-      const legacyResult = await response.json();
-      if (legacyResult.status === "success") {
-        result = {
-          status: "success", receiptId: `GEMI-${Date.now()}`, loanId: currentGoldEmiLoan.ID,
-          applicationNo: currentGoldEmiLoan["Application No"] || "",
-          customerName: currentGoldEmiLoan["Borrower Name"] || "",
-          mobileNo: currentGoldEmiLoan["Mobile No"] || "", installmentNumber: getPaymentCount(currentGoldEmiLoan.ID) + 1,
-          dueDate, paymentDate,
-          emiAmount: Number(currentGoldEmiLoan["Installment Amount"] || currentGoldEmiLoan["EMI Amount"] || 0),
-          fineAmount, totalPaid: Number(currentGoldEmiLoan["Installment Amount"] || currentGoldEmiLoan["EMI Amount"] || 0) + fineAmount
-        };
-      } else {
-        result = legacyResult;
-      }
-    }
+    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "record_gold_emi_installment", loanId: currentGoldEmiLoan.ID, dueDate, paymentDate, fineAmount }) });
+    const result = await response.json();
     if (result.status !== "success") throw new Error(result.message || "Could not save EMI payment.");
     printGoldEmiPaymentReceipt(receiptWindow, result);
     window.location.href = "Report.html?type=goldEmiPayments";

@@ -564,6 +564,27 @@ function goldLoanDateIso(date) {
   return Utilities.formatDate(date, Session.getScriptTimeZone(), "yyyy-MM-dd");
 }
 
+function getLegacyGoldEmiCollectionDates(ss, loanId) {
+  var dates = [];
+  ss.getSheets().forEach(function(sheet) {
+    var name = sheet.getName();
+    if (name !== "Collections" && name.indexOf("Collections_") !== 0) return;
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return;
+    var headers = values[0].map(function(header) { return String(header).trim(); });
+    var idColumn = headers.indexOf("Customer ID");
+    var typeColumn = headers.indexOf("Loan Type");
+    var dateColumn = headers.indexOf("Collection Date");
+    if (idColumn < 0 || typeColumn < 0 || dateColumn < 0) return;
+    for (var row = 1; row < values.length; row++) {
+      if (String(values[row][idColumn]).trim() !== loanId || String(values[row][typeColumn] || "").trim().toLowerCase() !== "gold loan") continue;
+      var date = parseGoldLoanDate(values[row][dateColumn]);
+      if (date) dates.push(goldLoanDateIso(date));
+    }
+  });
+  return dates;
+}
+
 function recordGoldEmiInstallment(ss, goldSheet, data) {
   var loanId = String(data.loanId || "").trim();
   var goldValues = goldSheet.getDataRange().getValues();
@@ -587,6 +608,13 @@ function recordGoldEmiInstallment(ss, goldSheet, data) {
   }
   if (!firstDue) return { status: "error", message: "The first EMI date is missing." };
 
+  var paymentLock = LockService.getScriptLock();
+  try {
+    paymentLock.waitLock(10000);
+  } catch (lockError) {
+    return { status: "error", message: "Another EMI payment is being saved. Please try again." };
+  }
+  try {
   var paymentSheet = getOrCreateGoldEmiPaymentsSheet(ss);
   var requiredHeaders = ["Mobile No", "Installment Number", "Due Date", "Payment Date", "EMI Amount", "Fine Amount", "Total Paid"];
   var headers = paymentSheet.getRange(1, 1, 1, paymentSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
@@ -597,8 +625,33 @@ function recordGoldEmiInstallment(ss, goldSheet, data) {
     headers = headers.concat(missing);
   }
   var rows = paymentSheet.getDataRange().getValues();
-  var loanColumn = headers.indexOf("Loan ID"), paidCount = 0;
-  for (var r = 1; r < rows.length; r++) if (String(rows[r][loanColumn]).trim() === loanId) paidCount++;
+  var loanColumn = headers.indexOf("Loan ID"), paidCount = 0, paidDateColumns = [headers.indexOf("Payment Date"), headers.indexOf("Paid Date"), headers.indexOf("Due Date"), headers.indexOf("Installment Month")].filter(function(index) { return index >= 0; });
+  var recordedDates = {}, paidThisMonth = false;
+  var currentMonth = goldLoanDateIso(new Date()).slice(0, 7);
+  for (var r = 1; r < rows.length; r++) {
+    if (String(rows[r][loanColumn]).trim() !== loanId) continue;
+    paidCount++;
+    var paymentIso = "";
+    for (var d = 0; d < paidDateColumns.length && !paymentIso; d++) {
+      var parsedPaymentDate = parseGoldLoanDate(rows[r][paidDateColumns[d]]);
+      if (parsedPaymentDate) paymentIso = goldLoanDateIso(parsedPaymentDate);
+      else {
+        var rawMonth = String(rows[r][paidDateColumns[d]] || "").trim().match(/^(\d{4}-\d{2})/);
+        if (rawMonth) paymentIso = rawMonth[1] + "-01";
+      }
+    }
+    if (paymentIso) {
+      recordedDates[loanId + "|" + paymentIso] = true;
+      if (paymentIso.slice(0, 7) === currentMonth) paidThisMonth = true;
+    }
+  }
+  getLegacyGoldEmiCollectionDates(ss, loanId).forEach(function(collectionDate) {
+    var key = loanId + "|" + collectionDate;
+    if (!recordedDates[key]) paidCount++;
+    recordedDates[key] = true;
+    if (collectionDate.slice(0, 7) === currentMonth) paidThisMonth = true;
+  });
+  if (paidThisMonth) return { status: "error", message: "This month's EMI has already been paid for this loan." };
   if (paidCount >= tenure) return { status: "error", message: "All installments for this loan have already been paid." };
 
   var installmentNumber = paidCount + 1;
@@ -638,6 +691,9 @@ function recordGoldEmiInstallment(ss, goldSheet, data) {
     fineAmount: fineAmount, totalPaid: emiAmount + fineAmount,
     nextEmiDate: installmentNumber < tenure ? goldLoanDateIso(new Date(dueDate.getTime() + 30 * 86400000)) : ""
   };
+  } finally {
+    paymentLock.releaseLock();
+  }
 }
 
 function recordGoldEmiPayment(ss, goldSheet, data) {
