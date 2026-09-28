@@ -7,12 +7,6 @@ const goldEmiEscape = value => String(value ?? "").replace(/[&<>"']/g, char => (
 
 document.addEventListener("DOMContentLoaded", () => {
   fetchGoldEmiData();
-  document.getElementById("gold-emi-filter-apply").addEventListener("click", renderGoldEmiLoans);
-  document.getElementById("gold-emi-filter-clear").addEventListener("click", () => {
-    document.getElementById("gold-emi-filter-start").value = "";
-    document.getElementById("gold-emi-filter-end").value = "";
-    renderGoldEmiLoans();
-  });
   document.getElementById("gold-emi-body").addEventListener("click", event => {
     const button = event.target.closest("[data-loan-id]");
     if (!button) return;
@@ -99,17 +93,7 @@ function nextGoldEmiDueDate(loan) {
 
 function renderGoldEmiLoans() {
   const body = document.getElementById("gold-emi-body");
-  const start = document.getElementById("gold-emi-filter-start").value;
-  const end = document.getElementById("gold-emi-filter-end").value;
-  if (start && end && start > end) {
-    body.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:#c43b2d">Start date must be before end date.</td></tr>';
-    return;
-  }
-  const loans = goldEmiLoans.filter(loan => {
-    if (String(loan["Repayment Method"] || "").toLowerCase() !== "emi") return false;
-    const date = String(loan["Application Date"] || "").slice(0, 10);
-    return (!start || date >= start) && (!end || date <= end);
-  });
+  const loans = goldEmiLoans.filter(loan => String(loan["Repayment Method"] || "").toLowerCase() === "emi");
   if (!loans.length) {
     body.innerHTML = '<tr><td colspan="7" style="padding:30px;text-align:center">No EMI Gold Loan account found.</td></tr>';
     return;

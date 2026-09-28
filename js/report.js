@@ -15,6 +15,7 @@ let allCustomersData = [];
 let allGoldLoansData = [];
 let allGoldEmiPaymentsData = [];
 let currentReportType = "collections";
+let currentReportPage = 1;
 
 // 🟢 সাইডবার থেকে লোন টাইপগুলো রিড করে ড্রপডাউনে বসানো
 function populateLoanDropdownFromSidebar() {
@@ -258,11 +259,33 @@ function renderCollectionsTable(data, status) {
   const tbody = document.getElementById("report-table-body");
   const loanTypeFilter = document.getElementById("emiLoanTypeFilter")?.value || "All";
   const isEmiPaymentReport = currentReportType === "emiPayments";
+  const searchText = (document.getElementById("reportSearchInput")?.value || "").trim().toLowerCase();
+  const filterYear = document.getElementById("reportYearFilter")?.value || "All";
+  const startValue = document.getElementById("startDate")?.value || "";
+  const endValue = document.getElementById("endDate")?.value || "";
+  const startDate = startValue ? new Date(`${startValue}T00:00:00`) : null;
+  const endDate = endValue ? new Date(`${endValue}T23:59:59`) : null;
   const filteredCollections = data.filter(item => {
     const loanType = String(item["Loan Type"] || "").trim();
     if (isEmiPaymentReport && loanType.toLowerCase() === "rd loan") return false;
-    return isEmiPaymentReport || loanTypeFilter === "All" || loanType === loanTypeFilter;
+    if (!isEmiPaymentReport && loanTypeFilter !== "All" && loanType !== loanTypeFilter) return false;
+    const collectionDate = String(item["Collection Date"] || "").split("T")[0];
+    const dateParts = collectionDate.split("-");
+    const date = dateParts.length === 3
+      ? (dateParts[0].length === 4 ? new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2])) : new Date(Number(dateParts[2]), Number(dateParts[1]) - 1, Number(dateParts[0])))
+      : null;
+    if (filterYear !== "All" && (!date || String(date.getFullYear()) !== filterYear)) return false;
+    if (startDate && (!date || date < startDate)) return false;
+    if (endDate && (!date || date > endDate)) return false;
+    return !searchText || [item["Collection ID"], item["Customer ID"], item["Customer Name"], item["Loan Type"], item["Amount"], formatDate(item["Collection Date"])].some(value => String(value || "").toLowerCase().includes(searchText));
   });
+  const pageSizeSelect = document.getElementById("reportPageSize");
+  const pageSize = pageSizeSelect?.value === "all" ? Math.max(filteredCollections.length, 1) : Number(pageSizeSelect?.value || 50);
+  const pageCount = Math.max(1, Math.ceil(filteredCollections.length / pageSize));
+  currentReportPage = Math.min(Math.max(1, currentReportPage), pageCount);
+  const firstIndex = (currentReportPage - 1) * pageSize;
+  const pageCollections = filteredCollections.slice(firstIndex, firstIndex + pageSize);
+  const customersById = new Map(allCustomersData.map(customer => [String(customer["ID"] || "").trim(), customer]));
   
   headerRow.innerHTML = `
     <th style="padding: 12px;">Collection ID</th>
@@ -280,13 +303,12 @@ function renderCollectionsTable(data, status) {
   tbody.innerHTML = "";
   if (filteredCollections.length === 0) {
     tbody.innerHTML = `<tr><td colspan="${status === "Closed" ? 10 : 9}" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
-    filterTableAndCalculateTotal(); 
-    return;
   }
 
-  filteredCollections.forEach((item) => {
+  const fragment = document.createDocumentFragment();
+  pageCollections.forEach((item) => {
     const customerId = String(item["Customer ID"] || "").trim();
-    const customer = allCustomersData.find(c => String(c["ID"] || "").trim() === customerId);
+    const customer = customersById.get(customerId);
     const duration = Number(customer && (customer["Duration (Days)"] || customer["Duration Days"] || customer["Duration"])) || 365;
     const loanSchedule = customer ? getLoanSchedule(customer["Start Date"], duration) : { startDate: "N/A", endDate: "N/A" };
     let actionHtml = '';
@@ -321,10 +343,20 @@ function renderCollectionsTable(data, status) {
       ${status === "Closed" ? `<td style="padding: 10px 15px;">${formatDate(item["Archive Date"])}</td>` : ''}
       <td class="no-print" style="padding: 10px 15px; text-align: center; white-space: nowrap;">${actionHtml}</td>
     `;
-    tbody.appendChild(tr);
+    fragment.appendChild(tr);
   });
-
-  filterTableAndCalculateTotal(); 
+  if (pageCollections.length) tbody.appendChild(fragment);
+  const total = filteredCollections.reduce((sum, item) => sum + (Number(String(item["Amount"] || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
+  const totalLabel = document.getElementById("totalLabelDisplay");
+  const totalDisplay = document.getElementById("totalAmountDisplay");
+  if (totalLabel) totalLabel.textContent = isEmiPaymentReport ? "Total EMI Payment" : "Total Collection";
+  if (totalDisplay) totalDisplay.textContent = "₹ " + total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pageInfo = document.getElementById("reportPageInfo");
+  if (pageInfo) pageInfo.textContent = `Showing ${filteredCollections.length ? firstIndex + 1 : 0}–${Math.min(firstIndex + pageCollections.length, filteredCollections.length)} of ${filteredCollections.length}`;
+  const prevButton = document.getElementById("reportPrevPage");
+  const nextButton = document.getElementById("reportNextPage");
+  if (prevButton) prevButton.disabled = pageSizeSelect?.value === "all" || currentReportPage <= 1;
+  if (nextButton) nextButton.disabled = pageSizeSelect?.value === "all" || currentReportPage >= pageCount;
 }
 
 function renderCustomersTable(data, status) {
@@ -430,10 +462,27 @@ function renderCustomersTable(data, status) {
 // ========================================================
 
 function filterReport() {
-  filterTableAndCalculateTotal();
+  currentReportPage = 1;
+  if (currentReportType === "collections" || currentReportType === "emiPayments") renderCurrentReport();
+  else filterTableAndCalculateTotal();
+}
+
+function changeReportPageSize() {
+  currentReportPage = 1;
+  renderCurrentReport();
+}
+
+function changeReportPage(offset) {
+  currentReportPage += offset;
+  renderCurrentReport();
 }
 
 function filterTableAndCalculateTotal() {
+  if (currentReportType === "collections" || currentReportType === "emiPayments") {
+    currentReportPage = 1;
+    renderCurrentReport();
+    return;
+  }
   const searchInputEl = document.getElementById("reportSearchInput");
   const yearFilterEl = document.getElementById("reportYearFilter");
   const startDateEl = document.getElementById("startDate");
@@ -450,6 +499,7 @@ function filterTableAndCalculateTotal() {
   const rows = tbody.getElementsByTagName("tr");
 
   let totalCollection = 0;
+  const matchingRows = [];
   const isGoldEmiReport = currentReportType === "goldEmiPayments";
   const isCollectionReport = (currentReportType === "collections" || currentReportType === "emiPayments" || isGoldEmiReport);
   const dateColIndex = isGoldEmiReport ? 6 : isCollectionReport ? 6 : 12;
@@ -484,7 +534,7 @@ function filterTableAndCalculateTotal() {
     }
 
     if (matchSearch && matchYear && matchDateRange) {
-      row.style.display = ""; 
+      matchingRows.push(row);
       
       const amtText = cells[amountColIndex].innerText.replace(/[^0-9.-]+/g, "");
       const numericAmount = parseFloat(amtText);
@@ -496,6 +546,25 @@ function filterTableAndCalculateTotal() {
       row.style.display = "none"; 
     }
   }
+
+  const pageSizeSelect = document.getElementById("reportPageSize");
+  const pageSize = pageSizeSelect && pageSizeSelect.value === "all" ? matchingRows.length || 1 : Number(pageSizeSelect?.value || 50);
+  const pageCount = Math.max(1, Math.ceil(matchingRows.length / pageSize));
+  currentReportPage = Math.min(Math.max(1, currentReportPage), pageCount);
+  const firstIndex = (currentReportPage - 1) * pageSize;
+  matchingRows.forEach((row, index) => {
+    row.style.display = (pageSizeSelect?.value === "all" || (index >= firstIndex && index < firstIndex + pageSize)) ? "" : "none";
+  });
+  const pageInfo = document.getElementById("reportPageInfo");
+  if (pageInfo) {
+    const shownStart = matchingRows.length ? firstIndex + 1 : 0;
+    const shownEnd = pageSizeSelect?.value === "all" ? matchingRows.length : Math.min(firstIndex + pageSize, matchingRows.length);
+    pageInfo.textContent = `Showing ${shownStart}–${shownEnd} of ${matchingRows.length}`;
+  }
+  const prevButton = document.getElementById("reportPrevPage");
+  const nextButton = document.getElementById("reportNextPage");
+  if (prevButton) prevButton.disabled = pageSizeSelect?.value === "all" || currentReportPage <= 1;
+  if (nextButton) nextButton.disabled = pageSizeSelect?.value === "all" || currentReportPage >= pageCount;
 
   const totalLabel = document.getElementById("totalLabelDisplay");
   if (totalLabel) {
@@ -526,7 +595,7 @@ function clearFilters() {
   if(document.getElementById("endDate")) document.getElementById("endDate").value = "";
   if(document.getElementById("reportSearchInput")) document.getElementById("reportSearchInput").value = "";
   if(document.getElementById("reportYearFilter")) document.getElementById("reportYearFilter").value = "All";
-  
+  currentReportPage = 1;
   filterTableAndCalculateTotal(); 
 }
 
