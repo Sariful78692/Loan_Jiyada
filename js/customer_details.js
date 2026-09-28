@@ -157,7 +157,7 @@ function renderTable(data) {
       `;
     } else if (isRdLoanPage) {
       let collectBtn = "";
-      if (dates.dueDay === 0) {
+      if (dates.dueDay === 0 || (durationDays > 0 && payDays >= durationDays)) {
         collectBtn = `
           <button onclick="closeCustomerLoan('${custId}')" style="background: #dc2626; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Close RD Loan">
             <i class="fa-solid fa-lock"></i> RD Close
@@ -393,18 +393,23 @@ async function closeCustomerLoan(customerId) {
   }
 }
 
-function reopenCustomerLoan(customerId) {
-  const customerToReopen = customersData.find(c => String(c["ID"]) === String(customerId));
-  if (!customerToReopen) {
-    alert("Customer data could not be found. Please refresh and try again.");
-    return;
+async function reopenCustomerLoan(customerId) {
+  if (!confirm("Re-open this loan and move the customer back to the active Customers sheet?")) return;
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "reopen_loan", customerId })
+    });
+    const result = await res.json();
+    if (result.status === "success") {
+      alert("Loan re-opened successfully!");
+      window.location.reload();
+    } else {
+      alert("Failed to re-open loan: " + (result.message || "Unknown error"));
+    }
+  } catch (err) {
+    alert("Failed to connect to the server.");
   }
-
-  // Show the customer's existing data before re-opening so it can be reviewed or updated.
-  sessionStorage.setItem("editCustomerData", JSON.stringify(customerToReopen));
-  sessionStorage.setItem("reopenCustomerLoan", "true");
-  sessionStorage.setItem("reopenReturnUrl", window.location.href);
-  window.location.href = "CustomerEdit.html?mode=reopen";
 }
 
 function getCustomerDates(customer, durationDays) {

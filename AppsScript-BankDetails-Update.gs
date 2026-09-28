@@ -27,6 +27,23 @@ function doGet(e) {
     }
   }
 
+  // Include archived customers in the response so closed RD loans remain
+  // visible with a Re-open action on the customer details page.
+  var archivedCustomersSheet = ss.getSheetByName("Archived_Customers");
+  if (archivedCustomersSheet && archivedCustomersSheet.getLastRow() > 1) {
+    var archivedData = archivedCustomersSheet.getDataRange().getValues();
+    var archivedHeaders = archivedData[0].map(function(header) { return String(header).trim(); });
+    for (var ai = 1; ai < archivedData.length; ai++) {
+      var archivedCustomer = {};
+      for (var aj = 0; aj < archivedHeaders.length; aj++) {
+        var archivedValue = archivedData[ai][aj];
+        if (archivedValue instanceof Date) archivedValue = Utilities.formatDate(archivedValue, tz, "yyyy-MM-dd");
+        archivedCustomer[archivedHeaders[aj]] = archivedValue;
+      }
+      custResult.push(archivedCustomer);
+    }
+  }
+
   // 2. Active Collection Data (Running Loans)
   var collResult = [];
   var sheets = ss.getSheets();
@@ -385,15 +402,36 @@ function doPost(e) {
 
     else if (data.action === "close_loan") {
       var targetCustId = String(data.customerId).trim();
-      
       var cRows = custSheet.getDataRange().getValues();
-      var statusColumn = cRows[0].indexOf("Status") + 1;
+      var customerHeaders = cRows[0].map(function(header) { return String(header).trim(); });
+      var customerIdColumn = customerHeaders.indexOf("ID");
+      if (customerIdColumn < 0) customerIdColumn = 0;
+      var statusColumn = customerHeaders.indexOf("Status");
+      var customerRowNumber = -1;
       for(var i = 1; i < cRows.length; i++) {
-         if(String(cRows[i][0]).trim() === targetCustId) {
-            if (statusColumn > 0) custSheet.getRange(i + 1, statusColumn).setValue("Closed");
+         if(String(cRows[i][customerIdColumn]).trim() === targetCustId) {
+            customerRowNumber = i + 1;
             break;
          }
       }
+      if (customerRowNumber < 0) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Customer not found" })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var archivedCustomersSheet = ss.getSheetByName("Archived_Customers");
+      if (!archivedCustomersSheet) {
+        archivedCustomersSheet = ss.insertSheet("Archived_Customers");
+        archivedCustomersSheet.appendRow(customerHeaders.concat(["Archive Date"]));
+        archivedCustomersSheet.getRange(1, 1, 1, customerHeaders.length + 1).setFontWeight("bold");
+      }
+      var archivedCustomerHeaders = archivedCustomersSheet.getRange(1, 1, 1, archivedCustomersSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+      var customerRow = cRows[customerRowNumber - 1];
+      if (statusColumn >= 0) customerRow[statusColumn] = "Closed";
+      var archivedCustomerRow = archivedCustomerHeaders.map(function(header) {
+        return header === "Archive Date" ? new Date() : customerRow[customerHeaders.indexOf(header)];
+      });
+      archivedCustomersSheet.appendRow(archivedCustomerRow);
+      custSheet.deleteRow(customerRowNumber);
 
       var closedSheet = ss.getSheetByName("Closed_Collections");
       if (!closedSheet) {
@@ -437,15 +475,32 @@ function doPost(e) {
     }
 
     else if (data.action === "reopen_loan") {
-      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Customers");
-      var dataRange = sheet.getDataRange();
-      var values = dataRange.getValues();
-      var idIndex = values[0].indexOf("ID");
-      var statusIndex = values[0].indexOf("Status");
-      
+      var archivedCustomersSheet = ss.getSheetByName("Archived_Customers");
+      var archivedValues = archivedCustomersSheet ? archivedCustomersSheet.getDataRange().getValues() : [];
+      if (archivedValues.length > 1) {
+        var archivedCustomerHeaders = archivedValues[0].map(function(header) { return String(header).trim(); });
+        var archivedIdIndex = archivedCustomerHeaders.indexOf("ID");
+        if (archivedIdIndex < 0) return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": "Archive sheet is missing the ID column"})).setMimeType(ContentService.MimeType.JSON);
+        for (var i = archivedValues.length - 1; i >= 1; i--) {
+          if (String(archivedValues[i][archivedIdIndex]).trim() !== String(data.customerId).trim()) continue;
+          var activeHeaders = custSheet.getRange(1, 1, 1, custSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+          var activeRow = activeHeaders.map(function(header) {
+            if (header === "Status") return "Active";
+            return archivedValues[i][archivedCustomerHeaders.indexOf(header)];
+          });
+          custSheet.appendRow(activeRow);
+          archivedCustomersSheet.deleteRow(i + 1);
+          clearDashboardCache();
+          return ContentService.createTextOutput(JSON.stringify({"status": "success", "message": "Loan reopened"})).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+      // Backward compatibility for closed customers that were not moved to the archive sheet.
+      var values = custSheet.getDataRange().getValues();
+      var idIndex = values[0].map(function(header) { return String(header).trim(); }).indexOf("ID");
+      var statusIndex = values[0].map(function(header) { return String(header).trim(); }).indexOf("Status");
       for (var i = 1; i < values.length; i++) {
-        if (values[i][idIndex] == data.customerId) {
-          sheet.getRange(i + 1, statusIndex + 1).setValue("Active");
+        if (String(values[i][idIndex]).trim() === String(data.customerId).trim()) {
+          if (statusIndex >= 0) custSheet.getRange(i + 1, statusIndex + 1).setValue("Active");
           clearDashboardCache();
           return ContentService.createTextOutput(JSON.stringify({"status": "success", "message": "Loan reopened"})).setMimeType(ContentService.MimeType.JSON);
         }
