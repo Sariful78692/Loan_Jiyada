@@ -59,6 +59,15 @@ async function fetchCustomers() {
     renderTable(customersData);
   } catch (err) {
     console.error("Failed to fetch", err);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="${isRdLoanPage ? 11 : 8}" style="text-align:center;padding:32px;color:#c43b2d">Could not load customer data. Please refresh and try again.</td></tr>`;
+    }
+    const pageInfo = document.getElementById("customerPageInfo");
+    if (pageInfo) pageInfo.textContent = "Customer data unavailable";
+    ["customerPrevPage", "customerNextPage"].forEach(id => {
+      const button = document.getElementById(id);
+      if (button) button.disabled = true;
+    });
   }
 }
 
