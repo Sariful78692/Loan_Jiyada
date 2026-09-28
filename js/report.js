@@ -288,6 +288,7 @@ function renderCollectionsTable(data, status) {
   const customersById = new Map(allCustomersData.map(customer => [String(customer["ID"] || "").trim(), customer]));
   
   headerRow.innerHTML = `
+    <th style="padding: 12px; white-space: nowrap;">SL No</th>
     <th style="padding: 12px;">Collection ID</th>
     <th style="padding: 12px; white-space: nowrap;">Customer ID</th>
     <th style="padding: 12px;">Customer Name</th>
@@ -302,11 +303,11 @@ function renderCollectionsTable(data, status) {
 
   tbody.innerHTML = "";
   if (filteredCollections.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${status === "Closed" ? 10 : 9}" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${status === "Closed" ? 11 : 10}" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
   }
 
   const fragment = document.createDocumentFragment();
-  pageCollections.forEach((item) => {
+  pageCollections.forEach((item, index) => {
     const customerId = String(item["Customer ID"] || "").trim();
     const customer = customersById.get(customerId);
     const duration = Number(customer && (customer["Duration (Days)"] || customer["Duration Days"] || customer["Duration"])) || 365;
@@ -332,6 +333,7 @@ function renderCollectionsTable(data, status) {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
+      <td style="padding: 10px 15px; white-space: nowrap;">${firstIndex + index + 1}</td>
       <td style="padding: 10px 15px;">${item["Collection ID"] || "N/A"}</td>
       <td style="padding: 10px 15px; white-space: nowrap;">${customerId || "N/A"}</td>
       <td style="padding: 10px 15px; font-weight: 500;">${item["Customer Name"] || "N/A"}</td>

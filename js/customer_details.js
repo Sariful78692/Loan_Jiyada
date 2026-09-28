@@ -40,7 +40,7 @@ async function fetchCustomers() {
   const tbody = document.getElementById("customer-table-body");
   const isRdLoanPage = String(currentLoanFilter || "").trim().toLowerCase() === "rd loan";
   if(tbody) {
-    tbody.innerHTML = `<tr><td colspan="${isRdLoanPage ? 11 : 8}" style="text-align:center; padding:40px; font-size:18px; color:#0284c7;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${isRdLoanPage ? 13 : 8}" style="text-align:center; padding:40px; font-size:18px; color:#0284c7;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>`;
   }
 
   try {
@@ -60,7 +60,7 @@ async function fetchCustomers() {
   } catch (err) {
     console.error("Failed to fetch", err);
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="${isRdLoanPage ? 11 : 8}" style="text-align:center;padding:32px;color:#c43b2d">Could not load customer data. Please refresh and try again.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="${isRdLoanPage ? 13 : 8}" style="text-align:center;padding:32px;color:#c43b2d">Could not load customer data. Please refresh and try again.</td></tr>`;
     }
     const pageInfo = document.getElementById("customerPageInfo");
     if (pageInfo) pageInfo.textContent = "Customer data unavailable";
@@ -95,8 +95,12 @@ function renderTable(data) {
       <th style="padding: 15px; font-weight: bold;">Mobile No</th>
       <th style="padding: 15px; font-weight: bold;">Address</th>
       <th style="padding: 15px; font-weight: bold;">Loan Type</th>
-      <th style="padding: 15px; font-weight: bold;">Occupation</th>
+      ${isRdLoanPage ? "" : '<th style="padding: 15px; font-weight: bold;">Occupation</th>'}
       ${dateColumns}
+      ${isRdLoanPage ? `
+      <th style="padding: 15px; font-weight: bold; white-space: nowrap;">Total Amount</th>
+      <th style="padding: 15px; font-weight: bold; white-space: nowrap;">Received Amount</th>
+      <th style="padding: 15px; font-weight: bold; white-space: nowrap;">Pay Days</th>` : ""}
       <th style="padding: 15px; font-weight: bold; text-align: center;">Actions</th>
     </tr>
   `;
@@ -104,7 +108,7 @@ function renderTable(data) {
   if (data.length === 0) {
     tbody.innerHTML += `
       <tr>
-        <td colspan="${isRdLoanPage ? 11 : 8}" style="text-align: center; padding: 40px; color: #ef4444; font-size: 18px; font-weight: bold; background: #fef2f2;">
+        <td colspan="${isRdLoanPage ? 13 : 8}" style="text-align: center; padding: 40px; color: #ef4444; font-size: 18px; font-weight: bold; background: #fef2f2;">
           <i class="fa-solid fa-folder-open" style="font-size: 40px; margin-bottom: 15px; display: block; color: #f87171;"></i>
           No Data Available Here
         </td>
@@ -135,6 +139,10 @@ function renderTable(data) {
 
     const customerCollections = allCollectionsData.filter(col => String(col["Customer ID"]).trim() === custId);
     const collectionCount = customerCollections.length;
+    const dailyAmount = Number(String(cust["Loan Amount"] || cust["RD Amount"] || cust["Amount"] || 0).replace(/[^0-9.-]/g, "")) || 0;
+    const totalRdAmount = dailyAmount * durationDays;
+    const receivedRdAmount = customerCollections.reduce((sum, col) => sum + (Number(String(col["Amount"] || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
+    const payDays = new Set(customerCollections.map(col => normalizeCollectionDate(col["Collection Date"])).filter(Boolean)).size;
     const dates = isRdLoanPage ? getCustomerDates(cust, durationDays) : null;
 
     let actionButtonsHtml = ""; 
@@ -197,11 +205,14 @@ function renderTable(data) {
       <td style="padding: 10px 15px;">${cust["Mobile No"] || "N/A"}</td>
       <td style="padding: 10px 15px;">${cust["Address"] || "N/A"}</td>
       <td style="padding: 10px 15px; font-weight: bold; color: #0284c7;">${cust["Loan Type"] || "N/A"}</td>
-      <td style="padding: 10px 15px;">${cust["Occupation"] || "N/A"}</td>
+      ${isRdLoanPage ? "" : `<td style="padding: 10px 15px;">${cust["Occupation"] || "N/A"}</td>`}
       ${isRdLoanPage ? `
       <td style="padding: 10px 15px; white-space: nowrap;">${dates.startDate}</td>
       <td style="padding: 10px 15px; white-space: nowrap;">${dates.endDate}</td>
-      <td style="padding: 10px 15px; white-space: nowrap;">${dates.dueDate}</td>` : ""}
+      <td style="padding: 10px 15px; white-space: nowrap;">${dates.dueDate}</td>
+      <td style="padding: 10px 15px; white-space: nowrap; font-weight:600;">${formatMoney(totalRdAmount)}</td>
+      <td style="padding: 10px 15px; white-space: nowrap; font-weight:600; color:#059669;">${formatMoney(receivedRdAmount)}</td>
+      <td style="padding: 10px 15px; white-space: nowrap;">${payDays}</td>` : ""}
       <td style="padding: 10px 15px; text-align: center; white-space: nowrap;">
         ${actionButtonsHtml}
       </td>
