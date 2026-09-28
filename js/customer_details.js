@@ -537,13 +537,14 @@ async function submitCollection() {
 
   const requestedDates = getDateRange(startDate, endDate);
   const customerEntries = allCollectionsData.filter(col => String(col["Customer ID"]).trim() === String(selectedCustomerId).trim());
-  const existingDates = new Set(customerEntries.map(col => normalizeCollectionDate(col["Collection Date"])));
+  const existingDates = new Set(customerEntries.map(col => normalizeCollectionDate(col["Collection Date"])).filter(Boolean));
   const datesToCollect = requestedDates.filter(date => !existingDates.has(date));
   if (!datesToCollect.length) {
     alert("All selected dates have already been collected.");
     return;
   }
-  if (selectedCustomerDuration && customerEntries.length + datesToCollect.length > selectedCustomerDuration) {
+  const totalPayDays = new Set([...existingDates, ...datesToCollect]).size;
+  if (selectedCustomerDuration && totalPayDays > selectedCustomerDuration) {
     alert("Selected dates exceed this customer's loan duration.");
     return;
   }
@@ -552,27 +553,42 @@ async function submitCollection() {
   payBtn.disabled = true;
   payBtn.innerText = "Processing...";
   try {
-    const collectedDates = [];
-    for (const collectionDate of datesToCollect) {
-      const res = await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "collectInstallment", customerId: selectedCustomerId, customerName: selectedCustomerName, loanType: selectedLoanType, collectionDate, amount: selectedAmount })
-      });
-      const result = await res.json();
-      if (result.status === "success") {
-        collectedDates.push(collectionDate);
-        allCollectionsData.push({ "Customer ID": selectedCustomerId, "Collection Date": collectionDate, "Amount": selectedAmount });
-      } else if (result.message !== "DUPLICATE_COLLECTION") {
-        throw new Error(result.message || "Unable to save payment");
-      }
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "collectInstallments",
+        customerId: selectedCustomerId,
+        customerName: selectedCustomerName,
+        loanType: selectedLoanType,
+        amount: selectedAmount,
+        dates: datesToCollect
+      })
+    });
+    const result = await res.json();
+    if (result.status !== "success") {
+      const message = /action not matched|unknown action/i.test(String(result.message || ""))
+        ? "Bulk collection is not enabled on the Apps Script deployment yet. Update and redeploy AppsScript-BankDetails-Update.gs."
+        : result.message || "Unable to save payments.";
+      throw new Error(message);
     }
+    const collectedDates = Array.isArray(result.collectedDates) ? result.collectedDates : [];
+    collectedDates.forEach(collectionDate => {
+      allCollectionsData.push({
+        "Customer ID": selectedCustomerId,
+        "Customer Name": selectedCustomerName,
+        "Loan Type": selectedLoanType,
+        "Collection Date": collectionDate,
+        "Amount": selectedAmount
+      });
+    });
     if (!collectedDates.length) throw new Error("The selected payments were already collected.");
 
     lastCollectionReceipt = { customerId: selectedCustomerId, customerName: selectedCustomerName, loanType: selectedLoanType, dates: collectedDates, dailyAmount: Number(selectedAmount), totalAmount: Number(selectedAmount) * collectedDates.length, paidAt: new Date() };
     document.getElementById("print-receipt-btn").classList.remove("hidden");
     payBtn.classList.add("hidden");
     document.getElementById("close-collection-btn").innerText = "Close";
-    alert(`Payment confirmed for ${collectedDates.length} day(s). You can now print the receipt.`);
+    const skippedCount = Number(result.duplicateCount || 0);
+    alert(`Payment confirmed for ${collectedDates.length} day(s)${skippedCount ? `; ${skippedCount} already-paid day(s) were skipped` : ""}. You can now print the receipt.`);
   } catch (err) {
     alert("Payment could not be completed: " + err.message);
     console.error(err);

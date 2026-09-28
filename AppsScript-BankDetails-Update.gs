@@ -167,6 +167,109 @@ function ensureCustomerBankColumns(custSheet) {
   return columns;
 }
 
+function saveCollectionInstallments(ss, data) {
+  var customerId = String(data.customerId || "").trim();
+  var customerName = String(data.customerName || "").trim();
+  var loanType = String(data.loanType || "RD Loan").trim();
+  var amount = Number(data.amount);
+  var dates = data.dates;
+  if (!customerId || !Array.isArray(dates) || !dates.length || dates.length > 1000 || !isFinite(amount) || amount < 0) {
+    return { status: "error", message: "Invalid bulk collection request." };
+  }
+
+  var uniqueDates = {};
+  for (var i = 0; i < dates.length; i++) {
+    var dateValue = String(dates[i] || "").trim();
+    var parsedDate = parseGoldLoanDate(dateValue);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue) || !parsedDate || goldLoanDateIso(parsedDate) !== dateValue || uniqueDates[dateValue]) {
+      return { status: "error", message: "The bulk collection contains an invalid or duplicate date." };
+    }
+    uniqueDates[dateValue] = true;
+    dates[i] = dateValue;
+  }
+
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (lockError) {
+    return { status: "error", message: "Another collection is being saved. Please try again." };
+  }
+
+  try {
+    var existingDates = {};
+    ss.getSheets().forEach(function(sheet) {
+      var name = sheet.getName();
+      if (name !== "Collections" && name.indexOf("Collections_") !== 0) return;
+      var values = sheet.getDataRange().getValues();
+      if (values.length < 2) return;
+      var headers = values[0].map(function(header) { return String(header).trim(); });
+      var idColumn = headers.indexOf("Customer ID");
+      var typeColumn = headers.indexOf("Loan Type");
+      var dateColumn = headers.indexOf("Collection Date");
+      if (idColumn < 0 || dateColumn < 0) return;
+      for (var row = 1; row < values.length; row++) {
+        if (String(values[row][idColumn]).trim() !== customerId) continue;
+        if (typeColumn >= 0) {
+          var existingType = String(values[row][typeColumn] || "").trim().toLowerCase();
+          if (existingType && existingType !== loanType.toLowerCase()) continue;
+        }
+        var existingDate = values[row][dateColumn] instanceof Date
+          ? goldLoanDateIso(values[row][dateColumn])
+          : String(values[row][dateColumn] || "").trim().split("T")[0];
+        var parsedExistingDate = parseGoldLoanDate(existingDate);
+        if (parsedExistingDate) existingDates[goldLoanDateIso(parsedExistingDate)] = true;
+      }
+    });
+
+    var newDates = dates.filter(function(date) { return !existingDates[date]; });
+    var duplicateCount = dates.length - newDates.length;
+    if (!newDates.length) {
+      return { status: "success", collectedDates: [], duplicateCount: duplicateCount };
+    }
+
+    var datesByYear = {};
+    newDates.forEach(function(date) {
+      var year = date.slice(0, 4);
+      if (!datesByYear[year]) datesByYear[year] = [];
+      datesByYear[year].push(date);
+    });
+
+    Object.keys(datesByYear).forEach(function(year) {
+      var sheetName = "Collections_" + year;
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) {
+        sheet = ss.insertSheet(sheetName);
+        sheet.appendRow(["Collection ID", "Customer ID", "Customer Name", "Loan Type", "Collection Date", "Amount", "Timestamp"]);
+        sheet.getRange(1, 1, 1, 7).setFontWeight("bold");
+      }
+      if (sheet.getLastColumn() === 0) {
+        sheet.appendRow(["Collection ID", "Customer ID", "Customer Name", "Loan Type", "Collection Date", "Amount", "Timestamp"]);
+        sheet.getRange(1, 1, 1, 7).setFontWeight("bold");
+      }
+      var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+      var timestamp = new Date();
+      var rows = datesByYear[year].map(function(date, index) {
+        var record = {
+          "Collection ID": "COLL-" + timestamp.getTime() + "-" + year + "-" + index,
+          "Customer ID": customerId,
+          "Customer Name": customerName,
+          "Loan Type": loanType,
+          "Collection Date": date,
+          "Amount": amount,
+          "Timestamp": timestamp
+        };
+        return headers.map(function(header) { return Object.prototype.hasOwnProperty.call(record, header) ? record[header] : ""; });
+      });
+      sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, headers.length).setValues(rows);
+    });
+
+    clearDashboardCache();
+    return { status: "success", collectedDates: newDates, duplicateCount: duplicateCount };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
@@ -181,6 +284,10 @@ function doPost(e) {
     var goldSheet = getOrCreateGoldSheet(ss);
     
     var folderId = "1tYYWYu7dyg4NCVD_mePsmvyX0fOdYDKa";
+
+    if (data.action === "collectInstallments") {
+      return jsonResponse(saveCollectionInstallments(ss, data));
+    }
 
     if (data.action === "collectInstallment") {
       var customerId = String(data.customerId).trim();
