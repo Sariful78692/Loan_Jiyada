@@ -1,0 +1,106 @@
+/* Shared color overrides for the app-wide light and dark theme switch. */
+.app-theme-toggle {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 15000;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #1e293b;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .18);
+  font: 700 13px/1 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  cursor: pointer;
+  transition: transform .2s ease, background .2s ease, color .2s ease;
+}
+.app-theme-toggle:hover { transform: translateY(-2px); }
+.app-theme-toggle i { font-size: 15px; color: #2563eb; }
+
+html[data-theme="dark"] { color-scheme: dark; }
+html[data-theme="dark"] body {
+  background: #0b1220 !important;
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .main-content,
+html[data-theme="dark"] .content-section,
+html[data-theme="dark"] .settings-container,
+html[data-theme="dark"] .auth-page,
+html[data-theme="dark"] .auth-layout,
+html[data-theme="dark"] .auth-form-container {
+  background-color: #0b1220 !important;
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .form-card,
+html[data-theme="dark"] .settings-card,
+html[data-theme="dark"] .stat-card,
+html[data-theme="dark"] .chart-card,
+html[data-theme="dark"] .auth-card,
+html[data-theme="dark"] .table-container,
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .gold-modal-card,
+html[data-theme="dark"] .content-card,
+html[data-theme="dark"] .report-card,
+html[data-theme="dark"] .customer-card {
+  background: #151f30 !important;
+  color: #e2e8f0 !important;
+  border-color: #2b394d !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .22) !important;
+}
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] p,
+html[data-theme="dark"] label,
+html[data-theme="dark"] .settings-card h3,
+html[data-theme="dark"] .settings-header h1,
+html[data-theme="dark"] .auth-card h2,
+html[data-theme="dark"] .auth-card label,
+html[data-theme="dark"] table td,
+html[data-theme="dark"] .info-text {
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .settings-header p,
+html[data-theme="dark"] .auth-card .subtitle,
+html[data-theme="dark"] .muted,
+html[data-theme="dark"] small {
+  color: #a5b4c7 !important;
+}
+html[data-theme="dark"] table,
+html[data-theme="dark"] table th,
+html[data-theme="dark"] table td,
+html[data-theme="dark"] .card-header,
+html[data-theme="dark"] .table-container {
+  border-color: #2b394d !important;
+}
+html[data-theme="dark"] table th { background: #202d40 !important; color: #dbeafe !important; }
+html[data-theme="dark"] table tbody tr,
+html[data-theme="dark"] table tbody tr:nth-child(even) { background: #151f30 !important; }
+html[data-theme="dark"] table tbody tr:hover { background: #1d2b40 !important; }
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] .compact-form input,
+html[data-theme="dark"] .auth-card input {
+  background: #0d1727 !important;
+  color: #e2e8f0 !important;
+  border-color: #3a4a60 !important;
+}
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder { color: #8292a8 !important; }
+html[data-theme="dark"] .app-theme-toggle {
+  border-color: #35445b;
+  background: #182437;
+  color: #f8fafc;
+}
+html[data-theme="dark"] .app-theme-toggle i { color: #fbbf24; }
+
+@media (max-width: 480px) {
+  .app-theme-toggle { right: 12px; bottom: 12px; min-height: 42px; padding: 0 13px; }
+}

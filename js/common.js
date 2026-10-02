@@ -1,7 +1,7 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyv9od9s33HcxlS3PzqK7BlS6jkomb7dPsjW-6SWyUgcLJEb1cbrF5VQ8ORZm8ETWD1Iw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXn4GUO0K5FU8Nfo78Z4JTqiEbokrv3FMNWiSbQXlO_vYroV-ULhVdtAIEOkALDJrUPw/exec";
 const APPS_SCRIPT_READ_URLS = [
   APPS_SCRIPT_URL,
   "https://script.google.com/macros/s/AKfycbxIzWRQjVyjFNNkugEpHj5pgNJxIGe20QkDJXyomx8pr_6o-GzxbAkxOrpyIkuYsTs6_g/exec"
@@ -125,7 +125,107 @@ function showToast(message, type = "auto") {
 window.showToast = showToast;
 window.alert = function (message) { showToast(message); };
 
+const APP_THEME_KEY = "loanAppTheme";
+
+function applyAppTheme(theme) {
+  const selectedTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = selectedTheme;
+  try {
+    localStorage.setItem(APP_THEME_KEY, selectedTheme);
+  } catch (_) {
+    // Theme still applies for this page when storage is unavailable.
+  }
+  const button = document.getElementById("app-theme-toggle");
+  if (button) {
+    const isDark = selectedTheme === "dark";
+    button.innerHTML = `<i class="fa-solid fa-${isDark ? "sun" : "moon"}" aria-hidden="true"></i><span>${isDark ? "Light mode" : "Dark mode"}</span>`;
+    button.setAttribute("aria-label", `Switch to ${isDark ? "light" : "dark"} mode`);
+    button.setAttribute("aria-pressed", String(isDark));
+  }
+}
+
+function addThemeToggle() {
+  if (!document.querySelector('link[data-app-theme="true"]')) {
+    const themeStylesheet = document.createElement("link");
+    themeStylesheet.rel = "stylesheet";
+    themeStylesheet.href = "css/theme.css?v=20261002-1";
+    themeStylesheet.dataset.appTheme = "true";
+    document.head.appendChild(themeStylesheet);
+  }
+
+  let savedTheme = "light";
+  try {
+    savedTheme = localStorage.getItem(APP_THEME_KEY) || "light";
+  } catch (_) {
+    // Keep the default light theme when storage is unavailable.
+  }
+  applyAppTheme(savedTheme);
+
+  if (document.getElementById("app-theme-toggle")) return;
+  const toggle = document.createElement("button");
+  toggle.id = "app-theme-toggle";
+  toggle.type = "button";
+  toggle.className = "app-theme-toggle";
+  toggle.addEventListener("click", () => {
+    applyAppTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+  });
+  document.body.appendChild(toggle);
+  applyAppTheme(savedTheme);
+}
+
+// Shared animated loading screen for every page that includes common.js.
+function addPageLoader() {
+  if (document.getElementById("app-page-loader")) return;
+
+  const style = document.createElement("style");
+  style.id = "app-page-loader-styles";
+  style.textContent = `
+    #app-page-loader { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 42%, #163c68 0%, #0b1930 48%, #07111f 100%); color: #fff; opacity: 1; visibility: visible; transition: opacity .35s ease, visibility .35s ease; }
+    #app-page-loader.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    #app-page-loader .loader-card { display: grid; justify-items: center; gap: 18px; padding: 28px 38px; text-align: center; }
+    #app-page-loader .loader-mark { position: relative; display: grid; place-items: center; width: 76px; height: 76px; border: 1px solid rgba(255,255,255,.16); border-radius: 24px; background: linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.04)); box-shadow: 0 18px 55px rgba(0,0,0,.28); }
+    #app-page-loader .loader-mark::before { content: ""; position: absolute; inset: -6px; border: 2px solid transparent; border-top-color: #73e0c0; border-right-color: rgba(115,224,192,.35); border-radius: 29px; animation: app-loader-spin .9s linear infinite; }
+    #app-page-loader .loader-mark i { color: #a9f3de; font-size: 29px; }
+    #app-page-loader .loader-title { margin: 0; font: 800 16px/1.3 'Plus Jakarta Sans', Arial, sans-serif; letter-spacing: .13em; }
+    #app-page-loader .loader-caption { margin: 7px 0 0; color: #a9b9ce; font: 500 13px/1.4 'Plus Jakarta Sans', Arial, sans-serif; }
+    #app-page-loader .loader-dots { display: flex; gap: 6px; margin-top: 2px; }
+    #app-page-loader .loader-dots span { width: 6px; height: 6px; border-radius: 50%; background: #73e0c0; animation: app-loader-pulse 1s ease-in-out infinite; }
+    #app-page-loader .loader-dots span:nth-child(2) { animation-delay: .15s; }
+    #app-page-loader .loader-dots span:nth-child(3) { animation-delay: .3s; }
+    @keyframes app-loader-spin { to { transform: rotate(360deg); } }
+    @keyframes app-loader-pulse { 0%, 60%, 100% { opacity: .35; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-4px); } }
+    @media (prefers-reduced-motion: reduce) { #app-page-loader *, #app-page-loader::before { animation-duration: 2s !important; } }
+  `;
+  document.head.appendChild(style);
+
+  const loader = document.createElement("div");
+  loader.id = "app-page-loader";
+  loader.setAttribute("role", "status");
+  loader.setAttribute("aria-live", "polite");
+  loader.innerHTML = `<div class="loader-card"><div class="loader-mark"><i class="fa-solid fa-hand-holding-dollar" aria-hidden="true"></i></div><div><p class="loader-title">LOAN MANAGEMENT</p><p class="loader-caption">Preparing your workspace</p></div><div class="loader-dots" aria-hidden="true"><span></span><span></span><span></span></div></div>`;
+  document.body.appendChild(loader);
+
+  const startedAt = Date.now();
+  let hideScheduled = false;
+  const hideLoader = () => {
+    if (hideScheduled) return;
+    hideScheduled = true;
+    setTimeout(() => loader.classList.add("is-hidden"), Math.max(0, 650 - (Date.now() - startedAt)));
+  };
+  if (document.readyState === "complete") hideLoader();
+  else window.addEventListener("load", hideLoader, { once: true });
+  // Avoid a stuck overlay when a third-party asset never finishes loading.
+  setTimeout(hideLoader, 5000);
+}
+
 document.addEventListener("DOMContentLoaded", function () {
+  addThemeToggle();
+  addPageLoader();
+  const flashToastMessage = sessionStorage.getItem("appFlashToast");
+  if (flashToastMessage) {
+    sessionStorage.removeItem("appFlashToast");
+    showToast(flashToastMessage, "success");
+  }
   requireLogin(); // সবার আগে লগইন চেক
   addAccountMenu();
   addMobileMenuToggle();

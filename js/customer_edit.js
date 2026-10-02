@@ -142,11 +142,12 @@ async function handleCustomerUpdateSubmit(e) {
         }
       }
 
-      alert(isReopenMode ? "Loan re-opened successfully!" : "Customer updated successfully!");
+      sessionStorage.setItem("appFlashToast", isReopenMode ? "Loan re-opened successfully!" : "Customer updated successfully!");
       sessionStorage.removeItem("editCustomerData");
-      const returnUrl = sessionStorage.getItem("reopenReturnUrl");
+      const returnUrl = sessionStorage.getItem("reopenReturnUrl") || sessionStorage.getItem("customerEditReturnUrl");
       sessionStorage.removeItem("reopenCustomerLoan");
       sessionStorage.removeItem("reopenReturnUrl");
+      sessionStorage.removeItem("customerEditReturnUrl");
       if (returnUrl) {
         window.location.href = returnUrl;
         return;

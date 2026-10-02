@@ -41,7 +41,9 @@ async function fetchCustomers() {
   const tbody = document.getElementById("customer-table-body");
   const isRdLoanPage = String(currentLoanFilter || "").trim().toLowerCase() === "rd loan";
   if(tbody) {
-    tbody.innerHTML = `<tr><td colspan="${isRdLoanPage ? 13 : 8}" style="text-align:center; padding:40px; font-size:18px; color:#0284c7;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>`;
+    const columns = isRdLoanPage ? 13 : 8;
+    const skeletonRow = `<tr class="customer-loading-row">${Array.from({ length: columns }, (_, index) => `<td><span class="customer-skeleton ${index === 2 ? "customer-skeleton-name" : ""}"></span></td>`).join("")}</tr>`;
+    tbody.innerHTML = `<tr><td colspan="${columns}" class="customer-loading-cell"><div class="customer-loading-card" role="status" aria-live="polite"><div class="customer-loading-heading"><span class="customer-loading-icon"><i class="fa-solid fa-users"></i></span><div><strong>Getting your customers ready</strong><span>Fetching the latest customer and loan details…</span></div><i class="fa-solid fa-circle-notch fa-spin customer-loading-spinner" aria-hidden="true"></i></div><div class="customer-skeleton-table" aria-hidden="true"><div class="customer-skeleton-header">${Array.from({ length: columns }, () => '<span class="customer-skeleton customer-skeleton-heading"></span>').join("")}</div>${skeletonRow}${skeletonRow}${skeletonRow}</div></div><span class="sr-only">Loading customer details</span></td></tr>`;
   }
 
   try {
@@ -130,7 +132,6 @@ function renderTable(data) {
     }
 
     const custId = String(cust["ID"]).trim();
-    const durationDays = parseInt(cust["Duration (Days)"]) || 0;
     
     let loanStatus = String(cust["Status"] || "").trim().toLowerCase();
     if (loanStatus !== "closed") {
@@ -139,11 +140,14 @@ function renderTable(data) {
 
     const customerCollections = allCollectionsData.filter(col => String(col["Customer ID"]).trim() === custId);
     const collectionCount = customerCollections.length;
-    const dailyAmount = Number(String(cust["Loan Amount"] || cust["RD Amount"] || cust["Amount"] || 0).replace(/[^0-9.-]/g, "")) || 0;
-    const totalRdAmount = dailyAmount * durationDays;
     const receivedRdAmount = customerCollections.reduce((sum, col) => sum + (Number(String(col["Amount"] || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
     const payDays = new Set(customerCollections.map(col => normalizeCollectionDate(col["Collection Date"])).filter(Boolean)).size;
-    const dates = isRdLoanPage ? getCustomerDates(cust, durationDays) : null;
+    const dailyAmount = getCustomerInstallmentAmount(cust, receivedRdAmount, payDays);
+    let durationDays = getCustomerDurationDays(cust, dailyAmount);
+    // Older RD rows may have collections but no saved duration; these accounts use the standard 365-day term.
+    if (!durationDays && isRdLoanPage && payDays > 0) durationDays = 365;
+    const totalRdAmount = Number(cust["Total Amount"] || cust["Total Loan Amount"] || cust["Total RD Amount"] || cust["Total Amount (RD)"] || 0) || dailyAmount * durationDays;
+    const dates = isRdLoanPage ? getCustomerDates(cust, durationDays, customerCollections) : null;
 
     let actionButtonsHtml = ""; 
     
@@ -362,6 +366,7 @@ function editCustomer(id) {
     sessionStorage.removeItem("reopenCustomerLoan");
     sessionStorage.removeItem("reopenReturnUrl");
     sessionStorage.setItem("editCustomerData", JSON.stringify(customerToEdit));
+    sessionStorage.setItem("customerEditReturnUrl", window.location.href);
     window.location.href = "CustomerEdit.html";
   }
 }
@@ -404,17 +409,51 @@ async function reopenCustomerLoan(customerId) {
   }
 }
 
-function getCustomerDates(customer, durationDays) {
-  const start = parseStoredDate(customer["Start Date"]);
+function getCustomerInstallmentAmount(customer, receivedAmount = 0, paidDays = 0) {
+  const storedAmount = customer["Loan Amount"] || customer["RD Amount"] || customer["Amount"] || customer["Daily Installment"] || customer["Installment Amount"] || 0;
+  const parsedAmount = Number(String(storedAmount).replace(/[^0-9.-]/g, "")) || 0;
+  return parsedAmount || (paidDays > 0 ? receivedAmount / paidDays : 0);
+}
+
+function getCustomerDurationDays(customer, installmentAmount = 0) {
+  const rawDuration = customer["Duration (Days)"] || customer["Duration (Day)"] || customer["Duration Days"] || customer["Duration(Days)"] || customer["Loan Duration (Days)"] || customer["Loan Duration"] || customer["Term (Days)"] || customer["Duration"] || customer["Period (Days)"] || "";
+  let days = parseInt(String(rawDuration).replace(/[^0-9-]/g, ""), 10) || 0;
+  const start = parseStoredDate(customer["Start Date"] || customer["RD Start Date"] || customer["Start Date (RD)"] || customer["Loan Start Date"] || customer["Opening Date"]);
+  const end = parseStoredDate(customer["End Date"] || customer["RD End Date"] || customer["Loan End Date"] || customer["Maturity Date"]);
+  if (!days && start && end && end >= start) days = getCalendarDayDifference(start, end) + 1;
+  if (!days && start) {
+    const months = parseInt(String(customer["Duration (Month)"] || customer["Duration Months"] || "").replace(/[^0-9-]/g, ""), 10) || 0;
+    if (months > 0) days = getCalendarDayDifference(start, addDays(addMonthsByCalendar(start, months), -1)) + 1;
+  }
+  if (!days && installmentAmount > 0) {
+    const total = Number(String(customer["Total Amount"] || customer["Total Loan Amount"] || customer["Total RD Amount"] || customer["Total Amount (RD)"] || "").replace(/[^0-9.-]/g, "")) || 0;
+    if (total > 0) days = Math.round(total / installmentAmount);
+  }
+  return Math.max(days, 0);
+}
+
+function getCustomerDates(customer, durationDays, collections = []) {
+  const start = getCustomerStartDate(customer, collections);
   const startDate = start ? formatDisplayDate(start) : "—";
   // The start date is Day 1, so a 365-day RD ends 364 calendar days later.
-  const endDate = start && durationDays > 0 ? formatDisplayDate(addDays(start, durationDays - 1)) : "—";
+  const storedEnd = parseStoredDate(customer["End Date"] || customer["RD End Date"] || customer["Loan End Date"] || customer["Maturity Date"]);
+  const endDate = storedEnd
+    ? formatDisplayDate(storedEnd)
+    : (start && durationDays > 0 ? formatDisplayDate(addDays(start, durationDays - 1)) : "—");
   const dueDay = start && durationDays > 0 ? getRemainingDays(start, durationDays) : null;
   const dueDate = dueDay !== null
     ? `${dueDay} Days`
     : "—";
 
   return { startDate, endDate, dueDate, dueDay };
+}
+
+function getCustomerStartDate(customer, collections = []) {
+  const storedStart = customer["Start Date"] || customer["RD Start Date"] || customer["Start Date (RD)"] || customer["Loan Start Date"] || customer["Opening Date"];
+  const parsedStart = parseStoredDate(storedStart);
+  if (parsedStart) return parsedStart;
+  const collectionDates = collections.map(item => parseStoredDate(item["Collection Date"])).filter(Boolean).sort((a, b) => a - b);
+  return collectionDates[0] || null;
 }
 
 function getRemainingDays(startDate, durationDays) {
@@ -434,7 +473,14 @@ function getCalendarDayDifference(fromDate, toDate) {
 function parseStoredDate(value) {
   if (!value) return null;
   const rawValue = String(value).trim();
-  const normalized = normalizeCollectionDate(rawValue);
+  let normalized = normalizeCollectionDate(rawValue);
+  const slashDate = rawValue.match(/^(\d{1,2})[\/](\d{1,2})[\/](\d{4})$/);
+  if (slashDate) {
+    const first = Number(slashDate[1]), second = Number(slashDate[2]);
+    const day = first > 12 ? first : (second > 12 ? second : first);
+    const month = first > 12 ? second : (second > 12 ? first : second);
+    normalized = `${slashDate[3]}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
   let date = new Date(`${normalized}T00:00:00`);
   if (Number.isNaN(date.getTime())) {
     date = new Date(rawValue);
@@ -445,6 +491,16 @@ function parseStoredDate(value) {
 function addDays(date, days) {
   const result = new Date(date);
   result.setDate(result.getDate() + days);
+  return result;
+}
+
+function addMonthsByCalendar(date, months) {
+  const result = new Date(date);
+  const day = result.getDate();
+  result.setDate(1);
+  result.setMonth(result.getMonth() + Number(months));
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(day, lastDay));
   return result;
 }
 

@@ -299,6 +299,7 @@ function doPost(e) {
 
     var custSheet = ss.getSheets()[0];
     var goldSheet = getOrCreateGoldSheet(ss);
+
     
     var folderId = "1tYYWYu7dyg4NCVD_mePsmvyX0fOdYDKa";
 
