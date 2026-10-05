@@ -77,18 +77,10 @@
         <li class="nav-item"><a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
         
         <li class="nav-item has-submenu">
-          <a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-users"></i> Customer Information <i class="fa-solid fa-chevron-down arrow"></i></a>
+          <a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-users"></i> RD Customer <i class="fa-solid fa-chevron-down arrow"></i></a>
           <ul class="submenu">
-            <li><a href="CustomerEntry.html">Customer Entry</a></li>
-            <li><a href="CustomerDetails.html">Customer Details</a></li>
-          </ul>
-        </li>
-
-        <li class="nav-item has-submenu">
-          <a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-hand-holding-dollar"></i> Loan Type <i class="fa-solid fa-chevron-down arrow"></i></a>
-          <ul class="submenu" id="sidebar-loan-list">
-            <li><a href="CustomerDetails.html?loan=RD Loan">RD</a></li>
-            <li><a href="CustomerDetails.html?loan=Group Loan">Group Loan</a></li>
+            <li><a href="CustomerEntry.html">RD Customer Entry</a></li>
+            <li><a href="CustomerDetails.html?loan=RD%20Loan">RD Customer Details</a></li>
           </ul>
         </li>
         <li class="nav-item has-submenu">
@@ -96,7 +88,10 @@
           <ul class="submenu"><li><a href="GoldLoanEntry.html">Gold Loan Customer Entry</a></li><li><a href="GoldLoanDetails.html">Gold Loan Customer Details</a></li><li><a href="GoldLoanEMI.html">Pay Gold Loan EMI</a></li></ul>
         </li>
 
-        <li class="nav-item"><a href="Report.html" class="nav-link" style="color: #fff;"><i class="fa-solid fa-file-invoice"></i> Reports</a></li>
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle active" aria-expanded="false"><i class="fa-solid fa-file-invoice"></i> Reports <i class="fa-solid fa-chevron-down arrow"></i></a>
+          <ul class="submenu" id="report-type-menu"></ul>
+        </li>
       </ul>
     </aside>
 
@@ -106,18 +101,15 @@
         <!-- হেডিং এবং ফিল্টার সেকশন -->
         <div class="no-print">
           
-          <!-- Heading & Dropdown -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+          <div style="margin-bottom: 20px;">
             <h1 id="report-heading" style="margin: 0;">Collections Report</h1>
-            <div>
-              <select id="reportFilter" onchange="changeReportType()" style="padding: 10px 15px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; outline: none; background: white; color: #1e293b; cursor: pointer;">
-                <option value="collections">Collections Report</option>
-                <option value="emiPayments">EMI Payment Report</option>
-                <option value="goldEmiPayments">Gold Loan EMI Report</option>
-                <option value="All">All Customers Report</option>
-              </select>
-            </div>
           </div>
+          <select id="reportFilter" hidden aria-hidden="true" tabindex="-1" onchange="changeReportType()">
+            <option value="collections">Collections Report</option>
+            <option value="emiPayments">EMI Payment Report</option>
+            <option value="goldEmiPayments">Gold Loan EMI Report</option>
+            <option value="All">All Customers Report</option>
+          </select>
 
           <!-- All Filters (Search, Date Range, Status) -->
           <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">

@@ -1,7 +1,7 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXn4GUO0K5FU8Nfo78Z4JTqiEbokrv3FMNWiSbQXlO_vYroV-ULhVdtAIEOkALDJrUPw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHEJlnEC1-ri9EH_q8CLPQYaNA6iHid0P0RBtD6cP6lOk9Mpw6F8qJhWplnAp30KmNuw/exec";
 const APPS_SCRIPT_READ_URLS = [
   APPS_SCRIPT_URL,
   "https://script.google.com/macros/s/AKfycbxIzWRQjVyjFNNkugEpHj5pgNJxIGe20QkDJXyomx8pr_6o-GzxbAkxOrpyIkuYsTs6_g/exec"
@@ -229,6 +229,8 @@ document.addEventListener("DOMContentLoaded", function () {
   requireLogin(); // সবার আগে লগইন চেক
   addAccountMenu();
   addMobileMenuToggle();
+  addGroupLoanMenu();
+  setGroupPageContext();
   loadCustomLoanTypes();
 
   // সাইডবার সাবমেনু খোলা/বন্ধ
@@ -240,7 +242,8 @@ document.addEventListener("DOMContentLoaded", function () {
       document.querySelectorAll(".nav-item.has-submenu.open").forEach((item) => {
         if (item !== parent) item.classList.remove("open");
       });
-      parent.classList.toggle("open");
+      const isOpen = parent.classList.toggle("open");
+      this.setAttribute("aria-expanded", String(isOpen));
     });
   });
 
@@ -251,6 +254,57 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 });
+
+function addGroupLoanMenu() {
+  const navMenu = document.querySelector(".sidebar .nav-menu");
+  if (!navMenu || navMenu.querySelector('[data-group-loan-menu="true"]')) return;
+
+  // Give Group Loan its own entry workflow instead of listing it as a generic loan type.
+  const loanList = document.getElementById("sidebar-loan-list");
+  if (loanList) {
+    Array.from(loanList.querySelectorAll("a")).forEach(link => {
+      if (link.textContent.trim().toLowerCase() === "group loan") link.closest("li")?.remove();
+    });
+  }
+
+  const item = document.createElement("li");
+  item.className = "nav-item has-submenu";
+  item.dataset.groupLoanMenu = "true";
+  item.innerHTML = `
+    <a href="#" class="nav-link submenu-toggle" aria-expanded="false">
+      <i class="fa-solid fa-people-group"></i> Group Loan <i class="fa-solid fa-chevron-down arrow"></i>
+    </a>
+    <ul class="submenu"><li><a href="CustomerEntry.html?mode=group">Group Entry</a></li><li><a href="GroupDetails.html">Group Details</a></li></ul>`;
+  const goldLoanItem = Array.from(navMenu.children).find(child => child.querySelector('a[href="GoldLoanEntry.html"]'));
+  const reportItem = navMenu.querySelector('a[href="Report.html"]')?.closest("li");
+  navMenu.insertBefore(item, goldLoanItem || reportItem || null);
+}
+
+function setGroupPageContext() {
+  const params = new URLSearchParams(window.location.search);
+  const isGroupEntry = params.get("mode") === "group" && window.location.pathname.toLowerCase().endsWith("customerentry.html");
+  const isGroupDetails = window.location.pathname.toLowerCase().endsWith("groupdetails.html");
+  if (!isGroupEntry && !isGroupDetails) return;
+
+  if (isGroupEntry) {
+    const heading = document.getElementById("form-title");
+    if (heading) heading.textContent = "Group Entry Form";
+    document.title = "Group Entry - Loan Management";
+    const loanType = document.getElementById("loanTypeSelect");
+    if (loanType) loanType.value = "Group Loan";
+    const submitButton = document.getElementById("submit-btn");
+    if (submitButton) submitButton.textContent = "Save Group Customer";
+  }
+  if (isGroupDetails) document.title = "Group Details - Loan Management";
+
+  const groupLink = Array.from(document.querySelectorAll('[data-group-loan-menu="true"] .submenu a'))
+    .find(link => isGroupEntry ? link.href.includes("mode=group") : link.href.endsWith("GroupDetails.html"));
+  if (groupLink) {
+    groupLink.classList.add("active");
+    groupLink.closest(".nav-item")?.classList.add("open");
+    groupLink.closest(".nav-item")?.querySelector(":scope > .nav-link")?.setAttribute("aria-expanded", "true");
+  }
+}
 
 function requireLogin() {
   const isLoginPage = window.location.pathname.toLowerCase().includes("login.html");

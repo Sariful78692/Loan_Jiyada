@@ -5,9 +5,40 @@ document.addEventListener("DOMContentLoaded", async function () {
     document.getElementById("reportFilter").value = reportType;
     currentReportType = reportType;
   }
+  buildReportTypeMenu(currentReportType);
   await fetchReportData();
   if (currentReportType === "goldEmiPayments") changeReportType();
 });
+
+function buildReportTypeMenu(selectedType) {
+  const menu = document.getElementById("report-type-menu");
+  const select = document.getElementById("reportFilter");
+  if (!menu || !select) return;
+
+  menu.replaceChildren();
+  Array.from(select.options).forEach(option => {
+    const value = option.value;
+    const label = ["collections", "emiPayments", "goldEmiPayments", "All"].includes(value)
+      ? option.textContent.trim()
+      : `${option.textContent.trim()} Report`;
+    const isActive = value === selectedType;
+    const item = document.createElement("li");
+    const link = document.createElement("a");
+    link.href = `Report.html?type=${encodeURIComponent(value)}`;
+    link.textContent = label;
+    if (isActive) {
+      link.classList.add("active");
+      link.setAttribute("aria-current", "page");
+    }
+    item.appendChild(link);
+    menu.appendChild(item);
+  });
+
+  const reportItem = menu.closest(".nav-item");
+  const toggle = reportItem?.querySelector(":scope > .nav-link");
+  reportItem?.classList.add("open");
+  toggle?.setAttribute("aria-expanded", "true");
+}
 
 let allCollectionsData = [];
 let allClosedCollectionsData = []; 

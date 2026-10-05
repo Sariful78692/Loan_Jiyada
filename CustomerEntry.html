@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customer Entry - Loan Management</title>
+  <title>RD Customer Entry - Loan Management</title>
   <link rel="stylesheet" href="css/common.css">
   <link rel="stylesheet" href="css/customer.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -28,21 +28,11 @@
         
         <li class="nav-item has-submenu">
           <a href="#" class="nav-link submenu-toggle">
-            <i class="fa-solid fa-users"></i> Customer Information <i class="fa-solid fa-chevron-down arrow"></i>
+            <i class="fa-solid fa-users"></i> RD Customer <i class="fa-solid fa-chevron-down arrow"></i>
           </a>
           <ul class="submenu">
-            <li><a href="CustomerEntry.html">Customer Entry</a></li>
-            <li><a href="CustomerDetails.html">Customer Details</a></li>
-          </ul>
-        </li>
-
-        <li class="nav-item has-submenu">
-          <a href="#" class="nav-link submenu-toggle">
-            <i class="fa-solid fa-hand-holding-dollar"></i> Loan Type <i class="fa-solid fa-chevron-down arrow"></i>
-          </a>
-          <ul class="submenu" id="sidebar-loan-list">
-            <li><a href="CustomerDetails.html?loan=RD Loan">RD</a></li>
-            <li><a href="CustomerDetails.html?loan=Group Loan">Group Loan</a></li>
+            <li><a href="CustomerEntry.html">RD Customer Entry</a></li>
+            <li><a href="CustomerDetails.html?loan=RD%20Loan">RD Customer Details</a></li>
           </ul>
         </li>
         <li class="nav-item has-submenu">
@@ -61,7 +51,7 @@
     <!-- Main Content -->
     <main class="main-content">
       <section id="customer-entry-section" class="content-section">
-        <h1 id="form-title">Customer Entry Form</h1>
+        <h1 id="form-title">RD Customer Entry Form</h1>
         <form id="customer-form">
           <input type="hidden" id="edit-customer-id" value="">
           <input type="hidden" id="existing-photo-url" value="">
@@ -174,22 +164,10 @@
                 <div class="form-group"><label>Account Number</label><input type="text" id="accountNumber" inputmode="numeric" placeholder="Enter account number"></div>
               </div>
 
-              <div class="form-group">
-                <label>Loan Type *</label>
-                <div class="select-with-btn">
-                  <select id="loanTypeSelect" required>
-                    <option value="">Select Loan Type</option>
-                    <option value="RD Loan">RD</option>
-                    <option value="Group Loan">Group Loan</option>
-                    <option value="Gold Loan">Gold Loan</option>
-                  </select>
-                  <button type="button" class="btn-small bg-blue" onclick="promptAddNewLoanType()" title="Add Loan Type">
-                    <i class="fa-solid fa-plus"></i>
-                  </button>
-                  <button type="button" class="btn-small bg-yellow" onclick="promptEditSelectedOption('loanTypeSelect', 'Loan Type')" title="Edit selected loan type"><i class="fa-solid fa-pen"></i></button>
-                  <button type="button" class="btn-small bg-red" onclick="deleteSelectedOption('loanTypeSelect', 'Loan Type')" title="Delete selected loan type"><i class="fa-solid fa-trash"></i></button>
-                </div>
-              </div>
+              <select id="loanTypeSelect" class="hidden" aria-hidden="true" tabindex="-1">
+                <option value="RD Loan" selected>RD</option>
+                <option value="Group Loan">Group Loan</option>
+              </select>
 
             </div>
           </div>
@@ -213,6 +191,33 @@
               <div class="form-group">
                 <label>Interest % *</label>
                 <input type="number" step="any" id="interestRate" placeholder="Enter Interest %">
+              </div>
+            </div>
+          </div>
+
+          <!-- Group Loan Details -->
+          <div class="form-card hidden" id="group-loan-details" style="border: 1px solid #a78bfa; background-color: #f5f3ff;">
+            <h3 style="color: #6d28d9;"><i class="fa-solid fa-people-group"></i> Group Loan Details</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Group Name</label>
+                <input type="text" id="groupName" placeholder="Enter group name">
+              </div>
+              <div class="form-group">
+                <label>Loan Amount</label>
+                <input type="number" id="groupLoanAmount" placeholder="Enter amount">
+              </div>
+              <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" id="groupStartDate">
+              </div>
+              <div class="form-group">
+                <label>Duration (Months)</label>
+                <input type="number" id="groupDurationMonths" placeholder="Enter duration in months">
+              </div>
+              <div class="form-group">
+                <label>Monthly Interest (%)</label>
+                <input type="number" step="any" id="monthlyInterest" placeholder="Enter monthly interest">
               </div>
             </div>
           </div>
@@ -302,7 +307,7 @@
 
   
 
-  <script src="js/common.js?v=20261002-2"></script>
-  <script src="js/customer_entry.js"></script>
+  <script src="js/common.js?v=20261005-group-details-1"></script>
+  <script src="js/customer_entry.js?v=20261005-group-details-1"></script>
 </body>
 </html>

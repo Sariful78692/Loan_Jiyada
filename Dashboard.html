@@ -24,17 +24,10 @@
           <a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
         </li>
         <li class="nav-item has-submenu">
-          <a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-users"></i> Customer Information <i class="fa-solid fa-chevron-down arrow"></i></a>
+          <a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-users"></i> RD Customer <i class="fa-solid fa-chevron-down arrow"></i></a>
           <ul class="submenu">
-            <li><a href="CustomerEntry.html">Customer Entry</a></li>
-            <li><a href="CustomerDetails.html">Customer Details</a></li>
-          </ul>
-        </li>
-        <li class="nav-item has-submenu">
-          <a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-hand-holding-dollar"></i> Loan Type <i class="fa-solid fa-chevron-down arrow"></i></a>
-          <ul class="submenu" id="sidebar-loan-list">
-            <li><a href="CustomerDetails.html?loan=RD Loan">RD</a></li>
-            <li><a href="CustomerDetails.html?loan=Group Loan">Group Loan</a></li>
+            <li><a href="CustomerEntry.html">RD Customer Entry</a></li>
+            <li><a href="CustomerDetails.html?loan=RD%20Loan">RD Customer Details</a></li>
           </ul>
         </li>
         <li class="nav-item has-submenu">
@@ -70,6 +63,14 @@
             <div class="stat-info"><span class="stat-title">Gold Loan</span><h3 class="stat-value" id="count-gold">0</h3></div>
           </div>
         </div>
+
+        <section class="group-loan-overview" aria-labelledby="group-loan-overview-title">
+          <div class="group-loan-overview-header">
+            <h2 id="group-loan-overview-title">Group Loan Overview</h2>
+            <div class="group-customer-total"><span>Total Group Customers</span><strong id="group-customer-total">0</strong></div>
+          </div>
+          <div id="group-loan-breakdown" class="group-loan-breakdown" aria-live="polite"></div>
+        </section>
 
         <!-- 🟢 RD Loan Box (এর ভেতরে ৩টি কার্ড থাকবে) -->
         <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 30px; margin-top: 30px;">

@@ -9,13 +9,16 @@ let selectedLoanType = null;
 let selectedAmount = null;
 let lastCollectionReceipt = null;
 let selectedCustomerDuration = 0;
+const isGroupDetailsPage = window.location.pathname.toLowerCase().endsWith("groupdetails.html");
 
 document.addEventListener("DOMContentLoaded", async function () {
   const urlParams = new URLSearchParams(window.location.search);
-  currentLoanFilter = urlParams.get("loan");
+  currentLoanFilter = urlParams.get("loan") || (isGroupDetailsPage ? null : "RD Loan");
 
   const pageTitle = document.getElementById("page-title");
-  if (currentLoanFilter && pageTitle) {
+  if (isGroupDetailsPage && pageTitle) {
+    pageTitle.innerHTML = '<i class="fa-solid fa-people-group"></i> Group Details';
+  } else if (currentLoanFilter && pageTitle) {
     const displayLoanName = String(currentLoanFilter).trim().toLowerCase() === "rd loan" ? "RD" : currentLoanFilter;
     pageTitle.innerHTML = `<i class="fa-solid fa-users"></i> ${displayLoanName} Customers`;
   } else if (pageTitle) {
@@ -51,7 +54,8 @@ async function fetchCustomers() {
     
     allCollectionsData = data.collections || [];
 
-    let activeCustomers = data.customers.filter(c => (c["Status"] || "").trim() !== "Disabled");
+    let activeCustomers = (isGroupDetailsPage ? (data.group_customers || []) : data.customers)
+      .filter(c => (c["Status"] || "").trim() !== "Disabled");
     
     if (currentLoanFilter) {
       activeCustomers = activeCustomers.filter(c => (c["Loan Type"] || "").trim() === currentLoanFilter.trim());
@@ -151,7 +155,9 @@ function renderTable(data) {
 
     let actionButtonsHtml = ""; 
     
-    if (loanStatus === "closed") {
+    if (isGroupDetailsPage) {
+      actionButtonsHtml = '<span style="color:#64748b;font-size:12px;">Group customer</span>';
+    } else if (loanStatus === "closed") {
       actionButtonsHtml = `
         <span style="color: #64748b; font-weight: bold; font-size: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 4px; margin-right: 5px; display: inline-block;">
           <i class="fa-solid fa-lock"></i> Closed

@@ -58,7 +58,27 @@ document.addEventListener("DOMContentLoaded", function () {
   // 4. Loan Type Select Logic
   const loanTypeSelect = document.getElementById("loanTypeSelect");
   const rdLoanSection = document.getElementById("rd-loan-details");
+  const groupLoanSection = document.getElementById("group-loan-details");
   const interestRateInput = document.getElementById("interestRate");
+  const isGroupEntry = new URLSearchParams(window.location.search).get("mode") === "group";
+
+  if (loanTypeSelect) loanTypeSelect.value = isGroupEntry ? "Group Loan" : "RD Loan";
+  if (rdLoanSection) rdLoanSection.classList.toggle("hidden", isGroupEntry);
+  if (groupLoanSection) groupLoanSection.classList.toggle("hidden", !isGroupEntry);
+  if (!isGroupEntry) {
+    const startDateInput = document.getElementById("startDate");
+    if (startDateInput && !startDateInput.value) {
+      startDateInput.value = new Date().toISOString().substring(0, 10);
+    }
+    if (interestRateInput && !interestRateInput.value) {
+      interestRateInput.value = localStorage.getItem("savedRdInterest") || "1.6439";
+    }
+  } else {
+    const groupStartDateInput = document.getElementById("groupStartDate");
+    if (groupStartDateInput && !groupStartDateInput.value) {
+      groupStartDateInput.value = new Date().toISOString().substring(0, 10);
+    }
+  }
 
   if (loanTypeSelect) {
     loanTypeSelect.addEventListener("change", function (e) {
@@ -532,7 +552,7 @@ async function handleCustomerFormSubmit(e) {
   }
 
   const payload = {
-    action: "create",
+    action: new URLSearchParams(window.location.search).get("mode") === "group" ? "create_group" : "create",
     customerName: document.getElementById("customerName").value.trim(),
     guardianType: document.getElementById("guardianType").value,
     guardianName: document.getElementById("guardianName").value.trim(),
@@ -548,12 +568,18 @@ async function handleCustomerFormSubmit(e) {
     ifscCode: document.getElementById("ifscCode").value.trim().toUpperCase(),
     accountHolderName: document.getElementById("accountHolderName").value.trim(),
     accountNumber: document.getElementById("accountNumber").value.trim(),
-    loanType: document.getElementById("loanTypeSelect").value,
-    
-    loanAmount: document.getElementById("loanAmount") ? document.getElementById("loanAmount").value : "",
-    startDate: document.getElementById("startDate") ? document.getElementById("startDate").value : "",
+    loanType: new URLSearchParams(window.location.search).get("mode") === "group" ? "Group Loan" : document.getElementById("loanTypeSelect").value,
+    groupName: document.getElementById("groupName")?.value.trim() || "",
+    loanAmount: new URLSearchParams(window.location.search).get("mode") === "group"
+      ? (document.getElementById("groupLoanAmount")?.value || "")
+      : (document.getElementById("loanAmount")?.value || ""),
+    startDate: new URLSearchParams(window.location.search).get("mode") === "group"
+      ? (document.getElementById("groupStartDate")?.value || "")
+      : (document.getElementById("startDate")?.value || ""),
     durationDays: document.getElementById("durationDays") ? document.getElementById("durationDays").value : "",
     interestRate: document.getElementById("interestRate") ? document.getElementById("interestRate").value : "",
+    groupDurationMonths: document.getElementById("groupDurationMonths")?.value || "",
+    monthlyInterest: document.getElementById("monthlyInterest")?.value || "",
     
     photoBase64: photoBase64,
     photoName: photoName,
@@ -583,7 +609,7 @@ async function handleCustomerFormSubmit(e) {
     alert("Submission failed. Check network or script URL.");
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerText = "Save Customer";
+    submitBtn.innerText = new URLSearchParams(window.location.search).get("mode") === "group" ? "Save Group Customer" : "Save Customer";
   }
 }
 

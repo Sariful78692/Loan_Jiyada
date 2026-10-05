@@ -15,10 +15,21 @@ async function loadDashboardData() {
 
     console.log("Dashboard Data Loaded Successfully:", data);
 
-    const activeCustomers = (data.customers || []).filter((c) => {
+    const isActiveCustomer = (c) => {
       const status = String(c["Status"] || "").trim().toLowerCase();
       return status !== "disabled" && status !== "closed";
+    };
+    const customerRecords = (data.customers || []).filter(isActiveCustomer);
+    const separateGroupCustomers = (data.group_customers || []).filter(isActiveCustomer);
+    const allCustomerIds = new Set(customerRecords.map(customer => String(customer.ID || customer["Customer ID"] || "").trim()).filter(Boolean));
+    const groupCustomers = separateGroupCustomers.filter(customer => {
+      const id = String(customer.ID || customer["Customer ID"] || "").trim();
+      return !id || !allCustomerIds.has(id);
     });
+    const activeCustomers = customerRecords.concat(groupCustomers);
+    const activeGroupLoanCustomers = activeCustomers.filter(customer =>
+      String(customer["Loan Type"] || "").trim().toLowerCase() === "group loan"
+    );
 
     const allCollections = data.collections || [];
     const activeGoldLoans = (data.gold_loans || []).filter((loan) => {
@@ -26,7 +37,7 @@ async function loadDashboardData() {
       return status !== "disabled" && status !== "closed";
     });
 
-    updateDashboardCharts(activeCustomers, activeGoldLoans.length);
+    updateDashboardCharts(activeCustomers, activeGoldLoans.length, activeGroupLoanCustomers);
     updateRDLoanMetrics(activeCustomers, allCollections);
 
   } catch (err) {
@@ -157,7 +168,7 @@ function updateRDLoanMetrics(activeCustomers, allCollections) {
 }
 
 // 🟢 ড্যাশবোর্ড চার্ট এবং কাউন্টার আপডেট — অপরিবর্তিত লজিক
-function updateDashboardCharts(activeCustomers, goldLoanCount = 0) {
+function updateDashboardCharts(activeCustomers, goldLoanCount = 0, groupCustomers = []) {
   let rdCount = 0, goldCount = goldLoanCount, groupLoanCount = 0;
   let anondodharaCount = 0, ashaCount = 0, janoniCount = 0;
   const loanCounts = {};
@@ -165,20 +176,25 @@ function updateDashboardCharts(activeCustomers, goldLoanCount = 0) {
 
   activeCustomers.forEach((cust) => {
     const loan = (cust["Loan Type"] || "").trim();
-    const group = (cust["Group Name"] || "").trim();
 
     if (loan.toLowerCase() === "rd loan") rdCount++;
     if (loan.toLowerCase() === "group loan") groupLoanCount++;
 
-    if (group === "Anondodhara Group") anondodharaCount++;
-    if (group === "Asha Group") ashaCount++;
-    if (group === "Janoni Group") janoniCount++;
-
     const loanKey = loan || "Not Assigned";
-    const groupKey = group || "Not Assigned";
     loanCounts[loanKey] = (loanCounts[loanKey] || 0) + 1;
+  });
+
+  groupCustomers.forEach((cust) => {
+    const group = String(cust["Group Name"] || "").trim();
+    const groupKey = group || "Not Assigned";
     groupCounts[groupKey] = (groupCounts[groupKey] || 0) + 1;
   });
+  groupLoanCount = groupCustomers.length;
+  anondodharaCount = groupCounts["Anondodhara Group"] || 0;
+  ashaCount = groupCounts["Asha Group"] || 0;
+  janoniCount = groupCounts["Janoni Group"] || 0;
+
+  renderGroupLoanBreakdown(groupCounts);
 
   const ids = {
     "count-total": activeCustomers.length,
@@ -258,4 +274,36 @@ function updateDashboardCharts(activeCustomers, goldLoanCount = 0) {
       }
     });
   }
+}
+
+function renderGroupLoanBreakdown(groupCounts) {
+  const totalElement = document.getElementById("group-customer-total");
+  const breakdown = document.getElementById("group-loan-breakdown");
+  const total = Object.values(groupCounts).reduce((sum, count) => sum + count, 0);
+
+  if (totalElement) totalElement.textContent = total.toLocaleString("en-IN");
+  if (!breakdown) return;
+
+  breakdown.replaceChildren();
+  const groups = Object.entries(groupCounts).sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
+  if (!groups.length) {
+    const emptyMessage = document.createElement("p");
+    emptyMessage.className = "group-loan-empty";
+    emptyMessage.textContent = "No Group Loan customers yet.";
+    breakdown.appendChild(emptyMessage);
+    return;
+  }
+
+  groups.forEach(([name, count]) => {
+    const card = document.createElement("article");
+    card.className = "group-breakdown-card";
+    const groupName = document.createElement("span");
+    groupName.textContent = name;
+    const customerCount = document.createElement("strong");
+    customerCount.textContent = count.toLocaleString("en-IN");
+    const caption = document.createElement("small");
+    caption.textContent = count === 1 ? "customer" : "customers";
+    card.append(groupName, customerCount, caption);
+    breakdown.appendChild(card);
+  });
 }

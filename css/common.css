@@ -15,7 +15,8 @@
 }
 
 .sidebar {
-  width: 260px;
+  box-sizing: border-box;
+  width: 240px;
   min-height: 100vh;
   background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
   color: #cbd5e1;

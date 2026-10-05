@@ -1,7 +1,7 @@
 function doGet(e) {
   // 🟢 CACHE: প্রথমে ক্যাশে ডেটা আছে কিনা চেক করুন
   var cache = CacheService.getScriptCache();
-  var cached = cache.get("dashboard_data");
+  var cached = cache.get("dashboard_data_v2");
   if (cached != null) {
     return ContentService.createTextOutput(cached).setMimeType(ContentService.MimeType.JSON);
   }
@@ -9,6 +9,7 @@ function doGet(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var custSheet = ss.getSheets()[0]; 
   var goldSheet = getOrCreateGoldSheet(ss);
+  var groupSheet = ss.getSheetByName("Group_Customers");
   var tz = Session.getScriptTimeZone(); 
 
   // 1. Customer Data
@@ -41,6 +42,22 @@ function doGet(e) {
         archivedCustomer[archivedHeaders[aj]] = archivedValue;
       }
       custResult.push(archivedCustomer);
+    }
+  }
+
+  // Group Entry records live in their own sheet and are exposed separately to Group Details.
+  var groupCustomerResult = [];
+  if (groupSheet && groupSheet.getLastRow() > 1) {
+    var groupData = groupSheet.getDataRange().getValues();
+    var groupHeaders = groupData[0].map(function(header) { return String(header).trim(); });
+    for (var gi = 1; gi < groupData.length; gi++) {
+      var groupCustomer = {};
+      for (var gj = 0; gj < groupHeaders.length; gj++) {
+        var groupValue = groupData[gi][gj];
+        if (groupValue instanceof Date) groupValue = Utilities.formatDate(groupValue, tz, "yyyy-MM-dd");
+        groupCustomer[groupHeaders[gj]] = groupValue;
+      }
+      groupCustomerResult.push(groupCustomer);
     }
   }
 
@@ -119,6 +136,7 @@ function doGet(e) {
 
   var finalOutput = JSON.stringify({ 
     customers: custResult, 
+    group_customers: groupCustomerResult,
     collections: collResult,
     closed_collections: closedResult, 
     gold_loans: goldResult,
@@ -126,7 +144,7 @@ function doGet(e) {
   });
 
   try {
-    cache.put("dashboard_data", finalOutput, 180);
+    cache.put("dashboard_data_v2", finalOutput, 180);
   } catch (cacheErr) {
     // ক্যাশ ফেইল করলেও সমস্যা নেই
   }
@@ -136,7 +154,7 @@ function doGet(e) {
 
 function clearDashboardCache() {
   try {
-    CacheService.getScriptCache().remove("dashboard_data");
+    CacheService.getScriptCache().remove("dashboard_data_v2");
   } catch (e) {
     // ইগনোর করা নিরাপদ
   }
@@ -157,7 +175,7 @@ function installDashboardCacheWarmer() {
 
 function warmDashboardCache() {
   var cache = CacheService.getScriptCache();
-  if (cache.get("dashboard_data") === null) {
+  if (cache.get("dashboard_data_v2") === null) {
     doGet({ parameter: {} });
   }
 }
@@ -182,6 +200,15 @@ function ensureCustomerBankColumns(custSheet) {
     columns[header] = headers.indexOf(header) + 1;
   });
   return columns;
+}
+
+function ensureCustomerHeaders(sheet, requiredHeaders) {
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+  var missing = requiredHeaders.filter(function(header) { return headers.indexOf(header) === -1; });
+  if (missing.length) {
+    sheet.getRange(1, headers.length + 1, 1, missing.length).setValues([missing]);
+    sheet.getRange(1, headers.length + 1, 1, missing.length).setFontWeight("bold");
+  }
 }
 
 function saveCollectionInstallments(ss, data) {
@@ -595,15 +622,28 @@ function doPost(e) {
     }
 
     // 🟢 CREATE CUSTOMER
-    if (data.action === "create") {
-      var id = "CUST-" + new Date().getTime();
+    if (data.action === "create" || data.action === "create_group") {
+      var isGroupCustomer = data.action === "create_group";
+      var id = (isGroupCustomer ? "GROUP-" : "CUST-") + new Date().getTime();
       var timestamp = new Date(); 
       ensureCustomerBankColumns(custSheet);
+      ensureCustomerHeaders(custSheet, ["Duration (Month)", "Monthly Interest (%)"]);
+
+      var destinationSheet = custSheet;
+      if (isGroupCustomer) {
+        destinationSheet = ss.getSheetByName("Group_Customers");
+        if (!destinationSheet) {
+          destinationSheet = ss.insertSheet("Group_Customers");
+          var customerHeaders = custSheet.getRange(1, 1, 1, custSheet.getLastColumn()).getValues()[0];
+          destinationSheet.getRange(1, 1, 1, customerHeaders.length).setValues([customerHeaders]);
+          destinationSheet.getRange(1, 1, 1, customerHeaders.length).setFontWeight("bold");
+        }
+      }
       
       var newRowData = [
         id, timestamp, data.customerName, data.guardianType, data.guardianName, data.gender, data.dob, 
         data.religion || "", data.aadhaarNo, data.mobileNo, data.address || "", data.occupation, photoUrl, 
-        data.loanType || "", data.groupName || "", data.loanAmount || "", data.startDate || "", 
+        isGroupCustomer ? "Group Loan" : (data.loanType || ""), data.groupName || "", data.loanAmount || "", data.startDate || "",
         data.durationDays || "", data.interestRate || "", data.nomineeName, data.nomineeGuardianType, 
         data.nomineeGuardianName, data.nomineeGender, data.nomineeOccupation, data.nomineeDob, 
         data.nomineeAadhaar, data.relationWithApplicant, "Active",
@@ -611,7 +651,13 @@ function doPost(e) {
         data.accountHolderName || "", data.accountNumber || ""
       ];
 
-      custSheet.appendRow(newRowData);
+      destinationSheet.appendRow(newRowData);
+      if (!isGroupCustomer && data.loanType === "Group RD") {
+        var newCustomerHeaders = custSheet.getRange(1, 1, 1, custSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+        var newCustomerRow = custSheet.getLastRow();
+        custSheet.getRange(newCustomerRow, newCustomerHeaders.indexOf("Duration (Month)") + 1).setValue(data.groupDurationMonths || "");
+        custSheet.getRange(newCustomerRow, newCustomerHeaders.indexOf("Monthly Interest (%)") + 1).setValue(data.monthlyInterest || "");
+      }
       clearDashboardCache();
       return ContentService.createTextOutput(JSON.stringify({ status: "success", id: id, photoUrl: photoUrl })).setMimeType(ContentService.MimeType.JSON);
     } 
@@ -624,6 +670,7 @@ function doPost(e) {
       var timestamp = new Date(); 
       var targetId = String(data.id).trim();
       var bankColumns = ensureCustomerBankColumns(custSheet);
+      ensureCustomerHeaders(custSheet, ["Duration (Month)", "Monthly Interest (%)"]);
 
       for (var i = 1; i < rows.length; i++) {
         if (String(rows[i][0]).trim() === targetId) {
@@ -645,6 +692,9 @@ function doPost(e) {
           custSheet.getRange(i + 1, bankColumns["IFSC Code"]).setValue(data.ifscCode || "");
           custSheet.getRange(i + 1, bankColumns["Account Holder Name"]).setValue(data.accountHolderName || "");
           custSheet.getRange(i + 1, bankColumns["Account Number"]).setValue(data.accountNumber || "");
+          var extraHeaders = custSheet.getRange(1, 1, 1, custSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+          custSheet.getRange(i + 1, extraHeaders.indexOf("Duration (Month)") + 1).setValue(data.groupDurationMonths || "");
+          custSheet.getRange(i + 1, extraHeaders.indexOf("Monthly Interest (%)") + 1).setValue(data.monthlyInterest || "");
           updated = true; 
           break;
         }
@@ -662,6 +712,17 @@ function doPost(e) {
       for (var i = 1; i < rows.length; i++) {
         if (String(rows[i][0]).trim() === String(data.id).trim()) {
           custSheet.getRange(i + 1, 28).setValue("Disabled"); // 28th column is Status
+          clearDashboardCache();
+          return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Customer ID not found: " + data.id })).setMimeType(ContentService.MimeType.JSON);
+    }
+    else if (data.action === "enable") {
+      var enableRows = custSheet.getDataRange().getValues();
+      for (var ei = 1; ei < enableRows.length; ei++) {
+        if (String(enableRows[ei][0]).trim() === String(data.id).trim()) {
+          custSheet.getRange(ei + 1, 28).setValue("Active");
           clearDashboardCache();
           return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
         }
