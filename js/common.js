@@ -1,10 +1,10 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqnwSEhe1TmzVkUWxEl7B1Q1GrEzMsqKZNhsUdoagkG24I5KBzw5aExhJcXe_662nNWw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuHdBXsaIkcEsNZinu68WhQsEarS_unprY0zEL7l6qvMgAWB3uctMEUDkUcdviaBiT2A/exec";
 const APPS_SCRIPT_READ_URLS = [
   APPS_SCRIPT_URL,
-  "https://script.google.com/macros/s/AKfycbxIzWRQjVyjFNNkugEpHj5pgNJxIGe20QkDJXyomx8pr_6o-GzxbAkxOrpyIkuYsTs6_g/exec"
+  "https://script.google.com/macros/s/AKfycbzqnwSEhe1TmzVkUWxEl7B1Q1GrEzMsqKZNhsUdoagkG24I5KBzw5aExhJcXe_662nNWw/exec"
 ];
 
 const APP_DATA_CACHE_KEY = "loanAppDataCache_v1";
@@ -40,7 +40,7 @@ async function fetchFreshAppData(view = "", cacheKey = APP_DATA_CACHE_KEY) {
         const query = view ? `view=${encodeURIComponent(view)}&` : "";
         const separator = APPS_SCRIPT_READ_URLS[urlIndex].includes("?") ? "&" : "?";
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
         let response;
         let body;
         try {
