@@ -303,13 +303,19 @@ function renderClosedCustomersTable() {
   if (totalDisplay) totalDisplay.textContent = String(customers.length);
 }
 
-function getCustomerPhotoDisplayUrl(photoUrl) {
+function getCustomerPhotoDisplayUrls(photoUrl) {
   const url = String(photoUrl || "").trim();
   const fileIdMatch = url.match(/[?&]id=([^&]+)/i) || url.match(/\/d\/([^/?]+)/i);
-  if (!fileIdMatch) return url;
+  if (!fileIdMatch) return [url];
   let fileId = fileIdMatch[1];
   try { fileId = decodeURIComponent(fileId); } catch (_) {}
-  return `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w600`;
+  const encodedId = encodeURIComponent(fileId);
+  return [
+    `https://drive.google.com/uc?export=view&id=${encodedId}`,
+    `https://drive.google.com/thumbnail?id=${encodedId}&sz=w600`,
+    `https://lh3.googleusercontent.com/d/${encodedId}=w600`,
+    url
+  ].filter((candidate, index, candidates) => candidate && candidates.indexOf(candidate) === index);
 }
 
 function viewClosedCustomerDetails(customerId) {
@@ -364,10 +370,17 @@ function viewClosedCustomerDetails(customerId) {
     const rawText = rawValue instanceof Date ? formatDate(rawValue) : String(rawValue);
     if (/(photo|image)/i.test(label) && /^https?:\/\//i.test(rawText)) {
       const photo = document.createElement("img");
-      photo.src = getCustomerPhotoDisplayUrl(rawText);
+      const photoUrls = getCustomerPhotoDisplayUrls(rawText);
+      let photoUrlIndex = 0;
+      photo.src = photoUrls[photoUrlIndex];
       photo.alt = `${customer["Customer Name"] || "Customer"} photo`;
       Object.assign(photo.style, { display: "block", maxWidth: "180px", maxHeight: "180px", marginTop: "8px", borderRadius: "8px", objectFit: "cover" });
       photo.onerror = () => {
+        if (photoUrlIndex + 1 < photoUrls.length) {
+          photoUrlIndex += 1;
+          photo.src = photoUrls[photoUrlIndex];
+          return;
+        }
         const link = document.createElement("a");
         link.href = rawText;
         link.target = "_blank";
@@ -375,6 +388,7 @@ function viewClosedCustomerDetails(customerId) {
         link.textContent = "Open customer photo";
         photo.replaceWith(link);
       };
+      name.textContent = "Photo: ";
       item.append(name, photo);
     } else {
       const value = document.createElement("span");

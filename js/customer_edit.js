@@ -131,18 +131,11 @@ async function handleCustomerUpdateSubmit(e) {
   };
 
   try {
-    const res = await postAppData(payload);
+    const res = isReopenMode
+      ? await postAppData({ ...payload, action: "reopen_loan", customerId: currentEditId })
+      : await postAppData(payload);
     const result = await res.json();
     if (result.status === "success") {
-      if (isReopenMode) {
-        const reopenResponse = await postAppData({ action: "reopen_loan", customerId: currentEditId });
-        const reopenResult = await reopenResponse.json();
-        if (reopenResult.status !== "success") {
-          alert("Customer data was updated, but the loan could not be re-opened: " + (reopenResult.message || "Unknown error"));
-          return;
-        }
-      }
-
       sessionStorage.setItem("appFlashToast", isReopenMode ? "Loan re-opened successfully!" : "Customer updated successfully!");
       sessionStorage.removeItem("editCustomerData");
       sessionStorage.removeItem("editCustomerSheet");

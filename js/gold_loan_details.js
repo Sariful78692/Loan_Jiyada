@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("gold-loan-details-body").addEventListener("pointerover", showGoldPhotoPreview);
   document.getElementById("gold-loan-details-body").addEventListener("pointermove", moveGoldPhotoPreview);
   document.getElementById("gold-loan-details-body").addEventListener("pointerout", hideGoldPhotoPreview);
+  document.getElementById("gold-loan-details-body").addEventListener("load", finishGoldPhotoLoad, true);
+  document.getElementById("gold-loan-details-body").addEventListener("error", finishGoldPhotoLoad, true);
   document.getElementById("gold-emi-form").addEventListener("submit", submitGoldEmiPayment);
   ["gold-emi-close", "gold-emi-cancel"].forEach(id => document.getElementById(id).addEventListener("click", closeGoldEmiModal));
   ["gold-emi-start", "gold-emi-end"].forEach(id => document.getElementById(id).addEventListener("change", updateGoldEmiPreview));
@@ -78,8 +80,8 @@ function renderGoldLoanCustomers() {
       <td>${goldHtml(loan["Application No"] || loan.ID)}</td>
       <td><strong>${goldHtml(loan["Borrower Name"] || "—")}</strong></td>
       <td>${goldHtml(loan["Mobile No"] || "—")}</td>
-      <td>${customerPhoto ? `<img class="gold-details-photo" src="${goldHtml(customerPhoto)}" alt="Customer photo" data-preview-src="${goldHtml(customerPhoto)}">` : "—"}</td>
-      <td>${goldPhoto ? `<img class="gold-details-photo" src="${goldHtml(goldPhoto)}" alt="Pledged gold photo" data-preview-src="${goldHtml(goldPhoto)}">` : "—"}</td>
+      <td>${customerPhoto ? goldPhotoMarkup(customerPhoto, "Customer photo") : "—"}</td>
+      <td>${goldPhoto ? goldPhotoMarkup(goldPhoto, "Pledged gold photo") : "—"}</td>
       <td>${Number(loan["Total Net Weight (g)"] || 0).toFixed(3)} g</td>
       <td>${goldMoney(loan["Eligible Amount"])}</td>
       <td>${goldMoney(loan["Loan Amount Requested"])}</td>
@@ -93,6 +95,26 @@ function renderGoldLoanCustomers() {
       </td>
     </tr>`;
   }).join("");
+  body.querySelectorAll(".gold-details-photo").forEach(image => {
+    if (image.complete) finishGoldPhotoLoad({ target: image });
+  });
+}
+
+function goldPhotoMarkup(url, alt) {
+  return `<span class="gold-photo-cell is-loading"><span class="gold-photo-loader" role="status" aria-label="Loading photo"></span><img class="gold-details-photo" src="${goldHtml(url)}" alt="${goldHtml(alt)}" data-preview-src="${goldHtml(url)}"></span>`;
+}
+
+function finishGoldPhotoLoad(event) {
+  const image = event.target;
+  if (!image || !image.classList || !image.classList.contains("gold-details-photo")) return;
+  const cell = image.closest(".gold-photo-cell");
+  if (!cell) return;
+  cell.classList.remove("is-loading");
+  if (event.type === "error" || !image.naturalWidth) {
+    cell.classList.add("has-error");
+    image.alt = "Photo unavailable";
+    image.removeAttribute("data-preview-src");
+  }
 }
 
 async function handleGoldTableAction(event) {
@@ -107,7 +129,7 @@ async function handleGoldTableAction(event) {
 
 function showGoldPhotoPreview(event) {
   const image = event.target.closest(".gold-details-photo");
-  if (!image) return;
+  if (!image || !image.dataset.previewSrc || !image.complete || !image.naturalWidth) return;
   const preview = document.getElementById("gold-photo-preview");
   preview.querySelector("img").src = image.dataset.previewSrc;
   preview.classList.add("visible");

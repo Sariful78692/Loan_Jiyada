@@ -708,12 +708,55 @@ function doPost(e) {
         for (var i = archivedValues.length - 1; i >= 1; i--) {
           if (String(archivedValues[i][archivedIdIndex]).trim() !== String(data.customerId).trim()) continue;
           var activeHeaders = custSheet.getRange(1, 1, 1, custSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
-          var activeRow = activeHeaders.map(function(header) {
+          var activeValues = custSheet.getDataRange().getValues();
+          var activeIdIndex = activeHeaders.indexOf("ID");
+          var activeRowNumber = -1;
+          for (var activeIndex = 1; activeIndex < activeValues.length; activeIndex++) {
+            if (String(activeValues[activeIndex][activeIdIndex]).trim() === String(data.customerId).trim()) {
+              activeRowNumber = activeIndex + 1;
+              break;
+            }
+          }
+          var archivedRow = archivedValues[i];
+          var sourceActiveRow = activeRowNumber > 0 ? activeValues[activeRowNumber - 1] : null;
+          var activeRow = activeHeaders.map(function(header, column) {
             if (header === "Status") return "Active";
-            return archivedValues[i][archivedCustomerHeaders.indexOf(header)];
+            if (sourceActiveRow) return sourceActiveRow[column];
+            var archivedColumn = archivedCustomerHeaders.indexOf(header);
+            return archivedColumn >= 0 ? archivedRow[archivedColumn] : "";
           });
-          custSheet.appendRow(activeRow);
-          archivedCustomersSheet.deleteRow(i + 1);
+          var editedFields = {
+            "Timestamp": new Date(), "Customer Name": data.customerName, "Guardian Type": data.guardianType,
+            "Guardian Name": data.guardianName, "Gender": data.gender, "DOB": data.dob, "Religion": data.religion,
+            "Aadhaar No": data.aadhaarNo, "Mobile No": data.mobileNo, "Address": data.address,
+            "Occupation": data.occupation, "Loan Type": data.loanType, "Group Name": data.groupName,
+            "Loan Amount": data.loanAmount, "Start Date": data.startDate, "Duration (Days)": data.durationDays,
+            "Duration (Month)": data.groupDurationMonths, "Interest %": data.interestRate,
+            "Interest Rate (%)": data.interestRate, "Monthly Interest (%)": data.monthlyInterest,
+            "Nominee Name": data.nomineeName, "Nominee Guardian Type": data.nomineeGuardianType,
+            "Nominee Guardian Name": data.nomineeGuardianName, "Nominee Gender": data.nomineeGender,
+            "Nominee Occupation": data.nomineeOccupation, "Nominee DOB": data.nomineeDob,
+            "Nominee Aadhaar": data.nomineeAadhaar, "Relation with Applicant": data.relationWithApplicant,
+            "Relation With Applicant": data.relationWithApplicant, "Bank Name": data.bankName,
+            "Bank Branch": data.bankBranch, "IFSC Code": data.ifscCode,
+            "Account Holder Name": data.accountHolderName, "Account Number": data.accountNumber
+          };
+          var photoColumn = activeHeaders.indexOf("Photo URL");
+          var reopenedPhotoUrl = data.existingPhotoUrl || (photoColumn >= 0 ? activeRow[photoColumn] : "");
+          if (data.photoBase64 && data.photoName) {
+            reopenedPhotoUrl = uploadImageToDrive(data.photoBase64, data.photoMimeType, data.photoName, folderId) || reopenedPhotoUrl;
+          }
+          editedFields["Photo URL"] = reopenedPhotoUrl;
+          Object.keys(editedFields).forEach(function(header) {
+            var column = activeHeaders.indexOf(header);
+            if (column >= 0 && editedFields[header] !== undefined) activeRow[column] = editedFields[header] || "";
+          });
+          if (activeRowNumber > 0) {
+            custSheet.getRange(activeRowNumber, 1, 1, activeHeaders.length).setValues([activeRow]);
+          } else {
+            custSheet.appendRow(activeRow);
+          }
+          // Keep the archived row as the original closed-loan snapshot.
           clearDashboardCache();
           return ContentService.createTextOutput(JSON.stringify({"status": "success", "message": "Loan reopened"})).setMimeType(ContentService.MimeType.JSON);
         }

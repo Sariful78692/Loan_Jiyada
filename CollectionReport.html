@@ -12,6 +12,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
+    .report-loading-cell { height: 78px; text-align: center; border-bottom: 1px solid #dbe3ed; }
+    .report-loading-state { display: inline-flex; align-items: center; justify-content: center; gap: 10px; color: #334155; font-size: 14px; }
+    .report-loading-spinner { width: 18px; height: 18px; border: 2px solid #cbd5e1; border-top-color: #0284c7; border-radius: 50%; animation: report-loading-spin .75s linear infinite; }
+    @keyframes report-loading-spin { to { transform: rotate(360deg); } }
     /* Export Buttons CSS */
     .export-btns { display: flex; gap: 10px; }
     .export-btns button { padding: 10px 15px; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold; }
@@ -185,7 +189,7 @@
               </tr>
             </thead>
             <tbody id="report-table-body">
-              <tr><td colspan="6" class="text-center" style="padding: 20px;">Loading Report...</td></tr>
+              <tr><td colspan="6" class="report-loading-cell"><span class="report-loading-state" role="status"><span class="report-loading-spinner" aria-hidden="true"></span>Loading Report...</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -251,7 +255,7 @@
     <!-- Loan & Nominee sections omitted for brevity but intact in execution -->
   </div>
 
-  <script src="js/common.js?v=20261009-light-only-2"></script>
-  <script src="js/report.js?v=20261009-closed-customer-view-3"></script>
+  <script src="js/common.js?v=20261009-light-only-4"></script>
+  <script src="js/report.js?v=20261009-report-loader-1"></script>
 </body>
 </html>

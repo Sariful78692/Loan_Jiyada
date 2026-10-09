@@ -190,6 +190,16 @@ table td {
 .gold-date-filters input,.gold-modal-fields input { min-height:38px; padding:7px 10px; border:1px solid #cbd5e1; border-radius:5px; font:inherit; }
 .gold-details-table th,.gold-details-table td { padding:9px 8px; white-space:nowrap; vertical-align:middle; }
 .gold-details-photo { position:relative; z-index:1; width:42px; height:42px; object-fit:cover; border:1px solid #d6d3d1; border-radius:5px; cursor:zoom-in; transition:transform 180ms ease,box-shadow 180ms ease; transform-origin:center; }
+.gold-photo-cell { position:relative; display:inline-flex; width:44px; height:44px; align-items:center; justify-content:center; vertical-align:middle; }
+.gold-photo-cell.is-loading { border:1px solid #e2e8f0; border-radius:5px; background:#f8fafc; }
+.gold-photo-cell.is-loading::after { content:""; position:absolute; inset:0; background:#f8fafc; border-radius:5px; }
+.gold-photo-loader { display:none; position:absolute; z-index:1; width:18px; height:18px; border:2px solid #cbd5e1; border-top-color:#0ea5e9; border-radius:50%; animation:gold-photo-spin .75s linear infinite; }
+.gold-photo-cell.is-loading .gold-photo-loader { display:block; }
+.gold-photo-cell.is-loading .gold-details-photo { opacity:0; }
+.gold-photo-cell.has-error { color:#64748b; font-size:10px; text-align:center; }
+.gold-photo-cell.has-error .gold-details-photo { display:none; }
+.gold-photo-cell.has-error::after { content:"Unavailable"; }
+@keyframes gold-photo-spin { to { transform:rotate(360deg); } }
 .gold-details-photo:hover { z-index:20; transform:scale(2.5); box-shadow:0 5px 18px #0f172a59; }
 .gold-row-actions { white-space:nowrap; }
 .gold-print { background:#2563eb; color:#fff; }
