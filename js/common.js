@@ -1,7 +1,7 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHEJlnEC1-ri9EH_q8CLPQYaNA6iHid0P0RBtD6cP6lOk9Mpw6F8qJhWplnAp30KmNuw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqnwSEhe1TmzVkUWxEl7B1Q1GrEzMsqKZNhsUdoagkG24I5KBzw5aExhJcXe_662nNWw/exec";
 const APPS_SCRIPT_READ_URLS = [
   APPS_SCRIPT_URL,
   "https://script.google.com/macros/s/AKfycbxIzWRQjVyjFNNkugEpHj5pgNJxIGe20QkDJXyomx8pr_6o-GzxbAkxOrpyIkuYsTs6_g/exec"
@@ -9,11 +9,12 @@ const APPS_SCRIPT_READ_URLS = [
 
 const APP_DATA_CACHE_KEY = "loanAppDataCache_v1";
 const APP_DATA_CACHE_MAX_AGE_MS = 60000;
-let appDataRequest = null;
+const appDataRequests = new Map();
 
-async function fetchAppData() {
+async function fetchAppData(view = "") {
+  const cacheKey = view ? `${APP_DATA_CACHE_KEY}_${view}` : APP_DATA_CACHE_KEY;
   try {
-    const cached = JSON.parse(sessionStorage.getItem(APP_DATA_CACHE_KEY) || "null");
+    const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
     if (cached && cached.savedAt && Date.now() - cached.savedAt < APP_DATA_CACHE_MAX_AGE_MS && cached.data) {
       return cached.data;
     }
@@ -21,23 +22,36 @@ async function fetchAppData() {
     invalidateAppDataCache();
   }
 
-  if (appDataRequest) return appDataRequest;
-  appDataRequest = fetchFreshAppData();
+  if (appDataRequests.has(view)) return appDataRequests.get(view);
+  const request = fetchFreshAppData(view, cacheKey);
+  appDataRequests.set(view, request);
   try {
-    return await appDataRequest;
+    return await request;
   } finally {
-    appDataRequest = null;
+    appDataRequests.delete(view);
   }
 }
 
-async function fetchFreshAppData() {
+async function fetchFreshAppData(view = "", cacheKey = APP_DATA_CACHE_KEY) {
   let lastError = null;
   for (let urlIndex = 0; urlIndex < APPS_SCRIPT_READ_URLS.length; urlIndex++) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
+        const query = view ? `view=${encodeURIComponent(view)}&` : "";
         const separator = APPS_SCRIPT_READ_URLS[urlIndex].includes("?") ? "&" : "?";
-        const response = await fetch(`${APPS_SCRIPT_READ_URLS[urlIndex]}${separator}t=${Date.now()}-${attempt}`, { cache: "no-store" });
-        const body = await response.text();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        let response;
+        let body;
+        try {
+          response = await fetch(`${APPS_SCRIPT_READ_URLS[urlIndex]}${separator}${query}t=${Date.now()}-${attempt}`, {
+            cache: "no-store",
+            signal: controller.signal
+          });
+          body = await response.text();
+        } finally {
+          clearTimeout(timeoutId);
+        }
         if (!response.ok) throw new Error(`Apps Script returned HTTP ${response.status}`);
         let data;
         try {
@@ -46,7 +60,7 @@ async function fetchFreshAppData() {
           throw new Error("Apps Script returned a non-JSON response.");
         }
         try {
-          sessionStorage.setItem(APP_DATA_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data }));
+          sessionStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data }));
         } catch (cacheError) {
           console.warn("Could not cache app data in this browser tab.", cacheError);
         }
@@ -63,6 +77,9 @@ async function fetchFreshAppData() {
 function invalidateAppDataCache() {
   try {
     sessionStorage.removeItem(APP_DATA_CACHE_KEY);
+    sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_rd_customer_details`);
+    sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_collection_report`);
+    sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_gold_emi_report`);
   } catch (_) {
     // Continue with the API write even when browser storage is unavailable.
   }

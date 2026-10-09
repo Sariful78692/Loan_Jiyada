@@ -95,6 +95,7 @@ async function handleCustomerUpdateSubmit(e) {
   const payload = {
     action: "update",
     id: currentEditId,
+    targetSheet: sessionStorage.getItem("editCustomerSheet") || "",
     existingPhotoUrl: existingPhotoUrl, // আগের ছবির লিংক
     customerName: document.getElementById("customerName").value.trim(),
     guardianType: document.getElementById("guardianType").value,
@@ -144,6 +145,7 @@ async function handleCustomerUpdateSubmit(e) {
 
       sessionStorage.setItem("appFlashToast", isReopenMode ? "Loan re-opened successfully!" : "Customer updated successfully!");
       sessionStorage.removeItem("editCustomerData");
+      sessionStorage.removeItem("editCustomerSheet");
       const returnUrl = sessionStorage.getItem("reopenReturnUrl") || sessionStorage.getItem("customerEditReturnUrl");
       sessionStorage.removeItem("reopenCustomerLoan");
       sessionStorage.removeItem("reopenReturnUrl");

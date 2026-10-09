@@ -1,9 +1,15 @@
 document.addEventListener("DOMContentLoaded", async function () {
   populateLoanDropdownFromSidebar();
-  const reportType = new URLSearchParams(window.location.search).get("type");
+  const standaloneReportType = window.location.pathname.toLowerCase().endsWith("collectionreport.html")
+    ? "collections"
+    : (window.location.pathname.toLowerCase().endsWith("goldloanreport.html") ? "goldEmiPayments" : "");
+  const reportType = new URLSearchParams(window.location.search).get("type") || standaloneReportType;
   if (reportType && Array.from(document.getElementById("reportFilter").options).some(option => option.value === reportType)) {
     document.getElementById("reportFilter").value = reportType;
     currentReportType = reportType;
+  } else {
+    currentReportType = "All";
+    document.getElementById("reportFilter").value = currentReportType;
   }
   buildReportTypeMenu(currentReportType);
   await fetchReportData();
@@ -18,6 +24,7 @@ function buildReportTypeMenu(selectedType) {
   menu.replaceChildren();
   Array.from(select.options).forEach(option => {
     const value = option.value;
+    if (value === "collections" || value === "goldEmiPayments") return;
     const label = ["collections", "emiPayments", "goldEmiPayments", "All"].includes(value)
       ? option.textContent.trim()
       : `${option.textContent.trim()} Report`;
@@ -117,7 +124,14 @@ async function fetchReportData() {
   if (!tbody) return;
 
   try {
-    const data = await fetchAppData();
+    const reportPath = window.location.pathname.toLowerCase();
+    const requestedType = new URLSearchParams(window.location.search).get("type") || "";
+    const reportView = reportPath.endsWith("collectionreport.html") || requestedType === "collections" || requestedType === "emiPayments"
+      ? "collection_report"
+      : (reportPath.endsWith("goldloanreport.html") || requestedType === "goldEmiPayments"
+        ? "gold_emi_report"
+        : "customer_report");
+    const data = await fetchAppData(reportView);
     
     allCollectionsData = data.collections || [];
     allClosedCollectionsData = data.closed_collections || [];

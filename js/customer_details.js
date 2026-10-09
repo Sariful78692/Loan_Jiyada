@@ -1,5 +1,6 @@
 let customersData = []; 
 let allCollectionsData = []; 
+let collectionsByCustomerId = new Map();
 let currentLoanFilter = "";
 let currentCustomerPage = 1;
 let currentFilteredCustomerData = [];
@@ -50,9 +51,16 @@ async function fetchCustomers() {
   }
 
   try {
-    const data = await fetchAppData();
+    const data = await fetchAppData(isRdLoanPage ? "rd_customer_details" : "");
     
     allCollectionsData = data.collections || [];
+    collectionsByCustomerId = new Map();
+    allCollectionsData.forEach((collection) => {
+      const id = String(collection["Customer ID"] || "").trim();
+      if (!id) return;
+      if (!collectionsByCustomerId.has(id)) collectionsByCustomerId.set(id, []);
+      collectionsByCustomerId.get(id).push(collection);
+    });
 
     let activeCustomers = (isGroupDetailsPage ? (data.group_customers || []) : data.customers)
       .filter(c => (c["Status"] || "").trim() !== "Disabled");
@@ -142,7 +150,7 @@ function renderTable(data) {
       loanStatus = "active";
     }
 
-    const customerCollections = allCollectionsData.filter(col => String(col["Customer ID"]).trim() === custId);
+    const customerCollections = collectionsByCustomerId.get(custId) || [];
     const collectionCount = customerCollections.length;
     const receivedRdAmount = customerCollections.reduce((sum, col) => sum + (Number(String(col["Amount"] || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
     const payDays = new Set(customerCollections.map(col => normalizeCollectionDate(col["Collection Date"])).filter(Boolean)).size;
@@ -156,7 +164,14 @@ function renderTable(data) {
     let actionButtonsHtml = ""; 
     
     if (isGroupDetailsPage) {
-      actionButtonsHtml = '<span style="color:#64748b;font-size:12px;">Group customer</span>';
+      actionButtonsHtml = `
+        <button onclick="editCustomer('${custId}', 'Group_Customers')" style="background:#eab308;color:#fff;padding:6px 10px;border:0;border-radius:4px;cursor:pointer;margin-right:5px" title="Edit group customer">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+        <button onclick="deleteCustomer('${custId}', 'Group_Customers')" style="background:#ef4444;color:#fff;padding:6px 10px;border:0;border-radius:4px;cursor:pointer" title="Delete group customer">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      `;
     } else if (loanStatus === "closed") {
       actionButtonsHtml = `
         <span style="color: #64748b; font-weight: bold; font-size: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 4px; margin-right: 5px; display: inline-block;">
@@ -357,21 +372,24 @@ async function submitCollection() {
   }
 }
 
-async function deleteCustomer(id) {
+async function deleteCustomer(id, sheetName = "") {
   if (!confirm("Are you sure you want to delete this customer?")) return;
   try {
-    const res = await postAppData({ action: "delete", id: id });
+    const res = await postAppData({ action: "delete", id: id, sheet: sheetName });
     const result = await res.json();
     if (result.status === "success") { alert("Customer deleted!"); location.reload(); }
+    else alert("Error deleting: " + (result.message || "Customer not found."));
   } catch (err) { alert("Error deleting."); }
 }
 
-function editCustomer(id) {
+function editCustomer(id, sheetName = "") {
   const customerToEdit = customersData.find(c => c["ID"] === id); 
   if(customerToEdit) {
     sessionStorage.removeItem("reopenCustomerLoan");
     sessionStorage.removeItem("reopenReturnUrl");
     sessionStorage.setItem("editCustomerData", JSON.stringify(customerToEdit));
+    if (sheetName) sessionStorage.setItem("editCustomerSheet", sheetName);
+    else sessionStorage.removeItem("editCustomerSheet");
     sessionStorage.setItem("customerEditReturnUrl", window.location.href);
     window.location.href = "CustomerEdit.html";
   }

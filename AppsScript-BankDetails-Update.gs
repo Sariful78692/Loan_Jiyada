@@ -1,4 +1,16 @@
 function doGet(e) {
+  if (e && e.parameter && e.parameter.view === "rd_customer_details") {
+    return doGetRdCustomerDetails();
+  }
+  if (e && e.parameter && e.parameter.view === "collection_report") {
+    return doGetCollectionReportData();
+  }
+  if (e && e.parameter && e.parameter.view === "gold_emi_report") {
+    return doGetGoldEmiReportData();
+  }
+  if (e && e.parameter && e.parameter.view === "customer_report") {
+    return doGetCustomerReportData();
+  }
   // 🟢 CACHE: প্রথমে ক্যাশে ডেটা আছে কিনা চেক করুন
   var cache = CacheService.getScriptCache();
   var cached = cache.get("dashboard_data_v2");
@@ -154,10 +166,188 @@ function doGet(e) {
 
 function clearDashboardCache() {
   try {
-    CacheService.getScriptCache().remove("dashboard_data_v2");
+    CacheService.getScriptCache().removeAll(["dashboard_data_v2", "rd_customer_details_v1", "collection_report_v1", "gold_emi_report_v1", "customer_report_v1"]);
   } catch (e) {
     // ইগনোর করা নিরাপদ
   }
+}
+
+// Small report responses avoid sending unrelated dashboard datasets to report pages.
+function doGetCollectionReportData() {
+  return getCachedReportData_("collection_report_v1", function(ss, timezone) {
+    return {
+      customers: readReportCustomers_(ss, timezone),
+      collections: readReportCollections_(ss, timezone, false),
+      closed_collections: readReportSheet_(ss.getSheetByName("Closed_Collections"), timezone)
+    };
+  });
+}
+
+function doGetCustomerReportData() {
+  return getCachedReportData_("customer_report_v1", function(ss, timezone) {
+    return { customers: readReportCustomers_(ss, timezone) };
+  });
+}
+
+function readReportCustomers_(ss, timezone) {
+  return readReportSheet_(ss.getSheets()[0], timezone).concat(
+    readReportSheet_(ss.getSheetByName("Archived_Customers"), timezone)
+  );
+}
+
+function doGetGoldEmiReportData() {
+  return getCachedReportData_("gold_emi_report_v1", function(ss, timezone) {
+    return {
+      gold_loans: readReportSheet_(ss.getSheetByName("Gold_Loans"), timezone),
+      gold_emi_payments: readReportSheet_(ss.getSheetByName("Gold_Loan_EMI_Payments"), timezone),
+      collections: readReportCollections_(ss, timezone, true)
+    };
+  });
+}
+
+function getCachedReportData_(cacheKey, buildData) {
+  var cache = CacheService.getScriptCache();
+  var manifest = null;
+  try { manifest = JSON.parse(cache.get(cacheKey) || "null"); } catch (manifestError) {}
+  if (manifest && manifest.chunkCount > 0 && manifest.chunkCount <= 900) {
+    var chunkKeys = [];
+    for (var chunkIndex = 0; chunkIndex < manifest.chunkCount; chunkIndex++) {
+      chunkKeys.push(cacheKey + "_part_" + chunkIndex);
+    }
+    var cachedParts = cache.getAll(chunkKeys);
+    var complete = chunkKeys.every(function(key) { return Object.prototype.hasOwnProperty.call(cachedParts, key); });
+    if (complete) {
+      var cachedOutput = chunkKeys.map(function(key) { return cachedParts[key]; }).join("");
+      return ContentService.createTextOutput(cachedOutput).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  var output = JSON.stringify(buildData(SpreadsheetApp.getActiveSpreadsheet(), Session.getScriptTimeZone()));
+  // Apps Script limits each cache value to about 100 KB; chunk the JSON so
+  // large reports can still be cached instead of silently rebuilding every visit.
+  var chunkSize = 20000;
+  var chunkCount = Math.ceil(output.length / chunkSize);
+  if (chunkCount > 0 && chunkCount <= 900) {
+    try {
+      var cacheValues = {};
+      for (var partIndex = 0; partIndex < chunkCount; partIndex++) {
+        cacheValues[cacheKey + "_part_" + partIndex] = output.slice(partIndex * chunkSize, (partIndex + 1) * chunkSize);
+      }
+      cache.putAll(cacheValues, 180);
+      cache.put(cacheKey, JSON.stringify({ chunkCount: chunkCount }), 180);
+    } catch (cacheError) {}
+  }
+  return ContentService.createTextOutput(output).setMimeType(ContentService.MimeType.JSON);
+}
+
+function readReportSheet_(sheet, timezone) {
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function(header) { return String(header).trim(); });
+  return values.slice(1).map(function(row) {
+    var item = {};
+    headers.forEach(function(header, index) {
+      var value = row[index];
+      if (value instanceof Date) value = Utilities.formatDate(value, timezone, "yyyy-MM-dd");
+      item[header] = value;
+    });
+    return item;
+  });
+}
+
+function readReportCollections_(ss, timezone, goldOnly) {
+  var result = [];
+  ss.getSheets().forEach(function(sheet) {
+    var name = sheet.getName();
+    if (name !== "Collections" && name.indexOf("Collections_") !== 0) return;
+    if (sheet.getLastRow() < 2) return;
+    var values = sheet.getDataRange().getValues();
+    var headers = values[0].map(function(header) { return String(header).trim(); });
+    var typeColumn = headers.indexOf("Loan Type");
+    values.slice(1).forEach(function(row) {
+      if (goldOnly && (typeColumn < 0 || String(row[typeColumn] || "").trim().toLowerCase() !== "gold loan")) return;
+      var item = {};
+      headers.forEach(function(header, index) {
+        var value = row[index];
+        if (value instanceof Date) value = Utilities.formatDate(value, timezone, "yyyy-MM-dd");
+        item[header] = value;
+      });
+      result.push(item);
+    });
+  });
+  return result;
+}
+
+// Lightweight response used by the RD customer details page. It avoids
+// reading and transmitting unrelated Gold Loan, EMI, and group records.
+function doGetRdCustomerDetails() {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = "rd_customer_details_v1";
+  var cached = cache.get(cacheKey);
+  if (cached !== null) {
+    return ContentService.createTextOutput(cached).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var customerSheet = ss.getSheets()[0];
+  var timezone = Session.getScriptTimeZone();
+  var customerRows = customerSheet.getDataRange().getValues();
+  var customers = [];
+  var customerIds = {};
+
+  function appendRdCustomers(rows, headers) {
+    var normalizedHeaders = headers.map(function(header) { return String(header).trim(); });
+    var loanIndex = normalizedHeaders.indexOf("Loan Type");
+    var idIndex = normalizedHeaders.indexOf("ID");
+    if (loanIndex < 0 || idIndex < 0) return;
+    for (var rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+      var row = rows[rowIndex];
+      if (String(row[loanIndex] || "").trim().toLowerCase() !== "rd loan") continue;
+      var customer = {};
+      for (var col = 0; col < normalizedHeaders.length; col++) {
+        var value = row[col];
+        if (value instanceof Date) value = Utilities.formatDate(value, timezone, "yyyy-MM-dd");
+        customer[normalizedHeaders[col]] = value;
+      }
+      customers.push(customer);
+      customerIds[String(row[idIndex]).trim()] = true;
+    }
+  }
+
+  if (customerRows.length > 1) appendRdCustomers(customerRows, customerRows[0]);
+  var archivedSheet = ss.getSheetByName("Archived_Customers");
+  if (archivedSheet && archivedSheet.getLastRow() > 1) {
+    var archivedRows = archivedSheet.getDataRange().getValues();
+    appendRdCustomers(archivedRows, archivedRows[0]);
+  }
+
+  var collections = [];
+  var sheets = ss.getSheets();
+  for (var sheetIndex = 0; sheetIndex < sheets.length; sheetIndex++) {
+    var sheet = sheets[sheetIndex];
+    var sheetName = sheet.getName();
+    if (sheetName !== "Collections" && sheetName.indexOf("Collections_") !== 0) continue;
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) continue;
+    var headers = values[0].map(function(header) { return String(header).trim(); });
+    var customerIdColumn = headers.indexOf("Customer ID");
+    if (customerIdColumn < 0) continue;
+    for (var dataRow = 1; dataRow < values.length; dataRow++) {
+      var sourceRow = values[dataRow];
+      if (!customerIds[String(sourceRow[customerIdColumn]).trim()]) continue;
+      var collection = {};
+      for (var headerIndex = 0; headerIndex < headers.length; headerIndex++) {
+        var cell = sourceRow[headerIndex];
+        if (cell instanceof Date) cell = Utilities.formatDate(cell, timezone, "yyyy-MM-dd");
+        collection[headers[headerIndex]] = cell;
+      }
+      collections.push(collection);
+    }
+  }
+
+  var output = JSON.stringify({ customers: customers, collections: collections });
+  try { cache.put(cacheKey, output, 180); } catch (cacheError) {}
+  return ContentService.createTextOutput(output).setMimeType(ContentService.MimeType.JSON);
 }
 
 // Run this function once from the Apps Script editor to install a cache warmer.
@@ -178,6 +368,12 @@ function warmDashboardCache() {
   if (cache.get("dashboard_data_v2") === null) {
     doGet({ parameter: {} });
   }
+  if (cache.get("rd_customer_details_v1") === null) {
+    doGet({ parameter: { view: "rd_customer_details" } });
+  }
+  if (cache.get("collection_report_v1") === null) doGet({ parameter: { view: "collection_report" } });
+  if (cache.get("gold_emi_report_v1") === null) doGet({ parameter: { view: "gold_emi_report" } });
+  if (cache.get("customer_report_v1") === null) doGet({ parameter: { view: "customer_report" } });
 }
 
 // Adds the Bank Details columns to existing customer sheets only once.
@@ -665,12 +861,16 @@ function doPost(e) {
     // 🟢 UPDATE CUSTOMER (Fixed: use data.id instead of the never-sent data.customerId,
     //     and always return a message so the frontend alert is meaningful)
     else if (data.action === "update") {
-      var rows = custSheet.getDataRange().getValues();
+      var targetCustomerSheet = data.targetSheet === "Group_Customers" || String(data.id || "").indexOf("GROUP-") === 0
+        ? ss.getSheetByName("Group_Customers")
+        : custSheet;
+      if (!targetCustomerSheet) targetCustomerSheet = custSheet;
+      var rows = targetCustomerSheet.getDataRange().getValues();
       var updated = false;
       var timestamp = new Date(); 
       var targetId = String(data.id).trim();
-      var bankColumns = ensureCustomerBankColumns(custSheet);
-      ensureCustomerHeaders(custSheet, ["Duration (Month)", "Monthly Interest (%)"]);
+      var bankColumns = ensureCustomerBankColumns(targetCustomerSheet);
+      ensureCustomerHeaders(targetCustomerSheet, ["Duration (Month)", "Monthly Interest (%)"]);
 
       for (var i = 1; i < rows.length; i++) {
         if (String(rows[i][0]).trim() === targetId) {
@@ -679,22 +879,24 @@ function doPost(e) {
           var updateRowData = [
             data.id, timestamp, data.customerName, data.guardianType, data.guardianName, data.gender, data.dob, 
             data.religion || "", data.aadhaarNo, data.mobileNo, data.address || "", data.occupation, photoUrl, 
-            data.loanType || "", data.groupName || "", data.loanAmount || "", data.startDate || "", 
-            data.durationDays || "", data.interestRate || "", data.nomineeName, data.nomineeGuardianType, 
+            data.loanType || rows[i][13] || "", data.groupName || rows[i][14] || "", data.loanAmount || rows[i][15] || "", data.startDate || rows[i][16] || "",
+            data.durationDays || rows[i][17] || "", data.interestRate || rows[i][18] || "", data.nomineeName, data.nomineeGuardianType,
             data.nomineeGuardianName, data.nomineeGender, data.nomineeOccupation, data.nomineeDob, data.nomineeAadhaar, 
             data.relationWithApplicant, currentStatus
           ]; // ঠিক ২৮টি ডেটা
 
           // 28টি কলাম আপডেট করা হচ্ছে
-          custSheet.getRange(i + 1, 1, 1, 28).setValues([updateRowData]);
-          custSheet.getRange(i + 1, bankColumns["Bank Name"]).setValue(data.bankName || "");
-          custSheet.getRange(i + 1, bankColumns["Bank Branch"]).setValue(data.bankBranch || "");
-          custSheet.getRange(i + 1, bankColumns["IFSC Code"]).setValue(data.ifscCode || "");
-          custSheet.getRange(i + 1, bankColumns["Account Holder Name"]).setValue(data.accountHolderName || "");
-          custSheet.getRange(i + 1, bankColumns["Account Number"]).setValue(data.accountNumber || "");
-          var extraHeaders = custSheet.getRange(1, 1, 1, custSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
-          custSheet.getRange(i + 1, extraHeaders.indexOf("Duration (Month)") + 1).setValue(data.groupDurationMonths || "");
-          custSheet.getRange(i + 1, extraHeaders.indexOf("Monthly Interest (%)") + 1).setValue(data.monthlyInterest || "");
+          targetCustomerSheet.getRange(i + 1, 1, 1, 28).setValues([updateRowData]);
+          targetCustomerSheet.getRange(i + 1, bankColumns["Bank Name"]).setValue(data.bankName || "");
+          targetCustomerSheet.getRange(i + 1, bankColumns["Bank Branch"]).setValue(data.bankBranch || "");
+          targetCustomerSheet.getRange(i + 1, bankColumns["IFSC Code"]).setValue(data.ifscCode || "");
+          targetCustomerSheet.getRange(i + 1, bankColumns["Account Holder Name"]).setValue(data.accountHolderName || "");
+          targetCustomerSheet.getRange(i + 1, bankColumns["Account Number"]).setValue(data.accountNumber || "");
+          var extraHeaders = targetCustomerSheet.getRange(1, 1, 1, targetCustomerSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+          var durationMonthColumn = extraHeaders.indexOf("Duration (Month)");
+          var monthlyInterestColumn = extraHeaders.indexOf("Monthly Interest (%)");
+          if (durationMonthColumn >= 0) targetCustomerSheet.getRange(i + 1, durationMonthColumn + 1).setValue(data.groupDurationMonths || rows[i][durationMonthColumn] || "");
+          if (monthlyInterestColumn >= 0) targetCustomerSheet.getRange(i + 1, monthlyInterestColumn + 1).setValue(data.monthlyInterest || rows[i][monthlyInterestColumn] || "");
           updated = true; 
           break;
         }
@@ -730,10 +932,14 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Customer ID not found: " + data.id })).setMimeType(ContentService.MimeType.JSON);
     }
     else if (data.action === "delete") {
-      var rows = custSheet.getDataRange().getValues();
+      var targetDeleteSheet = data.sheet === "Group_Customers" || String(data.id || "").indexOf("GROUP-") === 0
+        ? ss.getSheetByName("Group_Customers")
+        : custSheet;
+      if (!targetDeleteSheet) targetDeleteSheet = custSheet;
+      var rows = targetDeleteSheet.getDataRange().getValues();
       for (var i = 1; i < rows.length; i++) {
         if (String(rows[i][0]).trim() === String(data.id).trim()) {
-          custSheet.deleteRow(i + 1);
+          targetDeleteSheet.deleteRow(i + 1);
           clearDashboardCache();
           return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
         }
