@@ -155,7 +155,7 @@ table td {
 }
 
 /* Professional Gold Loan workspace */
-.gold-page-header { display:flex; justify-content:space-between; gap:20px; align-items:center; padding:24px 28px; color:#fff; background:linear-gradient(125deg,#6f4a08,#b8860b 58%,#e5b947); border-radius:14px 14px 0 0; }
+.gold-page-header { display:flex; justify-content:space-between; gap:20px; align-items:center; padding:24px 28px; color:#fff; background:linear-gradient(125deg,#6f4a08,#b8860b 58%,#e5b947); border-top:3px solid #f5d77a; border-radius:14px 14px 0 0; }
 .gold-page-header h1 { margin:3px 0 5px; color:#fff; font-size:25px; }
 .gold-page-header p { margin:0; color:#fff8de; font-size:13px; }.gold-eyebrow { font-size:10px!important; letter-spacing:.16em; font-weight:800; }
 .gold-loan-form { padding:24px; background:#fffcf4; border:1px solid #eadfbe; border-top:0; border-radius:0 0 14px 14px; }

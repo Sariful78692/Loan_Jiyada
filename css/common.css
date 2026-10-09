@@ -14,6 +14,25 @@
   margin-bottom: 20px;
 }
 
+/* Shared page title banner for the main application screens. */
+.content-section > h1,
+.content-section #page-title,
+#report-heading,
+.settings-header > h1 {
+  box-sizing: border-box;
+  padding: 14px 18px;
+  border: 1px solid #dbeafe;
+  border-top: 3px solid #2563eb;
+  border-left: 5px solid #2563eb;
+  border-radius: 10px;
+  background: linear-gradient(100deg, #eaf4ff 0%, #f3f4ff 58%, #ffffff 100%);
+  box-shadow: 0 5px 16px rgba(37, 99, 235, .08);
+  color: #0f172a;
+}
+
+.content-section #page-title { margin: 0 0 20px !important; }
+#report-heading { width: 100%; }
+
 .sidebar {
   box-sizing: border-box;
   width: 220px;

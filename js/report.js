@@ -457,13 +457,22 @@ function printClosedCustomerDetails(overlay) {
 function renderGoldEmiPaymentsTable() {
   const header = document.getElementById("table-header-row");
   const body = document.getElementById("report-table-body");
+  const selectedStatus = String(document.getElementById("reportStatusFilter")?.value || "Active").trim().toLowerCase();
+  const loanStatusById = new Map((allGoldLoansData || []).map(loan => [
+    String(loan.ID || loan["Loan ID"] || "").trim(),
+    String(loan.Status || "Active").trim().toLowerCase() === "closed" ? "closed" : "active"
+  ]));
+  const visiblePayments = allGoldEmiPaymentsData.filter(payment => {
+    const loanId = String(payment["Loan ID"] || "").trim();
+    return (loanStatusById.get(loanId) || "active") === selectedStatus;
+  });
   header.innerHTML = `<th>Receipt ID</th><th>Application No</th><th>Customer Name</th><th>Mobile No</th><th>Installment No.</th><th>Due Date</th><th>Payment Date</th><th>EMI Amount</th><th>Fine Amount</th><th>Total Paid</th>`;
-  if (!allGoldEmiPaymentsData.length) {
-    body.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;color:#64748b">No Gold Loan EMI payments found.</td></tr>';
+  if (!visiblePayments.length) {
+    body.innerHTML = `<tr><td colspan="10" style="padding:20px;text-align:center;color:#64748b">No ${selectedStatus} Gold Loan EMI payments found.</td></tr>`;
     filterTableAndCalculateTotal();
     return;
   }
-  body.innerHTML = allGoldEmiPaymentsData.map(payment => `<tr><td>${payment["Receipt ID"] || payment["Payment ID"] || "—"}</td><td>${payment["Application No"] || "—"}</td><td>${payment["Customer Name"] || "—"}</td><td>${payment["Mobile No"] || "—"}</td><td>${payment["Installment Number"] || "—"}</td><td>${formatDate(payment["Due Date"])}</td><td>${formatDate(payment["Payment Date"] || payment["Paid Date"])}</td><td>₹ ${Number(payment["EMI Amount"] || payment.Amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>₹ ${Number(payment["Fine Amount"] || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>₹ ${Number(payment["Total Paid"] || payment.Amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>`).join("");
+  body.innerHTML = visiblePayments.map(payment => `<tr><td>${payment["Receipt ID"] || payment["Payment ID"] || "—"}</td><td>${payment["Application No"] || "—"}</td><td>${payment["Customer Name"] || "—"}</td><td>${payment["Mobile No"] || "—"}</td><td>${payment["Installment Number"] || "—"}</td><td>${formatDate(payment["Due Date"])}</td><td>${formatDate(payment["Payment Date"] || payment["Paid Date"])}</td><td>₹ ${Number(payment["EMI Amount"] || payment.Amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>₹ ${Number(payment["Fine Amount"] || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>₹ ${Number(payment["Total Paid"] || payment.Amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>`).join("");
   filterTableAndCalculateTotal();
 }
 
