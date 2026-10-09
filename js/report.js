@@ -12,6 +12,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     document.getElementById("reportFilter").value = currentReportType;
   }
   buildReportTypeMenu(currentReportType);
+  if (window.location.pathname.toLowerCase().endsWith("collectionreport.html")) {
+    const today = new Date();
+    const todayValue = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    document.getElementById("startDate").value = todayValue;
+    document.getElementById("endDate").value = todayValue;
+  }
   await fetchReportData();
   if (currentReportType === "goldEmiPayments") changeReportType();
 });
@@ -637,8 +643,15 @@ function filterTableAndCalculateTotal() {
 }
 
 function clearFilters() {
-  if(document.getElementById("startDate")) document.getElementById("startDate").value = "";
-  if(document.getElementById("endDate")) document.getElementById("endDate").value = "";
+  if (window.location.pathname.toLowerCase().endsWith("collectionreport.html")) {
+    const today = new Date();
+    const todayValue = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    if (document.getElementById("startDate")) document.getElementById("startDate").value = todayValue;
+    if (document.getElementById("endDate")) document.getElementById("endDate").value = todayValue;
+  } else {
+    if(document.getElementById("startDate")) document.getElementById("startDate").value = "";
+    if(document.getElementById("endDate")) document.getElementById("endDate").value = "";
+  }
   if(document.getElementById("reportSearchInput")) document.getElementById("reportSearchInput").value = "";
   if(document.getElementById("reportYearFilter")) document.getElementById("reportYearFilter").value = "All";
   currentReportPage = 1;
