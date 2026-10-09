@@ -142,52 +142,15 @@ function showToast(message, type = "auto") {
 window.showToast = showToast;
 window.alert = function (message) { showToast(message); };
 
-const APP_THEME_KEY = "loanAppTheme";
-
-function applyAppTheme(theme) {
-  const selectedTheme = theme === "dark" ? "dark" : "light";
-  document.documentElement.dataset.theme = selectedTheme;
+function enforceLightMode() {
+  document.documentElement.dataset.theme = "light";
+  document.getElementById("app-theme-toggle")?.remove();
+  document.querySelector('link[data-app-theme="true"]')?.remove();
   try {
-    localStorage.setItem(APP_THEME_KEY, selectedTheme);
+    localStorage.removeItem("loanAppTheme");
   } catch (_) {
-    // Theme still applies for this page when storage is unavailable.
+    // The light theme still applies for this page if storage is unavailable.
   }
-  const button = document.getElementById("app-theme-toggle");
-  if (button) {
-    const isDark = selectedTheme === "dark";
-    button.innerHTML = `<i class="fa-solid fa-${isDark ? "sun" : "moon"}" aria-hidden="true"></i><span>${isDark ? "Light mode" : "Dark mode"}</span>`;
-    button.setAttribute("aria-label", `Switch to ${isDark ? "light" : "dark"} mode`);
-    button.setAttribute("aria-pressed", String(isDark));
-  }
-}
-
-function addThemeToggle() {
-  if (!document.querySelector('link[data-app-theme="true"]')) {
-    const themeStylesheet = document.createElement("link");
-    themeStylesheet.rel = "stylesheet";
-    themeStylesheet.href = "css/theme.css?v=20261002-1";
-    themeStylesheet.dataset.appTheme = "true";
-    document.head.appendChild(themeStylesheet);
-  }
-
-  let savedTheme = "light";
-  try {
-    savedTheme = localStorage.getItem(APP_THEME_KEY) || "light";
-  } catch (_) {
-    // Keep the default light theme when storage is unavailable.
-  }
-  applyAppTheme(savedTheme);
-
-  if (document.getElementById("app-theme-toggle")) return;
-  const toggle = document.createElement("button");
-  toggle.id = "app-theme-toggle";
-  toggle.type = "button";
-  toggle.className = "app-theme-toggle";
-  toggle.addEventListener("click", () => {
-    applyAppTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
-  });
-  document.body.appendChild(toggle);
-  applyAppTheme(savedTheme);
 }
 
 // Shared animated loading screen for every page that includes common.js.
@@ -236,7 +199,7 @@ function addPageLoader() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  addThemeToggle();
+  enforceLightMode();
   addPageLoader();
   const flashToastMessage = sessionStorage.getItem("appFlashToast");
   if (flashToastMessage) {
