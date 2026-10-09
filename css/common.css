@@ -16,7 +16,7 @@
 
 .sidebar {
   box-sizing: border-box;
-  width: 240px;
+  width: 220px;
   min-height: 100vh;
   background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
   color: #cbd5e1;
@@ -227,4 +227,40 @@ span, div, p, a, label {
 }
 .fa-regular {
   font-weight: 400 !important;
+}
+
+/* Color-coded sidebar navigation for quick scanning on the dark panel. */
+.sidebar .nav-menu > .nav-item:nth-child(1) { --nav-accent: #67e8f9; }
+.sidebar .nav-menu > .nav-item:nth-child(2) { --nav-accent: #c4b5fd; }
+.sidebar .nav-menu > .nav-item:nth-child(3) { --nav-accent: #fcd34d; }
+.sidebar .nav-menu > .nav-item:nth-child(4) { --nav-accent: #86efac; }
+.sidebar .nav-menu > .nav-item:nth-child(5) { --nav-accent: #f9a8d4; }
+
+.sidebar .nav-menu > .nav-item > .nav-link,
+.sidebar .submenu li a {
+  color: var(--nav-accent, #cbd5e1) !important;
+}
+
+.sidebar .nav-menu > .nav-item > .nav-link > i:first-child {
+  color: var(--nav-accent, #cbd5e1) !important;
+}
+
+.sidebar .nav-menu > .nav-item > .nav-link:hover,
+.sidebar .submenu li a:hover,
+.sidebar .nav-menu > .nav-item > .nav-link.active,
+.sidebar .submenu li a.active {
+  color: #fff !important;
+}
+
+.sidebar .nav-menu > .nav-item > .nav-link.active::after,
+.sidebar .submenu li a.active::after {
+  background: var(--nav-accent, #38bdf8);
+  box-shadow: 0 0 10px var(--nav-accent, rgba(56, 189, 248, .6));
+}
+
+.sidebar .brand h2 {
+  background: linear-gradient(90deg, #67e8f9, #c4b5fd 55%, #fcd34d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
