@@ -197,7 +197,7 @@ function updateDashboardCharts(activeCustomers, goldLoanCount = 0, groupCustomer
   renderGroupLoanBreakdown(groupCounts);
 
   const ids = {
-    "count-total": activeCustomers.length,
+    "count-total": activeCustomers.length + goldCount,
     "count-rd": rdCount,
     "count-gold": goldCount,
     "count-group-loan": groupLoanCount,

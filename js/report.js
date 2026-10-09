@@ -213,6 +213,10 @@ function renderCurrentReport() {
   const currentStatus = statusFilterEl ? statusFilterEl.value : "Active";
 
   if (currentReportType === "collections" || currentReportType === "emiPayments") {
+    if (currentReportType === "collections" && currentStatus === "Closed" && window.location.pathname.toLowerCase().endsWith("collectionreport.html")) {
+      renderClosedCustomersTable();
+      return;
+    }
     renderCollectionsTable(currentStatus === "Closed" ? allClosedCollectionsData : allCollectionsData, currentStatus);
   } else {
     let filteredCustomers = allCustomersData.filter(c => {
@@ -235,6 +239,205 @@ function renderCurrentReport() {
     
     renderCustomersTable(filteredCustomers, currentStatus);
   }
+}
+
+function renderClosedCustomersTable() {
+  const header = document.getElementById("table-header-row");
+  const body = document.getElementById("report-table-body");
+  const search = (document.getElementById("reportSearchInput")?.value || "").trim().toLowerCase();
+  const customers = allCustomersData.filter(customer => {
+    if (String(customer["Status"] || "").trim().toLowerCase() !== "closed") return false;
+    return !search || [customer.ID, customer["Customer Name"], customer["Mobile No"], customer["Loan Type"]]
+      .some(value => String(value || "").toLowerCase().includes(search));
+  });
+  const pageSizeSelect = document.getElementById("reportPageSize");
+  const pageSize = pageSizeSelect?.value === "all" ? Math.max(customers.length, 1) : Number(pageSizeSelect?.value || 20);
+  const pageCount = Math.max(1, Math.ceil(customers.length / pageSize));
+  currentReportPage = Math.min(Math.max(currentReportPage, 1), pageCount);
+  const firstIndex = (currentReportPage - 1) * pageSize;
+  const pageCustomers = customers.slice(firstIndex, firstIndex + pageSize);
+
+  header.innerHTML = "<th>Customer ID</th><th>Customer Name</th><th>Mobile No</th><th>Loan Type</th><th>Start Date</th><th>Closed Date</th><th class=\"no-print\">Action</th>";
+  body.innerHTML = "";
+  if (!customers.length) {
+    body.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#64748b">No closed customers found.</td></tr>';
+  } else {
+    pageCustomers.forEach(customer => {
+      const id = String(customer.ID || customer["Customer ID"] || "").trim();
+      const row = document.createElement("tr");
+      [id || "N/A", customer["Customer Name"] || "N/A", customer["Mobile No"] || "N/A", customer["Loan Type"] || "N/A", formatDate(customer["Start Date"]), formatDate(customer["Archive Date"] || customer["Closed Date"])].forEach(value => {
+        const cell = document.createElement("td");
+        cell.textContent = value;
+        cell.style.padding = "10px 12px";
+        if (value === id) {
+          cell.style.whiteSpace = "normal";
+          cell.style.overflowWrap = "anywhere";
+          cell.style.maxWidth = "150px";
+          cell.style.fontFamily = "monospace";
+        }
+        row.appendChild(cell);
+      });
+      const actionCell = document.createElement("td");
+      actionCell.className = "no-print";
+      actionCell.style.textAlign = "center";
+      const viewButton = document.createElement("button");
+      viewButton.type = "button";
+      viewButton.innerHTML = '<i class="fa-solid fa-eye"></i> View';
+      Object.assign(viewButton.style, { background: "#0284c7", color: "#fff", border: "0", borderRadius: "5px", padding: "7px 12px", cursor: "pointer" });
+      viewButton.addEventListener("click", () => viewClosedCustomerDetails(id));
+      actionCell.appendChild(viewButton);
+      row.appendChild(actionCell);
+      body.appendChild(row);
+    });
+  }
+
+  const info = document.getElementById("reportPageInfo");
+  if (info) info.textContent = `Showing ${customers.length ? firstIndex + 1 : 0}–${Math.min(firstIndex + pageCustomers.length, customers.length)} of ${customers.length}`;
+  const prev = document.getElementById("reportPrevPage");
+  const next = document.getElementById("reportNextPage");
+  if (prev) prev.disabled = pageSizeSelect?.value === "all" || currentReportPage <= 1;
+  if (next) next.disabled = pageSizeSelect?.value === "all" || currentReportPage >= pageCount;
+  const totalLabel = document.getElementById("totalLabelDisplay");
+  const totalDisplay = document.getElementById("totalAmountDisplay");
+  if (totalLabel) totalLabel.textContent = "Closed Customers";
+  if (totalDisplay) totalDisplay.textContent = String(customers.length);
+}
+
+function getCustomerPhotoDisplayUrl(photoUrl) {
+  const url = String(photoUrl || "").trim();
+  const fileIdMatch = url.match(/[?&]id=([^&]+)/i) || url.match(/\/d\/([^/?]+)/i);
+  if (!fileIdMatch) return url;
+  let fileId = fileIdMatch[1];
+  try { fileId = decodeURIComponent(fileId); } catch (_) {}
+  return `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w600`;
+}
+
+function viewClosedCustomerDetails(customerId) {
+  const customer = allCustomersData.find(item => String(item.ID || item["Customer ID"] || "").trim() === String(customerId).trim());
+  if (!customer) return;
+
+  const overlay = document.createElement("div");
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-label", `Customer details for ${customer["Customer Name"] || customerId}`);
+  overlay.dataset.closedCustomerDialog = "true";
+  Object.assign(overlay.style, { position: "fixed", inset: "0", zIndex: "10000", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", background: "rgba(15,23,42,.65)" });
+
+  const panel = document.createElement("section");
+  Object.assign(panel.style, { width: "min(900px, 100%)", maxHeight: "90vh", overflow: "auto", background: "#fff", borderRadius: "12px", padding: "22px", boxShadow: "0 20px 60px rgba(0,0,0,.25)" });
+  const heading = document.createElement("div");
+  Object.assign(heading.style, { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "16px" });
+  const title = document.createElement("h2");
+  title.textContent = customer["Customer Name"] || "Customer Details";
+  title.style.margin = "0";
+  const actions = document.createElement("div");
+  Object.assign(actions.style, { display: "flex", gap: "8px" });
+  const printButton = document.createElement("button");
+  printButton.type = "button";
+  printButton.textContent = "Print";
+  Object.assign(printButton.style, { border: "0", borderRadius: "5px", padding: "8px 13px", background: "#0284c7", color: "#fff", cursor: "pointer" });
+  printButton.addEventListener("click", () => printClosedCustomerDetails(overlay));
+  const close = document.createElement("button");
+  close.type = "button";
+  close.textContent = "Close";
+  Object.assign(close.style, { border: "0", borderRadius: "5px", padding: "8px 13px", background: "#64748b", color: "#fff", cursor: "pointer" });
+  close.addEventListener("click", () => overlay.remove());
+  actions.append(printButton, close);
+  heading.append(title, actions);
+  panel.appendChild(heading);
+
+  const history = allClosedCollectionsData.filter(item => String(item["Customer ID"] || "").trim() === String(customerId).trim());
+  const totalCollected = history.reduce((sum, item) => sum + (Number(String(item.Amount || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
+  const totalBox = document.createElement("div");
+  totalBox.textContent = `Total Amount Collected: INR ${totalCollected.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  Object.assign(totalBox.style, { marginBottom: "14px", padding: "12px 14px", borderRadius: "7px", background: "#ecfdf5", color: "#047857", fontWeight: "700" });
+  panel.appendChild(totalBox);
+
+  const details = document.createElement("div");
+  Object.assign(details.style, { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "8px" });
+  Object.entries(customer).forEach(([label, rawValue]) => {
+    if (rawValue === "" || rawValue == null) return;
+    const item = document.createElement("div");
+    Object.assign(item.style, { padding: "10px", border: "1px solid #e2e8f0", borderRadius: "6px", overflowWrap: "anywhere" });
+    const name = document.createElement("strong");
+    name.textContent = `${label}: `;
+    const rawText = rawValue instanceof Date ? formatDate(rawValue) : String(rawValue);
+    if (/(photo|image)/i.test(label) && /^https?:\/\//i.test(rawText)) {
+      const photo = document.createElement("img");
+      photo.src = getCustomerPhotoDisplayUrl(rawText);
+      photo.alt = `${customer["Customer Name"] || "Customer"} photo`;
+      Object.assign(photo.style, { display: "block", maxWidth: "180px", maxHeight: "180px", marginTop: "8px", borderRadius: "8px", objectFit: "cover" });
+      photo.onerror = () => {
+        const link = document.createElement("a");
+        link.href = rawText;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "Open customer photo";
+        photo.replaceWith(link);
+      };
+      item.append(name, photo);
+    } else {
+      const value = document.createElement("span");
+      value.textContent = formatDate(rawText);
+      item.append(name, value);
+    }
+    details.appendChild(item);
+  });
+  panel.appendChild(details);
+
+  const historyTitle = document.createElement("h3");
+  historyTitle.textContent = "Closed Collection History";
+  historyTitle.style.margin = "22px 0 8px";
+  panel.appendChild(historyTitle);
+  if (history.length) {
+    const historyTable = document.createElement("table");
+    Object.assign(historyTable.style, { width: "100%", borderCollapse: "collapse", marginTop: "8px" });
+    const historyHead = document.createElement("thead");
+    historyHead.innerHTML = "<tr><th style=\"padding:9px;border:1px solid #cbd5e1;text-align:left\">Collection ID</th><th style=\"padding:9px;border:1px solid #cbd5e1;text-align:left\">Collection Date</th><th style=\"padding:9px;border:1px solid #cbd5e1;text-align:right\">Amount</th></tr>";
+    const historyBody = document.createElement("tbody");
+    history.forEach(item => {
+      const row = document.createElement("tr");
+      const amount = Number(String(item.Amount || 0).replace(/[^0-9.-]/g, "")) || 0;
+      [item["Collection ID"] || "—", formatDate(item["Collection Date"]), `INR ${amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`].forEach((text, index) => {
+        const cell = document.createElement("td");
+        cell.textContent = text;
+        Object.assign(cell.style, { padding: "9px", border: "1px solid #cbd5e1", textAlign: index === 2 ? "right" : "left" });
+        row.appendChild(cell);
+      });
+      historyBody.appendChild(row);
+    });
+    historyTable.append(historyHead, historyBody);
+    panel.appendChild(historyTable);
+  } else {
+    const historyText = document.createElement("p");
+    historyText.textContent = "No closed collection history found.";
+    panel.appendChild(historyText);
+  }
+
+  overlay.addEventListener("click", event => { if (event.target === overlay) overlay.remove(); });
+  overlay.addEventListener("keydown", event => { if (event.key === "Escape") overlay.remove(); });
+  overlay.tabIndex = -1;
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+  close.focus();
+}
+
+function printClosedCustomerDetails(overlay) {
+  const printStyle = document.createElement("style");
+  printStyle.dataset.closedCustomerPrint = "true";
+  printStyle.textContent = `@media print {
+    @page { margin: 12mm; }
+    body * { visibility: hidden !important; }
+    [data-closed-customer-dialog], [data-closed-customer-dialog] * { visibility: visible !important; }
+    [data-closed-customer-dialog] { position: absolute !important; inset: 0 !important; display: block !important; padding: 0 !important; background: #fff !important; overflow: visible !important; }
+    [data-closed-customer-dialog] section { width: 100% !important; max-width: 100% !important; max-height: none !important; overflow: visible !important; box-shadow: none !important; }
+    [data-closed-customer-dialog] button { display: none !important; }
+    [data-closed-customer-dialog] img { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }`;
+  document.head.appendChild(printStyle);
+  const cleanup = () => printStyle.remove();
+  window.addEventListener("afterprint", cleanup, { once: true });
+  window.print();
 }
 
 function renderGoldEmiPaymentsTable() {
