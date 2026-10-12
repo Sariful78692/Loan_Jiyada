@@ -178,7 +178,7 @@ function renderTable(data) {
     const storedTotalAmount = cust["Total Amount"] || cust["Total Loan Amount"] || cust["Total RD Amount"] || cust["Total Amount (RD)"] || 0;
     const totalRdAmount = Number(String(storedTotalAmount).replace(/[^0-9.-]/g, "")) || dailyAmount * durationDays;
     const interestPercent = Number(String(cust["Interest %"] || cust["Interest Rate (%)"] || cust["Interest Rate"] || 0).replace(/[^0-9.-]/g, "")) || 0;
-    const maturityAmount = totalRdAmount + (totalRdAmount * interestPercent / 100);
+    const maturityAmount = receivedRdAmount + (receivedRdAmount * interestPercent / 100);
     const dates = isRdLoanPage ? getCustomerDates(cust, durationDays, customerCollections) : null;
 
     let actionButtonsHtml = ""; 

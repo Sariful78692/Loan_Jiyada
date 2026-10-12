@@ -350,6 +350,7 @@ function getCustomerLoanSummary(customer) {
     rdAmount,
     totalAmount,
     maturityAmount: totalAmount + totalAmount * interestPercent / 100,
+    interestPercent,
     isRdLoan
   };
 }
@@ -434,6 +435,7 @@ function viewClosedCustomerDetails(customerId) {
   });
   const displayedHistory = loanSummary.isRdLoan ? uniqueCollectionsByDate(orderedHistory) : orderedHistory;
   const totalCollected = displayedHistory.reduce((sum, item) => sum + (Number(String(item.Amount || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
+  const collectedMaturityAmount = totalCollected + totalCollected * loanSummary.interestPercent / 100;
   const totalBox = document.createElement("div");
   totalBox.textContent = `Total Amount Collected: ₹ ${totalCollected.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   Object.assign(totalBox.style, { marginBottom: "14px", padding: "12px 14px", borderRadius: "7px", background: "#ecfdf5", color: "#047857", fontWeight: "700" });
@@ -448,7 +450,7 @@ function viewClosedCustomerDetails(customerId) {
     ["Total Amount", `₹ ${loanSummary.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
     ["Maturity Date", loanSummary.maturityDate],
     ["Handover Date", loanSummary.handoverDate],
-    ["Maturity Amount", `₹ ${loanSummary.maturityAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`]
+    ["Maturity Amount", `₹ ${collectedMaturityAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`]
   ] : [];
   summaryFields.forEach(([label, value]) => {
     const item = document.createElement("div");
