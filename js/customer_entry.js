@@ -63,6 +63,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const isGroupEntry = new URLSearchParams(window.location.search).get("mode") === "group";
 
   if (loanTypeSelect) loanTypeSelect.value = isGroupEntry ? "Group Loan" : "RD Loan";
+  const loanTypeDisplay = document.getElementById("loanTypeDisplay");
+  if (loanTypeDisplay) loanTypeDisplay.value = isGroupEntry ? "Group Loan" : "RD Loan";
   if (rdLoanSection) rdLoanSection.classList.toggle("hidden", isGroupEntry);
   if (groupLoanSection) groupLoanSection.classList.toggle("hidden", !isGroupEntry);
   if (!isGroupEntry) {

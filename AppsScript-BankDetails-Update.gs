@@ -625,77 +625,150 @@ function doPost(e) {
     }
 
     else if (data.action === "close_loan") {
-      var targetCustId = String(data.customerId).trim();
-      var cRows = custSheet.getDataRange().getValues();
-      var customerHeaders = cRows[0].map(function(header) { return String(header).trim(); });
-      var customerIdColumn = customerHeaders.indexOf("ID");
-      if (customerIdColumn < 0) customerIdColumn = 0;
-      var statusColumn = customerHeaders.indexOf("Status");
-      var customerRowNumber = -1;
-      for(var i = 1; i < cRows.length; i++) {
-         if(String(cRows[i][customerIdColumn]).trim() === targetCustId) {
+      var closeLock = LockService.getScriptLock();
+      closeLock.waitLock(30000);
+      try {
+        var targetCustId = String(data.customerId || "").trim();
+        if (!targetCustId) return jsonResponse({ status: "error", message: "Customer ID is required." });
+
+        var cRows = custSheet.getDataRange().getValues();
+        if (!cRows.length) return jsonResponse({ status: "error", message: "Customer sheet is empty." });
+        var customerHeaders = cRows[0].map(function(header) { return String(header).trim(); });
+        var customerIdColumn = customerHeaders.indexOf("ID");
+        if (customerIdColumn < 0) customerIdColumn = 0;
+        var statusColumn = customerHeaders.indexOf("Status");
+        var customerRowNumber = -1;
+        for (var i = 1; i < cRows.length; i++) {
+          if (String(cRows[i][customerIdColumn]).trim() === targetCustId) {
             customerRowNumber = i + 1;
             break;
-         }
-      }
-      if (customerRowNumber < 0) {
-        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Customer not found" })).setMimeType(ContentService.MimeType.JSON);
-      }
-
-      var archivedCustomersSheet = ss.getSheetByName("Archived_Customers");
-      if (!archivedCustomersSheet) {
-        archivedCustomersSheet = ss.insertSheet("Archived_Customers");
-        archivedCustomersSheet.appendRow(customerHeaders.concat(["Archive Date"]));
-        archivedCustomersSheet.getRange(1, 1, 1, customerHeaders.length + 1).setFontWeight("bold");
-      }
-      var archivedCustomerHeaders = archivedCustomersSheet.getRange(1, 1, 1, archivedCustomersSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
-      var customerRow = cRows[customerRowNumber - 1];
-      if (statusColumn >= 0) customerRow[statusColumn] = "Closed";
-      var archivedCustomerRow = archivedCustomerHeaders.map(function(header) {
-        return header === "Archive Date" ? new Date() : customerRow[customerHeaders.indexOf(header)];
-      });
-      archivedCustomersSheet.appendRow(archivedCustomerRow);
-      custSheet.deleteRow(customerRowNumber);
-
-      var closedSheet = ss.getSheetByName("Closed_Collections");
-      if (!closedSheet) {
-        closedSheet = ss.insertSheet("Closed_Collections");
-        closedSheet.appendRow(["Collection ID", "Customer ID", "Customer Name", "Loan Type", "Collection Date", "Amount", "Original Timestamp", "Archive Date"]);
-        closedSheet.getRange(1, 1, 1, 8).setFontWeight("bold");
-      }
-
-      var movedCount = 0;
-      var allSheets = ss.getSheets();
-      for (var s = 0; s < allSheets.length; s++) {
-        var name = allSheets[s].getName();
-        if (name === "Collections" || name.indexOf("Collections_") === 0) {
-          var tSheet = allSheets[s];
-          var tData = tSheet.getDataRange().getValues();
-          if (tData.length < 2) continue;
-          var collectionHeaders = tData[0].map(function(header) { return String(header).trim(); });
-          var customerIdColumn = collectionHeaders.indexOf("Customer ID");
-          if (customerIdColumn === -1) continue;
-          for (var r = tData.length - 1; r >= 1; r--) {
-            if (String(tData[r][customerIdColumn]).trim() === targetCustId) {
-              var archivedRow = [
-                tData[r][collectionHeaders.indexOf("Collection ID")] || "",
-                tData[r][customerIdColumn] || "",
-                tData[r][collectionHeaders.indexOf("Customer Name")] || "",
-                tData[r][collectionHeaders.indexOf("Loan Type")] || "",
-                tData[r][collectionHeaders.indexOf("Collection Date")] || "",
-                tData[r][collectionHeaders.indexOf("Amount")] || "",
-                tData[r][collectionHeaders.indexOf("Timestamp")] || "",
-                new Date()
-              ];
-              closedSheet.appendRow(archivedRow);
-              tSheet.deleteRow(r + 1);
-              movedCount++;
-            }
           }
         }
+
+        // A retry after a completed close is successful but performs no writes.
+        if (customerRowNumber < 0) {
+          var priorArchive = ss.getSheetByName("Archived_Customers");
+          if (priorArchive && priorArchive.getLastRow() > 1) {
+            var priorValues = priorArchive.getDataRange().getValues();
+            var priorHeaders = priorValues[0].map(function(header) { return String(header).trim(); });
+            var priorIdColumn = priorHeaders.indexOf("ID");
+            if (priorIdColumn < 0) priorIdColumn = 0;
+            for (var priorRow = 1; priorRow < priorValues.length; priorRow++) {
+              if (String(priorValues[priorRow][priorIdColumn]).trim() === targetCustId) {
+                return jsonResponse({ status: "success", alreadyClosed: true, archivedCollections: 0 });
+              }
+            }
+          }
+          return jsonResponse({ status: "error", message: "Customer not found" });
+        }
+
+        var closedSheet = ss.getSheetByName("Closed_Collections");
+        if (!closedSheet) {
+          closedSheet = ss.insertSheet("Closed_Collections");
+          closedSheet.appendRow(["Collection ID", "Customer ID", "Customer Name", "Loan Type", "Collection Date", "Amount", "Original Timestamp", "Archive Date"]);
+          closedSheet.getRange(1, 1, 1, 8).setFontWeight("bold");
+        }
+
+        var existingCollectionIds = {};
+        if (closedSheet.getLastRow() > 1) {
+          var closedValues = closedSheet.getDataRange().getValues();
+          var closedHeaders = closedValues[0].map(function(header) { return String(header).trim(); });
+          var closedIdColumn = closedHeaders.indexOf("Collection ID");
+          var closedCustomerColumn = closedHeaders.indexOf("Customer ID");
+          var closedDateColumn = closedHeaders.indexOf("Collection Date");
+          var closedAmountColumn = closedHeaders.indexOf("Amount");
+          for (var closedRow = 1; closedRow < closedValues.length; closedRow++) {
+            var closedRecord = closedValues[closedRow];
+            if (closedCustomerColumn >= 0 && String(closedRecord[closedCustomerColumn]).trim() !== targetCustId) continue;
+            var existingCollectionId = closedIdColumn >= 0 ? String(closedRecord[closedIdColumn] || "").trim() : "";
+            var existingCollectionKey = existingCollectionId || (targetCustId + "|" + String(closedDateColumn >= 0 ? closedRecord[closedDateColumn] || "" : "") + "|" + String(closedAmountColumn >= 0 ? closedRecord[closedAmountColumn] || "" : ""));
+            existingCollectionIds[existingCollectionKey] = true;
+          }
+        }
+
+        // Collect all matching records first, then archive them in one write.
+        var archivedRows = [];
+        var sourceSheets = [];
+        var movedCount = 0;
+        var archiveTime = new Date();
+        ss.getSheets().forEach(function(sourceSheet) {
+          var sourceName = sourceSheet.getName();
+          if (sourceName !== "Collections" && sourceName.indexOf("Collections_") !== 0) return;
+          var sourceValues = sourceSheet.getDataRange().getValues();
+          if (sourceValues.length < 2) return;
+          var headers = sourceValues[0].map(function(header) { return String(header).trim(); });
+          var sourceCustomerIdColumn = headers.indexOf("Customer ID");
+          if (sourceCustomerIdColumn < 0) return;
+          var rowsToDelete = [];
+          for (var sourceRow = 1; sourceRow < sourceValues.length; sourceRow++) {
+            var cells = sourceValues[sourceRow];
+            if (String(cells[sourceCustomerIdColumn]).trim() !== targetCustId) continue;
+            var collectionIdColumn = headers.indexOf("Collection ID");
+            var collectionId = collectionIdColumn >= 0 ? String(cells[collectionIdColumn] || "").trim() : "";
+            var collectionKey = collectionId || (targetCustId + "|" + String(cells[headers.indexOf("Collection Date")] || "") + "|" + String(cells[headers.indexOf("Amount")] || ""));
+            if (!existingCollectionIds[collectionKey]) {
+              archivedRows.push([
+                collectionId,
+                cells[sourceCustomerIdColumn] || "",
+                cells[headers.indexOf("Customer Name")] || "",
+                cells[headers.indexOf("Loan Type")] || "",
+                cells[headers.indexOf("Collection Date")] || "",
+                cells[headers.indexOf("Amount")] || "",
+                cells[headers.indexOf("Timestamp")] || "",
+                archiveTime
+              ]);
+              existingCollectionIds[collectionKey] = true;
+            }
+            rowsToDelete.push(sourceRow + 1);
+            movedCount++;
+          }
+          if (rowsToDelete.length) sourceSheets.push({ sheet: sourceSheet, rows: rowsToDelete });
+        });
+
+        if (archivedRows.length) {
+          closedSheet.getRange(closedSheet.getLastRow() + 1, 1, archivedRows.length, 8).setValues(archivedRows);
+        }
+
+        // Delete matching source rows in contiguous bottom-up blocks.
+        sourceSheets.forEach(function(source) {
+          for (var rowIndex = source.rows.length - 1; rowIndex >= 0;) {
+            var endRow = source.rows[rowIndex];
+            var startRow = endRow;
+            rowIndex--;
+            while (rowIndex >= 0 && source.rows[rowIndex] === startRow - 1) {
+              startRow = source.rows[rowIndex];
+              rowIndex--;
+            }
+            source.sheet.deleteRows(startRow, endRow - startRow + 1);
+          }
+        });
+
+        var archivedCustomersSheet = ss.getSheetByName("Archived_Customers");
+        if (!archivedCustomersSheet) {
+          archivedCustomersSheet = ss.insertSheet("Archived_Customers");
+          archivedCustomersSheet.appendRow(customerHeaders.concat(["Archive Date"]));
+          archivedCustomersSheet.getRange(1, 1, 1, customerHeaders.length + 1).setFontWeight("bold");
+        }
+        if (archivedCustomersSheet.getLastColumn() === 0) {
+          archivedCustomersSheet.appendRow(customerHeaders.concat(["Archive Date"]));
+          archivedCustomersSheet.getRange(1, 1, 1, customerHeaders.length + 1).setFontWeight("bold");
+        }
+        var archivedCustomerHeaders = archivedCustomersSheet.getRange(1, 1, 1, archivedCustomersSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+        var customerRow = cRows[customerRowNumber - 1].slice();
+        if (statusColumn >= 0) customerRow[statusColumn] = "Closed";
+        var archivedCustomerRow = archivedCustomerHeaders.map(function(header) {
+          if (header === "Archive Date") return archiveTime;
+          var sourceColumn = customerHeaders.indexOf(header);
+          return sourceColumn >= 0 ? customerRow[sourceColumn] : "";
+        });
+        archivedCustomersSheet.appendRow(archivedCustomerRow);
+        custSheet.deleteRow(customerRowNumber);
+
+        clearDashboardCache();
+        return jsonResponse({ status: "success", archivedCollections: movedCount });
+      } finally {
+        closeLock.releaseLock();
       }
-      clearDashboardCache();
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", archivedCollections: movedCount })).setMimeType(ContentService.MimeType.JSON);
     }
 
     else if (data.action === "reopen_loan") {

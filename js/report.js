@@ -264,8 +264,10 @@ function renderClosedCustomersTable() {
   } else {
     pageCustomers.forEach(customer => {
       const id = String(customer.ID || customer["Customer ID"] || "").trim();
+      const loanSummary = getCustomerLoanSummary(customer);
       const row = document.createElement("tr");
-      [id || "N/A", customer["Customer Name"] || "N/A", customer["Mobile No"] || "N/A", customer["Loan Type"] || "N/A", formatDate(customer["Start Date"]), formatDate(customer["Archive Date"] || customer["Closed Date"])].forEach(value => {
+      const closeDate = loanSummary.isRdLoan ? loanSummary.closeDate : formatDate(customer["Archive Date"] || customer["Closed Date"]);
+      [id || "N/A", customer["Customer Name"] || "N/A", customer["Mobile No"] || "N/A", customer["Loan Type"] || "N/A", loanSummary.startDate, closeDate].forEach(value => {
         const cell = document.createElement("td");
         cell.textContent = value;
         cell.style.padding = "10px 12px";
@@ -301,6 +303,75 @@ function renderClosedCustomersTable() {
   const totalDisplay = document.getElementById("totalAmountDisplay");
   if (totalLabel) totalLabel.textContent = "Closed Customers";
   if (totalDisplay) totalDisplay.textContent = String(customers.length);
+}
+
+function getCustomerLoanSummary(customer) {
+  const numberFrom = (...values) => {
+    for (const value of values) {
+      const parsed = Number(String(value || "").replace(/[^0-9.-]/g, ""));
+      if (Number.isFinite(parsed) && parsed !== 0) return parsed;
+    }
+    return 0;
+  };
+  const startValue = customer["Start Date"] || customer["RD Start Date"] || customer["Loan Start Date"] || customer["Opening Date"];
+  const startIso = normalizeReportDate(startValue);
+  const storedEndIso = normalizeReportDate(customer["End Date"] || customer["RD End Date"] || customer["Loan End Date"]);
+  const storedMaturityIso = normalizeReportDate(customer["Maturity Date"]);
+  const rdAmount = numberFrom(customer["Loan Amount"], customer["RD Amount"], customer["Amount"], customer["Daily Installment"]);
+  const storedTotal = numberFrom(customer["Total Amount"], customer["Total Loan Amount"], customer["Total RD Amount"], customer["Total Amount (RD)"]);
+  let durationDays = parseInt(String(customer["Duration (Days)"] || customer["Duration (Day)"] || customer["Duration Days"] || customer["Loan Duration (Days)"] || customer["Duration"] || "").replace(/[^0-9]/g, ""), 10) || 0;
+
+  const storedCloseIso = storedEndIso || (storedMaturityIso ? shiftReportDate(storedMaturityIso, -1) : "");
+  if (!durationDays && startIso && storedCloseIso) {
+    const [sy, sm, sd] = startIso.split("-").map(Number);
+    const [ey, em, ed] = storedCloseIso.split("-").map(Number);
+    durationDays = Math.round((Date.UTC(ey, em - 1, ed) - Date.UTC(sy, sm - 1, sd)) / 86400000) + 1;
+  }
+  if (!durationDays && rdAmount && storedTotal) durationDays = Math.round(storedTotal / rdAmount);
+  if (!durationDays && String(customer["Loan Type"] || "").trim().toLowerCase() === "rd loan") durationDays = 365;
+
+  let closeIso = storedCloseIso;
+  if (!closeIso && startIso && durationDays > 0) {
+    const [year, month, day] = startIso.split("-").map(Number);
+    const closeDate = new Date(year, month - 1, day);
+    closeDate.setDate(closeDate.getDate() + durationDays - 1);
+    closeIso = `${closeDate.getFullYear()}-${String(closeDate.getMonth() + 1).padStart(2, "0")}-${String(closeDate.getDate()).padStart(2, "0")}`;
+  }
+  const maturityIso = closeIso ? shiftReportDate(closeIso, 1) : "";
+
+  const totalAmount = storedTotal || rdAmount * durationDays;
+  const interestPercent = numberFrom(customer["Interest %"], customer["Interest Rate (%)"], customer["Interest Rate"]);
+  const isRdLoan = String(customer["Loan Type"] || "").trim().toLowerCase() === "rd loan";
+  return {
+    startDate: startIso ? formatDate(startIso) : "N/A",
+    closeDate: closeIso ? formatDate(closeIso) : "N/A",
+    maturityDate: maturityIso ? formatDate(maturityIso) : "N/A",
+    handoverDate: maturityIso ? formatDate(maturityIso) : "N/A",
+    rdAmount,
+    totalAmount,
+    maturityAmount: totalAmount + totalAmount * interestPercent / 100,
+    isRdLoan
+  };
+}
+
+function shiftReportDate(isoDate, dayOffset) {
+  const normalized = normalizeReportDate(isoDate);
+  if (!normalized) return "";
+  const [year, month, day] = normalized.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + dayOffset);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function uniqueCollectionsByDate(collections) {
+  const seenDates = new Set();
+  return collections.filter((item, index) => {
+    const date = normalizeReportDate(item["Collection Date"]);
+    const key = date || `undated-${item["Collection ID"] || index}`;
+    if (seenDates.has(key)) return false;
+    seenDates.add(key);
+    return true;
+  });
 }
 
 function getCustomerPhotoDisplayUrls(photoUrl) {
@@ -352,17 +423,47 @@ function viewClosedCustomerDetails(customerId) {
   heading.append(title, actions);
   panel.appendChild(heading);
 
+  const loanSummary = getCustomerLoanSummary(customer);
   const history = allClosedCollectionsData.filter(item => String(item["Customer ID"] || "").trim() === String(customerId).trim());
-  const totalCollected = history.reduce((sum, item) => sum + (Number(String(item.Amount || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
+  const orderedHistory = history.slice().sort((first, second) => {
+    const firstDate = normalizeReportDate(first["Collection Date"]);
+    const secondDate = normalizeReportDate(second["Collection Date"]);
+    if (!firstDate) return secondDate ? 1 : 0;
+    if (!secondDate) return -1;
+    return firstDate.localeCompare(secondDate);
+  });
+  const displayedHistory = loanSummary.isRdLoan ? uniqueCollectionsByDate(orderedHistory) : orderedHistory;
+  const totalCollected = displayedHistory.reduce((sum, item) => sum + (Number(String(item.Amount || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
   const totalBox = document.createElement("div");
-  totalBox.textContent = `Total Amount Collected: INR ${totalCollected.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  totalBox.textContent = `Total Amount Collected: ₹ ${totalCollected.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   Object.assign(totalBox.style, { marginBottom: "14px", padding: "12px 14px", borderRadius: "7px", background: "#ecfdf5", color: "#047857", fontWeight: "700" });
   panel.appendChild(totalBox);
 
   const details = document.createElement("div");
   Object.assign(details.style, { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "8px" });
+  const summaryFields = loanSummary.isRdLoan ? [
+    ["Start Date", loanSummary.startDate],
+    ["Close Date", loanSummary.closeDate],
+    ["RD Amount", `₹ ${loanSummary.rdAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+    ["Total Amount", `₹ ${loanSummary.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+    ["Maturity Date", loanSummary.maturityDate],
+    ["Handover Date", loanSummary.handoverDate],
+    ["Maturity Amount", `₹ ${loanSummary.maturityAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`]
+  ] : [];
+  summaryFields.forEach(([label, value]) => {
+    const item = document.createElement("div");
+    Object.assign(item.style, { padding: "10px", border: "1px solid #bae6fd", borderRadius: "6px", overflowWrap: "anywhere", background: "#f0f9ff" });
+    const name = document.createElement("strong");
+    name.textContent = `${label}: `;
+    const text = document.createElement("span");
+    text.textContent = value;
+    item.append(name, text);
+    details.appendChild(item);
+  });
+  const summaryKeys = new Set(["Start Date", "RD Start Date", "Loan Start Date", "Opening Date", "Loan Amount", "RD Amount", "Amount", "Daily Installment", "Total Amount", "Total Loan Amount", "Total RD Amount", "Total Amount (RD)", "Maturity Date", "End Date", "RD End Date", "Loan End Date", "Closed Date", "Archive Date", "Timestamp"]);
   Object.entries(customer).forEach(([label, rawValue]) => {
     if (rawValue === "" || rawValue == null) return;
+    if (loanSummary.isRdLoan && summaryKeys.has(label)) return;
     const item = document.createElement("div");
     Object.assign(item.style, { padding: "10px", border: "1px solid #e2e8f0", borderRadius: "6px", overflowWrap: "anywhere" });
     const name = document.createElement("strong");
@@ -403,23 +504,42 @@ function viewClosedCustomerDetails(customerId) {
   historyTitle.textContent = "Closed Collection History";
   historyTitle.style.margin = "22px 0 8px";
   panel.appendChild(historyTitle);
-  if (history.length) {
+  if (displayedHistory.length) {
     const historyTable = document.createElement("table");
-    Object.assign(historyTable.style, { width: "100%", borderCollapse: "collapse", marginTop: "8px" });
+    Object.assign(historyTable.style, { width: "100%", maxWidth: "100%", tableLayout: "fixed", borderCollapse: "collapse", marginTop: "8px", fontSize: "12px" });
     const historyHead = document.createElement("thead");
-    historyHead.innerHTML = "<tr><th style=\"padding:9px;border:1px solid #cbd5e1;text-align:left\">Collection ID</th><th style=\"padding:9px;border:1px solid #cbd5e1;text-align:left\">Collection Date</th><th style=\"padding:9px;border:1px solid #cbd5e1;text-align:right\">Amount</th></tr>";
+    historyHead.innerHTML = "<tr><th style=\"padding:5px;border:1px solid #cbd5e1;text-align:left\">Collection ID</th><th style=\"padding:5px;border:1px solid #cbd5e1;text-align:left\">Collection Date</th><th style=\"padding:5px;border:1px solid #cbd5e1;text-align:right\">Amount</th><th style=\"padding:5px;border:1px solid #cbd5e1;text-align:left\">Collection ID</th><th style=\"padding:5px;border:1px solid #cbd5e1;text-align:left\">Collection Date</th><th style=\"padding:5px;border:1px solid #cbd5e1;text-align:right\">Amount</th></tr>";
     const historyBody = document.createElement("tbody");
-    history.forEach(item => {
+    for (let historyIndex = 0; historyIndex < displayedHistory.length; historyIndex += 2) {
       const row = document.createElement("tr");
-      const amount = Number(String(item.Amount || 0).replace(/[^0-9.-]/g, "")) || 0;
-      [item["Collection ID"] || "—", formatDate(item["Collection Date"]), `INR ${amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`].forEach((text, index) => {
+      const rowItems = [displayedHistory[historyIndex], displayedHistory[historyIndex + 1]];
+      rowItems.forEach(item => {
+        if (!item) {
+          for (let emptyIndex = 0; emptyIndex < 3; emptyIndex++) {
+            const emptyCell = document.createElement("td");
+            Object.assign(emptyCell.style, { padding: "4px 5px", border: "1px solid #cbd5e1" });
+            row.appendChild(emptyCell);
+          }
+          return;
+        }
+        const amount = Number(String(item.Amount || 0).replace(/[^0-9.-]/g, "")) || 0;
+        [item["Collection ID"] || "—", formatDate(item["Collection Date"]), `₹ ${amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`].forEach((text, index) => {
         const cell = document.createElement("td");
         cell.textContent = text;
-        Object.assign(cell.style, { padding: "9px", border: "1px solid #cbd5e1", textAlign: index === 2 ? "right" : "left" });
+        Object.assign(cell.style, {
+          padding: "4px 5px",
+          border: "1px solid #cbd5e1",
+          textAlign: index === 2 ? "right" : "left",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          maxWidth: "none"
+        });
         row.appendChild(cell);
       });
+      });
       historyBody.appendChild(row);
-    });
+    }
     historyTable.append(historyHead, historyBody);
     panel.appendChild(historyTable);
   } else {
@@ -478,16 +598,32 @@ function renderGoldEmiPaymentsTable() {
 
 function formatDate(dateStr) {
   if (!dateStr) return "N/A";
-  if (typeof dateStr === "string" && dateStr.includes("T")) {
-    dateStr = dateStr.split("T")[0]; 
+  const isoDate = normalizeReportDate(dateStr);
+  if (!isoDate) return String(dateStr);
+  const [year, month, day] = isoDate.split("-");
+  return `${day}-${month}-${year}`;
+}
+
+// Keep report dates as calendar-date strings. Parsing them as timestamps can
+// shift a date across midnight when the browser and spreadsheet use different
+// time zones.
+function normalizeReportDate(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
   }
-  if (typeof dateStr === "string" && dateStr.includes("-")) {
-    const parts = dateStr.split("-");
-    if (parts.length === 3 && parts[0].length === 4) {
-      return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
+  const text = String(value || "").trim().split("T")[0];
+  let parts = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  let year, month, day;
+  if (parts) {
+    [, year, month, day] = parts;
+  } else {
+    parts = text.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+    if (!parts) return "";
+    [, day, month, year] = parts;
   }
-  return dateStr;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  if (date.getFullYear() !== Number(year) || date.getMonth() !== Number(month) - 1 || date.getDate() !== Number(day)) return "";
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function getLoanSchedule(startValue, durationDays) {
@@ -539,20 +675,17 @@ function renderCollectionsTable(data, status) {
   const filterYear = document.getElementById("reportYearFilter")?.value || "All";
   const startValue = document.getElementById("startDate")?.value || "";
   const endValue = document.getElementById("endDate")?.value || "";
-  const startDate = startValue ? new Date(`${startValue}T00:00:00`) : null;
-  const endDate = endValue ? new Date(`${endValue}T23:59:59`) : null;
+  const startDate = startValue ? normalizeReportDate(startValue) : "";
+  const endDate = endValue ? normalizeReportDate(endValue) : "";
   const filteredCollections = data.filter(item => {
     const loanType = String(item["Loan Type"] || "").trim();
     if (isEmiPaymentReport && loanType.toLowerCase() === "rd loan") return false;
     if (!isEmiPaymentReport && loanTypeFilter !== "All" && loanType !== loanTypeFilter) return false;
-    const collectionDate = String(item["Collection Date"] || "").split("T")[0];
-    const dateParts = collectionDate.split("-");
-    const date = dateParts.length === 3
-      ? (dateParts[0].length === 4 ? new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2])) : new Date(Number(dateParts[2]), Number(dateParts[1]) - 1, Number(dateParts[0])))
-      : null;
-    if (filterYear !== "All" && (!date || String(date.getFullYear()) !== filterYear)) return false;
-    if (startDate && (!date || date < startDate)) return false;
-    if (endDate && (!date || date > endDate)) return false;
+    const collectionDate = normalizeReportDate(item["Collection Date"]);
+    const collectionYear = collectionDate ? collectionDate.slice(0, 4) : "";
+    if (filterYear !== "All" && collectionYear !== filterYear) return false;
+    if (startDate && (!collectionDate || collectionDate < startDate)) return false;
+    if (endDate && (!collectionDate || collectionDate > endDate)) return false;
     return !searchText || [item["Collection ID"], item["Customer ID"], item["Customer Name"], item["Loan Type"], item["Amount"], formatDate(item["Collection Date"])].some(value => String(value || "").toLowerCase().includes(searchText));
   });
   const pageSizeSelect = document.getElementById("reportPageSize");

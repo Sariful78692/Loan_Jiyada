@@ -10,6 +10,7 @@ let selectedLoanType = null;
 let selectedAmount = null;
 let lastCollectionReceipt = null;
 let selectedCustomerDuration = 0;
+const closingCustomerIds = new Set();
 const isGroupDetailsPage = window.location.pathname.toLowerCase().endsWith("groupdetails.html");
 
 document.addEventListener("DOMContentLoaded", async function () {
@@ -126,7 +127,8 @@ function renderTable(data) {
       ${isRdLoanPage ? `
       <th style="padding: 8px 7px; font-weight: bold; white-space: nowrap;">RD Amount</th>
       <th style="padding: 8px 7px; font-weight: bold; white-space: nowrap;">Total Amount</th>
-      <th style="padding: 8px 7px; font-weight: bold; white-space: nowrap;">Received Amount</th>
+      <th style="padding: 8px 7px; font-weight: bold; white-space: nowrap; color:#059669;">Received Amount</th>
+      <th style="padding: 8px 7px; font-weight: bold; white-space: nowrap; color:#7c3aed;">Maturity Amount</th>
       <th style="padding: 8px 7px; font-weight: bold; white-space: nowrap;">Pay Days</th>` : ""}
       <th style="padding: 8px 7px; font-weight: bold; text-align: center;">Actions</th>
     </tr>
@@ -135,7 +137,7 @@ function renderTable(data) {
   if (data.length === 0) {
     tbody.innerHTML += `
       <tr>
-        <td colspan="${isRdLoanPage ? 14 : 8}" style="text-align: center; padding: 40px; color: #ef4444; font-size: 18px; font-weight: bold; background: #fef2f2;">
+        <td colspan="${isRdLoanPage ? 15 : 8}" style="text-align: center; padding: 40px; color: #ef4444; font-size: 18px; font-weight: bold; background: #fef2f2;">
           <i class="fa-solid fa-folder-open" style="font-size: 40px; margin-bottom: 15px; display: block; color: #f87171;"></i>
           No Data Available Here
         </td>
@@ -165,13 +167,18 @@ function renderTable(data) {
 
     const customerCollections = collectionsByCustomerId.get(custId) || [];
     const collectionCount = customerCollections.length;
-    const receivedRdAmount = customerCollections.reduce((sum, col) => sum + (Number(String(col["Amount"] || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
+    // RD collections are one installment per calendar day. Keep the displayed
+    // received total consistent with Pay Days if duplicate rows exist for a day.
+    const receivedRdAmount = sumUniqueDailyCollections(customerCollections);
     const payDays = new Set(customerCollections.map(col => normalizeCollectionDate(col["Collection Date"])).filter(Boolean)).size;
     const dailyAmount = getCustomerInstallmentAmount(cust, receivedRdAmount, payDays);
     let durationDays = getCustomerDurationDays(cust, dailyAmount);
     // Older RD rows may have collections but no saved duration; these accounts use the standard 365-day term.
     if (!durationDays && isRdLoanPage && payDays > 0) durationDays = 365;
-    const totalRdAmount = Number(cust["Total Amount"] || cust["Total Loan Amount"] || cust["Total RD Amount"] || cust["Total Amount (RD)"] || 0) || dailyAmount * durationDays;
+    const storedTotalAmount = cust["Total Amount"] || cust["Total Loan Amount"] || cust["Total RD Amount"] || cust["Total Amount (RD)"] || 0;
+    const totalRdAmount = Number(String(storedTotalAmount).replace(/[^0-9.-]/g, "")) || dailyAmount * durationDays;
+    const interestPercent = Number(String(cust["Interest %"] || cust["Interest Rate (%)"] || cust["Interest Rate"] || 0).replace(/[^0-9.-]/g, "")) || 0;
+    const maturityAmount = totalRdAmount + (totalRdAmount * interestPercent / 100);
     const dates = isRdLoanPage ? getCustomerDates(cust, durationDays, customerCollections) : null;
 
     let actionButtonsHtml = ""; 
@@ -251,6 +258,7 @@ function renderTable(data) {
       <td style="padding: 7px; white-space: nowrap; font-weight:600;">${formatMoney(dailyAmount)}</td>
       <td style="padding: 7px; white-space: nowrap; font-weight:600;">${formatMoney(totalRdAmount)}</td>
       <td style="padding: 7px; white-space: nowrap; font-weight:600; color:#059669;">${formatMoney(receivedRdAmount)}</td>
+      <td style="padding: 7px; white-space: nowrap; font-weight:700; color:#7c3aed;">${formatMoney(maturityAmount)}</td>
       <td style="padding: 7px; white-space: nowrap;">${payDays}</td>` : ""}
       <td style="padding: 7px; text-align: center; white-space: nowrap;">
         ${actionButtonsHtml}
@@ -410,14 +418,22 @@ function editCustomer(id, sheetName = "") {
 }
 
 async function closeCustomerLoan(customerId) {
+  const customerKey = String(customerId || "").trim();
+  if (!customerKey || closingCustomerIds.has(customerKey)) return;
   if (!confirm("Are you sure you want to CLOSE this loan? \n\nThis will mark the customer as 'Closed' and move all their collections to the Archive sheet.")) {
     return;
   }
 
+  closingCustomerIds.add(customerKey);
   try {
-    const res = await postAppData({ action: "close_loan", customerId: customerId });
+    const res = await postAppData({ action: "close_loan", customerId: customerKey });
     const result = await res.json();
     if (result.status === "success") {
+      if (result.alreadyClosed) {
+        alert("This RD loan was already closed. No duplicate records were saved.");
+        window.location.reload();
+        return;
+      }
       const archivedCount = Number(result.archivedCollections || 0);
       alert(archivedCount > 0
         ? `Loan closed and ${archivedCount} collection record(s) archived successfully!`
@@ -428,6 +444,8 @@ async function closeCustomerLoan(customerId) {
     }
   } catch (err) {
     alert("Failed to connect to the server.");
+  } finally {
+    closingCustomerIds.delete(customerKey);
   }
 }
 
@@ -450,6 +468,18 @@ function getCustomerInstallmentAmount(customer, receivedAmount = 0, paidDays = 0
   const storedAmount = customer["Loan Amount"] || customer["RD Amount"] || customer["Amount"] || customer["Daily Installment"] || customer["Installment Amount"] || 0;
   const parsedAmount = Number(String(storedAmount).replace(/[^0-9.-]/g, "")) || 0;
   return parsedAmount || (paidDays > 0 ? receivedAmount / paidDays : 0);
+}
+
+function sumUniqueDailyCollections(collections) {
+  const seenDates = new Set();
+  let total = 0;
+  collections.forEach(collection => {
+    const date = normalizeCollectionDate(collection["Collection Date"]);
+    if (!date || seenDates.has(date)) return;
+    seenDates.add(date);
+    total += Number(String(collection["Amount"] || 0).replace(/[^0-9.-]/g, "")) || 0;
+  });
+  return total;
 }
 
 function getCustomerDurationDays(customer, installmentAmount = 0) {
