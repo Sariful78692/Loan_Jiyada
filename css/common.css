@@ -176,6 +176,14 @@
 
 .sidebar {
   flex-shrink: 0; /* sidebar যেন সংকুচিত না হয় */
+  height: 100vh;
+  min-height: 0;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
 }
 
 .main-content {
@@ -202,7 +210,7 @@
 
 @media (max-width: 768px) {
   .app-container { display: block; }
-  .sidebar { box-sizing: border-box; width: 100%; min-height: 0; padding: 12px 16px; position: sticky; top: 0; z-index: 100; }
+  .sidebar { box-sizing: border-box; width: 100%; height: auto; min-height: 0; max-height: 100vh; padding: 12px 16px; position: sticky; top: 0; z-index: 100; overflow: visible; }
   .sidebar .brand { display: flex; align-items: center; justify-content: space-between; padding: 0 0 12px; margin: 0; }
   .mobile-menu-toggle { display: grid; width: 40px; height: 40px; place-items: center; color: #fff; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); border-radius: 8px; cursor: pointer; font-size: 17px; }
   .sidebar .nav-menu, .sidebar .sidebar-account { display: none; }

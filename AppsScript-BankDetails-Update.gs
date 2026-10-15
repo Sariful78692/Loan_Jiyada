@@ -866,6 +866,12 @@ function doPost(e) {
       return jsonResponse(installmentResult);
     }
 
+    else if (data.action === "record_gold_daily_interest_payment") {
+      var dailyInterestResult = recordGoldDailyInterestPayment(ss, goldSheet, data);
+      if (dailyInterestResult.status === "success") clearDashboardCache();
+      return jsonResponse(dailyInterestResult);
+    }
+
     else if (data.action === "update_gold_loan") {
       if (!/^\d{10}$/.test(String(data.mobileNo || "")) || !/^\d{12}$/.test(String(data.aadhaarNo || "")) || (data.nomineeAadhaar && !/^\d{12}$/.test(String(data.nomineeAadhaar)))) {
         return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Mobile must be 10 digits and Aadhaar numbers must be 12 digits." })).setMimeType(ContentService.MimeType.JSON);
@@ -905,7 +911,7 @@ function doPost(e) {
         "LTV (%)": data.ltvPercent || "", "Eligible Amount": data.eligibleAmount || "", "Loan Amount Requested": data.loanAmount || "",
         "Processing Charge": data.processingCharge || 0, "Document Charge": data.documentCharge || 0,
         "Net Disbursement Amount": data.netDisbursementAmount || 0,
-        "Loan Tenure": data.loanTenure || "", "Purpose of Loan": data.purpose || "", "Scheme": data.scheme || "",
+        "Loan Tenure": data.loanTenure || "", "Loan Tenure Unit": data.loanTenureUnit || "Months", "Outstanding Principal": data.loanAmount || 0, "Accrued Interest Balance": 0, "Purpose of Loan": data.purpose || "", "Scheme": data.scheme || "",
         "Rate of Interest (%)": data.interestRate || "", "Repayment Method": data.repaymentType || "",
         "Installment Amount": data.installmentAmount || "", "Total Interest": data.totalInterest || "",
         "Total Payable": data.totalPayable || "", "First EMI Date": data.firstEmiDate || "", "EMI Close Date": data.emiCloseDate || data.maturityDate || "", "Maturity Date": data.maturityDate || data.emiCloseDate || "", "Disbursement Mode": data.disbursementMode || "",
@@ -1131,6 +1137,93 @@ function getLegacyGoldEmiCollectionDates(ss, loanId) {
   return dates;
 }
 
+function recordGoldDailyInterestPayment(ss, goldSheet, data) {
+  var loanId = String(data.loanId || "").trim();
+  var startDateText = String(data.startDate || "").trim();
+  var endDateText = String(data.endDate || "").trim();
+  var startDate = parseGoldLoanDate(startDateText), endDate = parseGoldLoanDate(endDateText);
+  if (!startDate || !endDate || goldLoanDateIso(startDate) !== startDateText || goldLoanDateIso(endDate) !== endDateText || endDate < startDate) {
+    return { status: "error", message: "Select a valid collection date range." };
+  }
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  if (endDate > today) return { status: "error", message: "Collection date range cannot end in the future." };
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (lockError) { return { status: "error", message: "Another payment is being saved. Please try again." }; }
+  try {
+    var values = goldSheet.getDataRange().getValues();
+    var headers = values[0].map(function(header) { return String(header).trim(); });
+    var idColumn = headers.indexOf("ID"), rowNumber = -1, loan = {};
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][idColumn]).trim() === loanId) {
+        rowNumber = i + 1;
+        headers.forEach(function(header, index) { loan[header] = values[i][index]; });
+        break;
+      }
+    }
+    if (rowNumber < 0) return { status: "error", message: "Gold loan was not found." };
+    if (String(loan["Repayment Method"] || "").trim().toLowerCase() !== "daily interest") return { status: "error", message: "Daily collection is only available for Daily Interest loans." };
+    var rateAnnual = Number(loan["Rate of Interest (%)"] || 0);
+    var principal = Number(loan["Outstanding Principal"] || loan["Loan Amount Requested"] || 0);
+    var accruedBalance = Number(loan["Accrued Interest Balance"] || 0);
+    var amount = Number(data.amount || 0);
+    if (!(principal > 0) || !(amount > 0) || !(rateAnnual >= 0)) return { status: "error", message: "Loan balance, interest rate, or payment amount is invalid." };
+    var paymentSheet = getOrCreateGoldEmiPaymentsSheet(ss);
+    var paymentValues = paymentSheet.getDataRange().getValues();
+    var paymentHeaders = paymentValues[0].map(function(header) { return String(header).trim(); });
+    var loanCol = paymentHeaders.indexOf("Loan ID"), endCol = paymentHeaders.indexOf("Period End"), priorEnd = null;
+    for (var p = 1; p < paymentValues.length; p++) {
+      if (String(paymentValues[p][loanCol]).trim() !== loanId || endCol < 0) continue;
+      var recordedEnd = parseGoldLoanDate(paymentValues[p][endCol]);
+      if (recordedEnd && (!priorEnd || recordedEnd > priorEnd)) priorEnd = recordedEnd;
+    }
+    if (priorEnd && startDate <= priorEnd) return { status: "error", message: "This date range overlaps an earlier collection. Start after " + goldLoanDateIso(priorEnd) + "." };
+    var days = Math.floor((endDate.getTime() - startDate.getTime()) / 86400000) + 1;
+    var interestDue = Math.round((principal * (rateAnnual / 12) / 100 * days / 30 + accruedBalance) * 100) / 100;
+    if (amount > principal + interestDue) return { status: "error", message: "Payment cannot exceed the outstanding principal plus accrued interest." };
+    var interestPaid = Math.min(amount, interestDue);
+    var principalPaid = Math.min(principal, Math.max(0, amount - interestPaid));
+    var remainingPrincipal = Math.round((principal - principalPaid) * 100) / 100;
+    var remainingInterest = Math.round((interestDue - interestPaid) * 100) / 100;
+    var dailyInterest = Math.round((remainingPrincipal * (rateAnnual / 12) / 100 / 30) * 100) / 100;
+    var extraHeaders = ["Period Start", "Period End", "Payment Type", "Interest Amount", "Principal Paid", "Outstanding Principal", "Daily Interest"];
+    var missing = extraHeaders.filter(function(header) { return paymentHeaders.indexOf(header) < 0; });
+    if (missing.length) {
+      paymentSheet.getRange(1, paymentHeaders.length + 1, 1, missing.length).setValues([missing]);
+      paymentSheet.getRange(1, paymentHeaders.length + 1, 1, missing.length).setFontWeight("bold");
+      paymentHeaders = paymentHeaders.concat(missing);
+    }
+    var receiptId = "GDI-" + new Date().getTime(), paymentDate = goldLoanDateIso(new Date());
+    var record = {
+      "Payment ID": receiptId, "Receipt ID": receiptId, "Loan ID": loanId,
+      "Application No": loan["Application No"] || "", "Customer Name": loan["Borrower Name"] || "", "Mobile No": loan["Mobile No"] || "",
+      "Installment Month": endDateText.slice(0, 7), "Installment Number": "", "Due Date": endDateText,
+      "Paid Date": paymentDate, "Payment Date": paymentDate, "Amount": amount, "EMI Amount": amount,
+      "Fine Amount": 0, "Total Paid": amount, "Period Start": startDateText, "Period End": endDateText,
+      "Payment Type": "Daily Interest", "Interest Amount": interestPaid, "Principal Paid": principalPaid,
+      "Outstanding Principal": remainingPrincipal, "Daily Interest": dailyInterest, "Timestamp": new Date()
+    };
+    paymentSheet.appendRow(paymentHeaders.map(function(header) { return Object.prototype.hasOwnProperty.call(record, header) ? record[header] : ""; }));
+    var currentHeaders = goldSheet.getRange(1, 1, 1, goldSheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+    ["Outstanding Principal", "Accrued Interest Balance"].forEach(function(header) {
+      if (currentHeaders.indexOf(header) < 0) {
+        goldSheet.getRange(1, currentHeaders.length + 1).setValue(header).setFontWeight("bold");
+        currentHeaders.push(header);
+      }
+    });
+    goldSheet.getRange(rowNumber, currentHeaders.indexOf("Outstanding Principal") + 1).setValue(remainingPrincipal);
+    goldSheet.getRange(rowNumber, currentHeaders.indexOf("Accrued Interest Balance") + 1).setValue(remainingInterest);
+    return {
+      status: "success", receiptId: receiptId, loanId: loanId, applicationNo: loan["Application No"] || "",
+      customerName: loan["Borrower Name"] || "", mobileNo: loan["Mobile No"] || "", startDate: startDateText,
+      endDate: endDateText, paymentDate: paymentDate, days: days, interestPaid: interestPaid,
+      principalPaid: principalPaid, outstandingPrincipal: remainingPrincipal, accruedInterest: remainingInterest,
+      dailyInterest: dailyInterest, totalPaid: amount
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function recordGoldEmiInstallment(ss, goldSheet, data) {
   var loanId = String(data.loanId || "").trim();
   var goldValues = goldSheet.getDataRange().getValues();
@@ -1345,8 +1438,8 @@ function updateGoldLoanRecord(sheet, data) {
   var idColumn = headers.indexOf("ID"), rowNumber = -1;
   for (var row = 1; row < values.length; row++) if (String(values[row][idColumn]).trim() === String(data.id).trim()) { rowNumber = row + 1; break; }
   if (rowNumber === -1) return false;
-  var fields = { "Branch Name": data.branchName, "Branch Code": data.branchCode, "Loan Officer Name": data.officerName, "CSP Location": data.cspLocation, "Borrower Name": data.borrowerName, "Mobile No": data.mobileNo, "Identity No": data.identityNo, "Address": data.address, "Monthly Income": data.monthlyIncome, "Guardian Type": data.guardianType, "Guardian Name": data.guardianName, "Gender": data.gender, "DOB": data.dob, "Religion": data.religion, "Aadhaar No": data.aadhaarNo, "Occupation": data.occupation, "Customer Bank Name": data.customerBankName, "Customer Bank Branch": data.customerBankBranch, "Customer IFSC Code": data.customerIfscCode, "Customer Account Holder": data.customerAccountHolder, "Customer Account Number": data.customerAccountNumber, "Nominee Name": data.nomineeName, "Nominee Guardian Type": data.nomineeGuardianType, "Nominee Guardian Name": data.nomineeGuardianName, "Nominee Gender": data.nomineeGender, "Nominee Occupation": data.nomineeOccupation, "Nominee DOB": data.nomineeDob, "Nominee Aadhaar": data.nomineeAadhaar, "Relation With Applicant": data.relationWithApplicant, "Gold Articles Details": data.goldArticles, "Valuation Date": data.valuationDate, "Total Gross Weight (g)": data.totalGrossWeight, "Total Net Weight (g)": data.totalNetWeight, "Total Assessed Value": data.assessedValue, "LTV (%)": data.ltvPercent, "Eligible Amount": data.eligibleAmount, "Loan Amount Requested": data.loanAmount, "Processing Charge": data.processingCharge, "Document Charge": data.documentCharge, "Net Disbursement Amount": data.netDisbursementAmount, "Loan Tenure": data.loanTenure, "Rate of Interest (%)": data.interestRate, "Repayment Method": data.repaymentType, "Installment Amount": data.installmentAmount, "Total Interest": data.totalInterest, "Total Payable": data.totalPayable, "First EMI Date": data.firstEmiDate, "EMI Close Date": data.emiCloseDate || data.maturityDate, "Maturity Date": data.maturityDate || data.emiCloseDate, "Purpose of Loan": data.purpose, "Scheme": data.scheme, "Disbursement Mode": data.disbursementMode, "Submitted Documents": data.submittedDocuments };
-  var newHeaders = ["Processing Charge", "Document Charge", "Net Disbursement Amount", "First EMI Date", "EMI Close Date"].filter(function(header) { return headers.indexOf(header) === -1; });
+  var fields = { "Branch Name": data.branchName, "Branch Code": data.branchCode, "Loan Officer Name": data.officerName, "CSP Location": data.cspLocation, "Borrower Name": data.borrowerName, "Mobile No": data.mobileNo, "Identity No": data.identityNo, "Address": data.address, "Monthly Income": data.monthlyIncome, "Guardian Type": data.guardianType, "Guardian Name": data.guardianName, "Gender": data.gender, "DOB": data.dob, "Religion": data.religion, "Aadhaar No": data.aadhaarNo, "Occupation": data.occupation, "Customer Bank Name": data.customerBankName, "Customer Bank Branch": data.customerBankBranch, "Customer IFSC Code": data.customerIfscCode, "Customer Account Holder": data.customerAccountHolder, "Customer Account Number": data.customerAccountNumber, "Nominee Name": data.nomineeName, "Nominee Guardian Type": data.nomineeGuardianType, "Nominee Guardian Name": data.nomineeGuardianName, "Nominee Gender": data.nomineeGender, "Nominee Occupation": data.nomineeOccupation, "Nominee DOB": data.nomineeDob, "Nominee Aadhaar": data.nomineeAadhaar, "Relation With Applicant": data.relationWithApplicant, "Gold Articles Details": data.goldArticles, "Valuation Date": data.valuationDate, "Total Gross Weight (g)": data.totalGrossWeight, "Total Net Weight (g)": data.totalNetWeight, "Total Assessed Value": data.assessedValue, "LTV (%)": data.ltvPercent, "Eligible Amount": data.eligibleAmount, "Loan Amount Requested": data.loanAmount, "Processing Charge": data.processingCharge, "Document Charge": data.documentCharge, "Net Disbursement Amount": data.netDisbursementAmount, "Loan Tenure": data.loanTenure, "Loan Tenure Unit": data.loanTenureUnit || "Months", "Rate of Interest (%)": data.interestRate, "Repayment Method": data.repaymentType, "Installment Amount": data.installmentAmount, "Total Interest": data.totalInterest, "Total Payable": data.totalPayable, "First EMI Date": data.firstEmiDate, "EMI Close Date": data.emiCloseDate || data.maturityDate, "Maturity Date": data.maturityDate || data.emiCloseDate, "Purpose of Loan": data.purpose, "Scheme": data.scheme, "Disbursement Mode": data.disbursementMode, "Submitted Documents": data.submittedDocuments };
+  var newHeaders = ["Processing Charge", "Document Charge", "Net Disbursement Amount", "First EMI Date", "EMI Close Date", "Loan Tenure Unit"].filter(function(header) { return headers.indexOf(header) === -1; });
   if (newHeaders.length) {
     sheet.getRange(1, headers.length + 1, 1, newHeaders.length).setValues([newHeaders]);
     sheet.getRange(1, headers.length + 1, 1, newHeaders.length).setFontWeight("bold");

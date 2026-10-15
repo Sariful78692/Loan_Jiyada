@@ -219,4 +219,9 @@ table td {
 .gold-fine-field { display:grid; gap:6px; margin:12px 0; color:#475569; font-size:12px; font-weight:700; }
 .gold-fine-field input { min-height:38px; padding:7px 10px; border:1px solid #cbd5e1; border-radius:5px; font:inherit; }
 .gold-modal-actions { display:flex; flex-wrap:wrap; gap:10px; }
-@media (max-width:520px) { .gold-modal-fields { grid-template-columns:1fr; } }
+.gold-emi-principal-interest { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0; }
+.gold-emi-principal-interest > div { display:grid; gap:6px; padding:12px; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc; }
+.gold-emi-principal-interest span { color:#64748b; font-size:12px; }
+.gold-emi-principal-interest strong { color:#0f172a; font-size:17px; }
+@media (max-width:520px) { .gold-modal-fields,.gold-emi-principal-interest { grid-template-columns:1fr; } }
+

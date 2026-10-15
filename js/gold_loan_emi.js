@@ -1,6 +1,7 @@
 let goldEmiLoans = [];
 let goldEmiPayments = [];
 let currentGoldEmiLoan = null;
+let goldDailyAmountManuallyEdited = false;
 
 const goldEmiMoney = value => `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const goldEmiEscape = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
@@ -17,18 +18,27 @@ document.addEventListener("DOMContentLoaded", () => {
   ["gold-emi-close", "gold-emi-cancel"].forEach(id => document.getElementById(id).addEventListener("click", closeGoldEmiPayment));
   document.getElementById("gold-emi-payment-date").addEventListener("change", updateGoldEmiFineField);
   document.getElementById("gold-emi-fine").addEventListener("input", updateGoldEmiSummary);
+  ["gold-daily-from", "gold-daily-to"].forEach(id => document.getElementById(id).addEventListener("input", () => {
+    goldDailyAmountManuallyEdited = false;
+    updateGoldDailyCollectionSummary();
+  }));
+  document.getElementById("gold-daily-amount").addEventListener("input", () => {
+    goldDailyAmountManuallyEdited = true;
+    updateGoldDailyCollectionSummary();
+  });
 });
 
 async function fetchGoldEmiData() {
   const body = document.getElementById("gold-emi-body");
   try {
+    invalidateAppDataCache();
     const data = await fetchAppData();
     goldEmiLoans = data.gold_loans || [];
     goldEmiPayments = normalizeGoldEmiPayments(data.gold_emi_payments || [], data.collections || []);
     renderGoldEmiLoans();
   } catch (error) {
     console.error(error);
-    body.innerHTML = '<tr><td colspan="7" style="padding:28px;text-align:center;color:#c43b2d">Could not load Gold Loan EMI accounts.</td></tr>';
+    body.innerHTML = '<tr><td colspan="8" style="padding:28px;text-align:center;color:#c43b2d">Could not load Gold Loan EMI accounts.</td></tr>';
   }
 }
 
@@ -37,7 +47,7 @@ function normalizeGoldEmiPayments(savedPayments, collections) {
   savedPayments.forEach(payment => {
     const loanId = String(payment["Loan ID"] || "");
     const date = String(payment["Payment Date"] || payment["Paid Date"] || payment["Due Date"] || "");
-    normalized.set(`${loanId}|${date}`, payment);
+    normalized.set(`${loanId}|${payment["Payment ID"] || payment["Receipt ID"] || date}`, payment);
   });
   collections.filter(item => String(item["Loan Type"] || "").toLowerCase() === "gold loan").forEach(item => {
     const loanId = String(item["Customer ID"] || "");
@@ -107,9 +117,9 @@ function nextGoldEmiDueDate(loan) {
 
 function renderGoldEmiLoans() {
   const body = document.getElementById("gold-emi-body");
-  const loans = goldEmiLoans.filter(loan => String(loan["Repayment Method"] || "").toLowerCase() === "emi");
+  const loans = goldEmiLoans.filter(loan => ["emi", "daily interest"].includes(String(loan["Repayment Method"] || "").trim().toLowerCase()));
   if (!loans.length) {
-    body.innerHTML = '<tr><td colspan="7" style="padding:30px;text-align:center">No EMI Gold Loan account found.</td></tr>';
+    body.innerHTML = '<tr><td colspan="8" style="padding:30px;text-align:center">No EMI Gold Loan account found.</td></tr>';
     return;
   }
   body.innerHTML = loans.map(loan => {
@@ -117,17 +127,50 @@ function renderGoldEmiLoans() {
     const tenure = Number(loan["Loan Tenure"] || 0);
     const firstDate = getFirstEmiDate(loan);
     const nextDate = nextGoldEmiDueDate(loan);
-    const firstCell = `${goldEmiEscape(displayGoldEmiDate(firstDate))}<small class="gold-emi-count">Next EMI: ${goldEmiEscape(displayGoldEmiDate(nextDate))} (${paid}/${tenure} paid)</small>`;
-    const action = paid >= tenure
+    const isDailyInterest = String(loan["Repayment Method"] || "").trim().toLowerCase() === "daily interest";
+    const firstCell = isDailyInterest
+      ? `${goldEmiEscape(displayGoldEmiDate(firstDate))}<small class="gold-emi-count">Daily interest repayment</small>`
+      : `${goldEmiEscape(displayGoldEmiDate(firstDate))}<small class="gold-emi-count">Next EMI: ${goldEmiEscape(displayGoldEmiDate(nextDate))} (${paid}/${tenure} paid)</small>`;
+    const action = isDailyInterest
+      ? Number(loan["Outstanding Principal"] ?? loan["Loan Amount Requested"] ?? 0) <= 0
+        ? '<span class="gold-status">Paid in full</span>'
+        : `<button type="button" class="gold-action gold-pay" data-loan-id="${goldEmiEscape(loan.ID)}"><i class="fa-solid fa-money-bill-wave"></i> Collect</button>`
+      : paid >= tenure
       ? '<span class="gold-status">Paid in full</span>'
       : hasGoldEmiPaidThisMonth(loan.ID)
         ? '<span class="gold-status">EMI paid this month</span>'
-      : `<button type="button" class="gold-action gold-pay" data-loan-id="${goldEmiEscape(loan.ID)}"><i class="fa-solid fa-money-bill-wave"></i> Pay EMI #${paid + 1}</button>`;
-    return `<tr><td>${goldEmiEscape(loan["Application No"] || loan.ID)}</td><td><strong>${goldEmiEscape(loan["Borrower Name"] || "—")}</strong></td><td>${goldEmiEscape(loan["Mobile No"] || "—")}</td><td>${goldEmiMoney(loan["Loan Amount Requested"])}</td><td>${firstCell}</td><td>${goldEmiEscape(displayGoldEmiDate(loan["EMI Close Date"] || loan["Maturity Date"]))}</td><td>${action}</td></tr>`;
+      : `<button type="button" class="gold-action gold-pay" data-loan-id="${goldEmiEscape(loan.ID)}"><i class="fa-solid fa-money-bill-wave"></i> Collect</button>`;
+    const emiAmount = isDailyInterest
+      ? getGoldDailyPrincipal(loan) * Number(loan["Rate of Interest (%)"] || 0) / 100 / 30
+      : loan["Installment Amount"] || loan["EMI Amount"] || 0;
+    return `<tr><td>${goldEmiEscape(loan["Application No"] || loan.ID)}</td><td><strong>${goldEmiEscape(loan["Borrower Name"] || "—")}</strong></td><td>${goldEmiEscape(loan["Mobile No"] || "—")}</td><td>${goldEmiMoney(loan["Loan Amount Requested"])}</td><td>${goldEmiMoney(emiAmount)}</td><td>${firstCell}</td><td>${goldEmiEscape(displayGoldEmiDate(loan["EMI Close Date"] || loan["Maturity Date"]))}</td><td>${action}</td></tr>`;
   }).join("");
 }
 
 function openGoldEmiPayment() {
+  const isDailyInterest = String(currentGoldEmiLoan["Repayment Method"] || "").trim().toLowerCase() === "daily interest";
+  document.getElementById("gold-daily-collection-fields").classList.toggle("hidden", !isDailyInterest);
+  document.querySelector("#gold-emi-modal-title").textContent = isDailyInterest ? "Collect Daily Interest" : "Collect EMI";
+  document.getElementById("gold-emi-submit").textContent = isDailyInterest ? "Collect & Print Receipt" : "Pay EMI & Print Receipt";
+  document.getElementById("gold-emi-due-date").parentElement.classList.toggle("hidden", isDailyInterest);
+  document.getElementById("gold-emi-payment-date").parentElement.classList.toggle("hidden", isDailyInterest);
+  document.getElementById("gold-fine-wrap").classList.add("hidden");
+  if (isDailyInterest) {
+    const todayIso = dateToIso(new Date());
+    const previousEnd = goldEmiPayments.filter(payment => String(payment["Loan ID"] || "") === String(currentGoldEmiLoan.ID))
+      .map(payment => parseGoldEmiDate(payment["Period End"])).filter(Boolean).sort((a, b) => b - a)[0];
+    let fromDate = previousEnd ? new Date(previousEnd.getTime()) : parseGoldEmiDate(currentGoldEmiLoan["Application Date"] || currentGoldEmiLoan["First EMI Date"]);
+    if (!fromDate) fromDate = new Date();
+    if (previousEnd) fromDate.setDate(fromDate.getDate() + 1);
+    if (dateToIso(fromDate) > todayIso) fromDate = new Date(`${todayIso}T00:00:00`);
+    document.getElementById("gold-daily-from").value = dateToIso(fromDate);
+    document.getElementById("gold-daily-to").value = todayIso;
+    document.getElementById("gold-daily-amount").value = "";
+    goldDailyAmountManuallyEdited = false;
+    document.getElementById("gold-emi-modal").classList.remove("hidden");
+    updateGoldDailyCollectionSummary();
+    return;
+  }
   if (hasGoldEmiPaidThisMonth(currentGoldEmiLoan.ID)) {
     return alert("This month's EMI has already been paid for this loan.");
   }
@@ -141,6 +184,38 @@ function openGoldEmiPayment() {
   document.getElementById("gold-emi-fine").value = "0";
   document.getElementById("gold-emi-modal").classList.remove("hidden");
   updateGoldEmiFineField();
+}
+
+function getGoldDailyPrincipal(loan) {
+  const outstanding = loan["Outstanding Principal"];
+  return outstanding !== "" && outstanding != null
+    ? Math.max(0, Number(outstanding) || 0)
+    : Math.max(0, Number(loan["Loan Amount Requested"]) || 0);
+}
+
+function updateGoldDailyCollectionSummary() {
+  if (!currentGoldEmiLoan || String(currentGoldEmiLoan["Repayment Method"] || "").toLowerCase() !== "daily interest") return;
+  const from = parseGoldEmiDate(document.getElementById("gold-daily-from").value);
+  const to = parseGoldEmiDate(document.getElementById("gold-daily-to").value);
+  const principal = getGoldDailyPrincipal(currentGoldEmiLoan);
+  const monthlyRate = Number(currentGoldEmiLoan["Rate of Interest (%)"] || 0);
+  if (!from || !to || to < from) {
+    document.getElementById("gold-daily-summary").textContent = "Select a valid date range.";
+    return;
+  }
+  const days = Math.floor((to - from) / 86400000) + 1;
+  const interestDue = Math.round((principal * monthlyRate / 100 * days / 30 + Number(currentGoldEmiLoan["Accrued Interest Balance"] || 0)) * 100) / 100;
+  const amountInput = document.getElementById("gold-daily-amount");
+  if (!goldDailyAmountManuallyEdited) amountInput.value = interestDue.toFixed(2);
+  const payment = Number(amountInput.value || 0);
+  document.getElementById("gold-emi-principal-total").textContent = goldEmiMoney(principal);
+  document.getElementById("gold-emi-interest-label").textContent = "Interest for selected dates";
+  document.getElementById("gold-emi-interest-total").textContent = goldEmiMoney(interestDue);
+  const interestPaid = Math.min(payment, interestDue);
+  const principalPaid = Math.min(principal, Math.max(0, payment - interestPaid));
+  const newPrincipal = Math.round((principal - principalPaid) * 100) / 100;
+  const dailyInterest = Math.round((newPrincipal * monthlyRate / 100 / 30) * 100) / 100;
+  document.getElementById("gold-daily-summary").textContent = `${days} days · Interest due ${goldEmiMoney(interestDue)} · Interest paid ${goldEmiMoney(interestPaid)} · Principal reduced ${goldEmiMoney(principalPaid)} · New principal ${goldEmiMoney(newPrincipal)} · New daily interest ${goldEmiMoney(dailyInterest)}`;
 }
 
 function updateGoldEmiFineField() {
@@ -159,10 +234,15 @@ function updateGoldEmiFineField() {
 function updateGoldEmiSummary() {
   if (!currentGoldEmiLoan) return;
   const emi = Number(currentGoldEmiLoan["Installment Amount"] || currentGoldEmiLoan["EMI Amount"] || 0);
+  const principal = Number(currentGoldEmiLoan["Outstanding Principal"] ?? currentGoldEmiLoan["Loan Amount Requested"] ?? 0);
+  const totalInterest = Number(currentGoldEmiLoan["Total Interest"] || Math.max(0, Number(currentGoldEmiLoan["Total Payable"] || 0) - Number(currentGoldEmiLoan["Loan Amount Requested"] || 0)));
   const fine = Number(document.getElementById("gold-emi-fine").value || 0);
   const paidDate = document.getElementById("gold-emi-payment-date").value;
   const dueDate = document.getElementById("gold-emi-due-date").value;
   const late = dueDate && paidDate > dueDate;
+  document.getElementById("gold-emi-principal-total").textContent = goldEmiMoney(principal);
+  document.getElementById("gold-emi-interest-label").textContent = "Total Interest";
+  document.getElementById("gold-emi-interest-total").textContent = goldEmiMoney(totalInterest);
   document.getElementById("gold-emi-summary").textContent = `EMI ${goldEmiMoney(emi)}${late ? ` + fine ${goldEmiMoney(fine)}` : ""} · Total ${goldEmiMoney(emi + (late ? fine : 0))}`;
 }
 
@@ -174,6 +254,9 @@ function closeGoldEmiPayment() {
 async function submitGoldEmiPayment(event) {
   event.preventDefault();
   if (!currentGoldEmiLoan) return;
+  if (String(currentGoldEmiLoan["Repayment Method"] || "").trim().toLowerCase() === "daily interest") {
+    return submitGoldDailyPayment();
+  }
   if (hasGoldEmiPaidThisMonth(currentGoldEmiLoan.ID)) {
     closeGoldEmiPayment();
     renderGoldEmiLoans();
@@ -203,6 +286,38 @@ async function submitGoldEmiPayment(event) {
     submit.disabled = false;
     submit.textContent = "Pay EMI & Print Receipt";
   }
+}
+
+async function submitGoldDailyPayment() {
+  const startDate = document.getElementById("gold-daily-from").value;
+  const endDate = document.getElementById("gold-daily-to").value;
+  const amount = Number(document.getElementById("gold-daily-amount").value || 0);
+  if (!startDate || !endDate || endDate < startDate) return alert("Select a valid from and to date.");
+  if (endDate > dateToIso(new Date())) return alert("Collection date range cannot end in the future.");
+  if (!(amount > 0)) return alert("Enter a payment amount greater than zero.");
+  const receiptWindow = window.open("", "_blank", "width=700,height=750");
+  if (!receiptWindow) return alert("Please allow pop-ups to print the payment receipt.");
+  const submit = document.getElementById("gold-emi-submit");
+  submit.disabled = true;
+  submit.textContent = "Saving payment…";
+  try {
+    const response = await postAppData({ action: "record_gold_daily_interest_payment", loanId: currentGoldEmiLoan.ID, startDate, endDate, amount });
+    const result = await response.json();
+    if (result.status !== "success") throw new Error(result.message || "Could not save the daily interest payment.");
+    printGoldDailyReceipt(receiptWindow, result);
+    window.location.href = "Report.html?type=goldEmiPayments";
+  } catch (error) {
+    receiptWindow.close();
+    alert(error.message);
+  } finally {
+    submit.disabled = false;
+    submit.textContent = "Collect & Print Receipt";
+  }
+}
+
+function printGoldDailyReceipt(popup, receipt) {
+  popup.document.write(`<!doctype html><html><head><title>Daily Interest Collection Receipt</title><style>body{font:15px Arial,sans-serif;color:#172033;padding:30px;max-width:650px;margin:auto}h1{color:#805b08;border-bottom:3px solid #b8860b;padding-bottom:12px}table{border-collapse:collapse;width:100%;margin:22px 0}td{padding:10px;border-bottom:1px solid #dbe3ed}.total{font-size:19px;font-weight:bold;color:#805b08}.muted{color:#64748b}</style></head><body><h1>Daily Interest Collection Receipt</h1><p class="muted">Receipt: ${goldEmiEscape(receipt.receiptId)} · Date: ${goldEmiEscape(displayGoldEmiDate(receipt.paymentDate))}</p><table><tr><td>Customer</td><td>${goldEmiEscape(receipt.customerName)}</td></tr><tr><td>Application No.</td><td>${goldEmiEscape(receipt.applicationNo)}</td></tr><tr><td>Interest period</td><td>${goldEmiEscape(displayGoldEmiDate(receipt.startDate))} to ${goldEmiEscape(displayGoldEmiDate(receipt.endDate))} (${receipt.days} days)</td></tr><tr><td>Interest collected</td><td>${goldEmiMoney(receipt.interestPaid)}</td></tr><tr><td>Principal reduced</td><td>${goldEmiMoney(receipt.principalPaid)}</td></tr><tr><td>New principal balance</td><td>${goldEmiMoney(receipt.outstandingPrincipal)}</td></tr><tr><td class="total">Total paid</td><td class="total">${goldEmiMoney(receipt.totalPaid)}</td></tr></table><script>window.onload=()=>window.print();</script></body></html>`);
+  popup.document.close();
 }
 
 function printGoldEmiPaymentReceipt(popup, receipt) {

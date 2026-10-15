@@ -16,12 +16,28 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("goldValuationDate").value = today;
   toggleBankDetails();
   ["goldLtvPercent", "goldLoanAmount", "goldProcessingCharge", "goldDocumentCharge", "goldLoanTenure", "goldInterestRate", "goldRepaymentType", "goldValuationDate", "goldAppDate"].forEach(id => document.getElementById(id).addEventListener("input", calculateGoldLoan));
-  ["goldRepaymentType", "goldValuationDate", "goldAppDate"].forEach(id => document.getElementById(id).addEventListener("change", calculateGoldLoan));
+  ["goldRepaymentType", "goldValuationDate", "goldAppDate", "goldLoanTenureUnit"].forEach(id => document.getElementById(id).addEventListener("change", () => { updateGoldTenureUnit(); calculateGoldLoan(); }));
   document.getElementById("goldDisbursementMode").addEventListener("change", toggleBankDetails);
   document.getElementById("gold-table-body").addEventListener("input", calculateGoldLoan);
   document.getElementById("gold-loan-form").addEventListener("submit", handleGoldLoanSubmit);
+  updateGoldTenureUnit();
   calculateGoldLoan();
 });
+
+function updateGoldTenureUnit() {
+  const days = document.getElementById("goldLoanTenureUnit").value === "Days";
+  document.getElementById("goldInterestRateLabel").textContent = days ? "Interest Rate (% per month) *" : "Interest Rate (% p.a.) *";
+  const tenure = document.getElementById("goldLoanTenure");
+  document.getElementById("goldLoanTenureLabel").textContent = `Tenure (${days ? "days" : "months"}) *`;
+  tenure.max = days ? "365" : "60";
+  tenure.value = Math.min(Number(tenure.value) || 1, Number(tenure.max));
+  const repayment = document.getElementById("goldRepaymentType");
+  const dailyOption = repayment.querySelector('option[value="Daily Interest"]');
+  repayment.querySelectorAll('option[value="EMI"], option[value="Interest Only"]').forEach(option => { option.disabled = days; });
+  dailyOption.disabled = !days;
+  if (days && ["EMI", "Interest Only"].includes(repayment.value)) repayment.value = "Daily Interest";
+  if (!days && repayment.value === "Daily Interest") repayment.value = "Interest Only";
+}
 
 function setupGoldFieldValidation() {
   ["goldMobileNo", "goldAadhaarNo", "goldNomineeAadhaar"].forEach(id => {
@@ -100,24 +116,31 @@ function calculateGoldLoan() {
   });
   const ltv = Math.min(100, Math.max(0, valueOf("#goldLtvPercent")));
   const eligible = assessedTotal * ltv / 100;
-  const principal = valueOf("#goldLoanAmount"), months = Math.max(0, Math.floor(valueOf("#goldLoanTenure"))), annualRate = Math.max(0, valueOf("#goldInterestRate"));
+  const principal = valueOf("#goldLoanAmount"), tenure = Math.max(0, Math.floor(valueOf("#goldLoanTenure"))), tenureUnit = document.getElementById("goldLoanTenureUnit").value, isDays = tenureUnit === "Days", months = isDays ? 0 : tenure, annualRate = Math.max(0, valueOf("#goldInterestRate"));
   const processingCharge = valueOf("#goldProcessingCharge"), documentCharge = valueOf("#goldDocumentCharge");
   const repaymentType = document.getElementById("goldRepaymentType").value;
   const monthlyRate = annualRate / 1200;
   let payment = 0, totalPayable = 0, paymentLabel = "Estimated EMI / month";
-  if (principal && months) {
-    if (repaymentType === "EMI") { payment = monthlyRate ? principal * monthlyRate * Math.pow(1 + monthlyRate, months) / (Math.pow(1 + monthlyRate, months) - 1) : principal / months; totalPayable = payment * months; }
+  let totalInterest = 0;
+  if (principal && tenure) {
+    if (isDays) {
+      const dailyInterest = principal * (annualRate / 100) / 30;
+      totalInterest = dailyInterest * tenure;
+      totalPayable = principal + totalInterest;
+      if (repaymentType === "Daily Interest") { payment = dailyInterest; paymentLabel = "Estimated interest / day"; }
+      else { payment = totalPayable; paymentLabel = "Payable at maturity"; }
+    } else if (repaymentType === "EMI") { payment = monthlyRate ? principal * monthlyRate * Math.pow(1 + monthlyRate, months) / (Math.pow(1 + monthlyRate, months) - 1) : principal / months; totalPayable = payment * months; }
     else if (repaymentType === "Interest Only") { payment = principal * monthlyRate; totalPayable = principal + (payment * months); paymentLabel = "Monthly interest"; }
     else { totalPayable = principal * (1 + annualRate / 100 * months / 12); payment = totalPayable; paymentLabel = "Payable at maturity"; }
   }
   const valuation = document.getElementById("goldValuationDate").value;
   let maturity = "—";
-  if (valuation && months) { const date = new Date(`${valuation}T00:00:00`); date.setMonth(date.getMonth() + months); maturity = date.toLocaleDateString("en-GB").replaceAll("/", "-"); }
+  if (valuation && tenure) { const date = new Date(`${valuation}T00:00:00`); if (isDays) date.setDate(date.getDate() + tenure); else date.setMonth(date.getMonth() + months); maturity = date.toLocaleDateString("en-GB").replaceAll("/", "-"); }
   const applicationDate = document.getElementById("goldAppDate").value;
   const firstEmi = applicationDate ? new Date(`${applicationDate}T00:00:00`) : null;
-  if (firstEmi) firstEmi.setDate(firstEmi.getDate() + 30);
-  const emiClose = firstEmi && months ? new Date(firstEmi.getTime()) : null;
-  if (emiClose) emiClose.setDate(emiClose.getDate() + (months - 1) * 30);
+  if (firstEmi) firstEmi.setDate(firstEmi.getDate() + (isDays ? 1 : 30));
+  const emiClose = firstEmi && tenure ? new Date(firstEmi.getTime()) : null;
+  if (emiClose) emiClose.setDate(emiClose.getDate() + (isDays ? tenure - 1 : (months - 1) * 30));
   const firstEmiDate = formatGoldDate(firstEmi);
   maturity = formatGoldDate(emiClose);
   document.getElementById("goldTotalGross").textContent = `${grossTotal.toFixed(3)} g`;
@@ -127,12 +150,13 @@ function calculateGoldLoan() {
   document.getElementById("goldEligibleAmountInput").value = money(eligible);
   document.getElementById("goldPaymentLabel").textContent = paymentLabel;
   document.getElementById("goldEmiAmount").textContent = money(payment);
-  document.getElementById("goldTotalInterest").textContent = money(Math.max(0, totalPayable - principal));
+  if (!isDays) totalInterest = Math.max(0, totalPayable - principal);
+  document.getElementById("goldTotalInterest").textContent = money(totalInterest);
   document.getElementById("goldTotalPayable").textContent = money(totalPayable);
   document.getElementById("goldFirstEmiDate").textContent = firstEmiDate;
   document.getElementById("goldMaturityDate").textContent = maturity;
   document.getElementById("goldNetDisbursement").value = money(Math.max(0, principal - processingCharge - documentCharge));
-  goldLoanCalculation = { grossTotal, netTotal, assessedTotal, ltv, eligible, payment, totalInterest: Math.max(0, totalPayable - principal), totalPayable, firstEmiDate, emiCloseDate: maturity, maturity, processingCharge, documentCharge, netDisbursement: Math.max(0, principal - processingCharge - documentCharge) };
+  goldLoanCalculation = { grossTotal, netTotal, assessedTotal, ltv, eligible, payment, totalInterest, totalPayable, firstEmiDate, emiCloseDate: maturity, maturity, processingCharge, documentCharge, netDisbursement: Math.max(0, principal - processingCharge - documentCharge) };
 }
 
 function getChecklists() { return Array.from(document.querySelectorAll(".chk-doc:checked"), item => item.value).join(", "); }
@@ -152,7 +176,7 @@ async function handleGoldLoanSubmit(event) {
       branchName: document.getElementById("goldBranchName").value, branchCode: document.getElementById("goldBranchCode").value, officerName: document.getElementById("goldOfficerName").value, cspLocation: document.getElementById("goldCspLocation").value,
       borrowerName: document.getElementById("goldCustomerName").value, mobileNo: document.getElementById("goldMobileNo").value, identityNo: document.getElementById("goldIdentityNo").value, address: document.getElementById("goldAddress").value, monthlyIncome: document.getElementById("goldMonthlyIncome").value,
       guardianName: fieldValue("goldGuardianName"), gender: fieldValue("goldGender"), dob: fieldValue("goldDob"), religion: fieldValue("goldReligion"), aadhaarNo: fieldValue("goldAadhaarNo"), occupation: fieldValue("goldOccupation"), customerBankName: fieldValue("goldCustomerBankName"), customerBankBranch: fieldValue("goldCustomerBankBranch"), customerIfscCode: fieldValue("goldCustomerIfscCode").toUpperCase(), customerAccountHolder: fieldValue("goldCustomerAccountHolder"), customerAccountNumber: fieldValue("goldCustomerAccountNumber"), nomineeName: fieldValue("goldNomineeName"), nomineeGuardianName: fieldValue("goldNomineeGuardianName"), nomineeGender: fieldValue("goldNomineeGender"), nomineeOccupation: fieldValue("goldNomineeOccupation"), nomineeDob: fieldValue("goldNomineeDob"), nomineeAadhaar: fieldValue("goldNomineeAadhaar"), relationWithApplicant: fieldValue("goldRelationWithApplicant"),
-      goldArticles: JSON.stringify(articles), loanAmount: document.getElementById("goldLoanAmount").value, processingCharge: goldLoanCalculation.processingCharge, documentCharge: goldLoanCalculation.documentCharge, netDisbursementAmount: goldLoanCalculation.netDisbursement, loanTenure: document.getElementById("goldLoanTenure").value, purpose: document.getElementById("goldPurpose").value, scheme: document.getElementById("goldScheme").value, interestRate: document.getElementById("goldInterestRate").value, repaymentType: document.getElementById("goldRepaymentType").value, valuationDate: document.getElementById("goldValuationDate").value,
+      goldArticles: JSON.stringify(articles), loanAmount: document.getElementById("goldLoanAmount").value, processingCharge: goldLoanCalculation.processingCharge, documentCharge: goldLoanCalculation.documentCharge, netDisbursementAmount: goldLoanCalculation.netDisbursement, loanTenure: document.getElementById("goldLoanTenure").value, loanTenureUnit: document.getElementById("goldLoanTenureUnit").value, purpose: document.getElementById("goldPurpose").value, scheme: document.getElementById("goldScheme").value, interestRate: document.getElementById("goldInterestRate").value, repaymentType: document.getElementById("goldRepaymentType").value, valuationDate: document.getElementById("goldValuationDate").value,
       totalGrossWeight: goldLoanCalculation.grossTotal, totalNetWeight: goldLoanCalculation.netTotal, assessedValue: goldLoanCalculation.assessedTotal, ltvPercent: goldLoanCalculation.ltv, eligibleAmount: goldLoanCalculation.eligible, installmentAmount: goldLoanCalculation.payment, totalInterest: goldLoanCalculation.totalInterest, totalPayable: goldLoanCalculation.totalPayable, firstEmiDate: goldLoanCalculation.firstEmiDate, emiCloseDate: goldLoanCalculation.emiCloseDate, maturityDate: goldLoanCalculation.maturity,
       disbursementMode: document.getElementById("goldDisbursementMode").value, bankName: document.getElementById("goldBankName").value, acHolderName: document.getElementById("goldAcHolderName").value, acNumber: document.getElementById("goldAcNumber").value, ifscCode: document.getElementById("goldIfscCode").value, bankBranch: document.getElementById("goldBankBranch").value, submittedDocuments: getChecklists(),
       nomineeImgBase64: nominee ? await fileAsBase64(nominee) : "", nomineeImgName: nominee?.name || "", nomineeImgType: nominee?.type || "", goldItemImgBase64: item ? await fileAsBase64(item) : "", goldItemImgName: item?.name || "", goldItemImgType: item?.type || ""
@@ -175,6 +199,8 @@ async function loadGoldLoanForEdit(id) {
     if (!loan) return alert("Gold loan customer was not found.");
     const fields = { goldAppNo: "Application No", goldAppDate: "Application Date", goldBranchName: "Branch Name", goldBranchCode: "Branch Code", goldOfficerName: "Loan Officer Name", goldCspLocation: "CSP Location", goldCustomerName: "Borrower Name", goldMobileNo: "Mobile No", goldIdentityNo: "Identity No", goldAddress: "Address", goldMonthlyIncome: "Monthly Income", goldGuardianName: "Guardian Name", goldGender: "Gender", goldDob: "DOB", goldReligion: "Religion", goldAadhaarNo: "Aadhaar No", goldOccupation: "Occupation", goldCustomerBankName: "Customer Bank Name", goldCustomerBankBranch: "Customer Bank Branch", goldCustomerIfscCode: "Customer IFSC Code", goldCustomerAccountHolder: "Customer Account Holder", goldCustomerAccountNumber: "Customer Account Number", goldNomineeName: "Nominee Name", goldNomineeGuardianName: "Nominee Guardian Name", goldNomineeGender: "Nominee Gender", goldNomineeOccupation: "Nominee Occupation", goldNomineeDob: "Nominee DOB", goldNomineeAadhaar: "Nominee Aadhaar", goldRelationWithApplicant: "Relation With Applicant", goldValuationDate: "Valuation Date", goldLtvPercent: "LTV (%)", goldLoanAmount: "Loan Amount Requested", goldProcessingCharge: "Processing Charge", goldDocumentCharge: "Document Charge", goldLoanTenure: "Loan Tenure", goldInterestRate: "Rate of Interest (%)", goldRepaymentType: "Repayment Method", goldPurpose: "Purpose of Loan", goldScheme: "Scheme", goldDisbursementMode: "Disbursement Mode" };
     Object.entries(fields).forEach(([id, header]) => { const element = document.getElementById(id); if (element && loan[header] != null) element.value = loan[header]; });
+    document.getElementById("goldLoanTenureUnit").value = loan["Loan Tenure Unit"] || "Months";
+    updateGoldTenureUnit();
     const articles = JSON.parse(loan["Gold Articles Details"] || "[]");
     if (articles.length) { document.getElementById("gold-table-body").innerHTML = ""; articles.forEach((article, index) => { if (index) addGoldRow(); else addGoldRow(); const row = document.querySelector("#gold-table-body tr:last-child"); row.querySelector(".gold-description").value = article.description || ""; row.querySelector(".gold-purity").value = article.purity || "22K"; row.querySelector(".gold-gross").value = article.grossWeight || ""; row.querySelector(".gold-stone").value = article.stoneWeight || 0; row.querySelector(".gold-rate").value = article.ratePerGram || ""; }); }
     document.querySelector(".gold-page-header h1").innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Edit Gold Loan Customer';
