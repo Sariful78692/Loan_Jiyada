@@ -1169,7 +1169,8 @@ function recordGoldDailyInterestPayment(ss, goldSheet, data) {
     var originalPrincipal = Number(loan["Loan Amount Requested"] || 0);
     var accruedBalance = Number(loan["Accrued Interest Balance"] || 0);
     var amount = Number(data.amount || 0);
-    if (!(originalPrincipal > 0) || !(amount > 0) || !isFinite(rateAnnual) || rateAnnual < 0) return { status: "error", message: "Loan balance, interest rate, or payment amount is invalid." };
+    var principalPayment = Number(data.principalAmount || 0);
+    if (!(originalPrincipal > 0) || !(amount > 0) || !isFinite(rateAnnual) || rateAnnual < 0 || !isFinite(principalPayment) || principalPayment < 0) return { status: "error", message: "Loan balance, interest rate, or payment amount is invalid." };
     var paymentSheet = getOrCreateGoldEmiPaymentsSheet(ss);
     var paymentValues = paymentSheet.getDataRange().getValues();
     var paymentHeaders = paymentValues[0].map(function(header) { return String(header).trim(); });
@@ -1186,6 +1187,7 @@ function recordGoldDailyInterestPayment(ss, goldSheet, data) {
     // Rebuild principal from the original loan amount and recorded principal payments.
     // This repairs stale Outstanding Principal values left by older interest-only logic.
     var principal = Math.max(0, Math.round((originalPrincipal - totalPrincipalPaid) * 100) / 100);
+    if (principalPayment > principal) return { status: "error", message: "Principal repayment cannot exceed the outstanding principal." };
     var legacyCollectionDates = getLegacyGoldEmiCollectionDates(ss, loanId);
     if (legacyCollectionDates.some(function(date) { return date >= startDateText && date <= endDateText; })) {
       return { status: "error", message: "A payment is already recorded for one or more dates in this range." };
@@ -1195,8 +1197,8 @@ function recordGoldDailyInterestPayment(ss, goldSheet, data) {
     var interestDue = Math.round((principal * rateAnnual / 100 * days / 30 + accruedBalance) * 100) / 100;
     if (amount > interestDue) return { status: "error", message: "Daily interest payment cannot exceed the interest due. Principal is not changed by an interest payment." };
     var interestPaid = amount;
-    var principalPaid = 0;
-    var remainingPrincipal = principal;
+    var principalPaid = Math.round(principalPayment * 100) / 100;
+    var remainingPrincipal = Math.max(0, Math.round((principal - principalPaid) * 100) / 100);
     var remainingInterest = Math.round((interestDue - interestPaid) * 100) / 100;
     var dailyInterest = Math.round((remainingPrincipal * rateAnnual / 100 / 30) * 100) / 100;
     var extraHeaders = ["Period Start", "Period End", "Payment Type", "Interest Amount", "Principal Paid", "Outstanding Principal", "Daily Interest"];
@@ -1211,9 +1213,9 @@ function recordGoldDailyInterestPayment(ss, goldSheet, data) {
       "Payment ID": receiptId, "Receipt ID": receiptId, "Loan ID": loanId,
       "Application No": loan["Application No"] || "", "Customer Name": loan["Borrower Name"] || "", "Mobile No": loan["Mobile No"] || "",
       "Installment Month": endDateText.slice(0, 7), "Installment Number": "", "Due Date": endDateText,
-      "Paid Date": paymentDate, "Payment Date": paymentDate, "Amount": amount, "EMI Amount": amount,
-      "Fine Amount": 0, "Total Paid": amount, "Period Start": startDateText, "Period End": endDateText,
-      "Payment Type": "Daily Interest", "Interest Amount": interestPaid, "Principal Paid": principalPaid,
+      "Paid Date": paymentDate, "Payment Date": paymentDate, "Amount": amount + principalPaid, "EMI Amount": amount,
+      "Fine Amount": 0, "Total Paid": amount + principalPaid, "Period Start": startDateText, "Period End": endDateText,
+      "Payment Type": principalPaid > 0 ? "Daily Interest + Principal" : "Daily Interest", "Interest Amount": interestPaid, "Principal Paid": principalPaid,
       "Outstanding Principal": remainingPrincipal, "Daily Interest": dailyInterest, "Timestamp": new Date()
     };
     paymentSheet.appendRow(paymentHeaders.map(function(header) { return Object.prototype.hasOwnProperty.call(record, header) ? record[header] : ""; }));
@@ -1231,7 +1233,7 @@ function recordGoldDailyInterestPayment(ss, goldSheet, data) {
       customerName: loan["Borrower Name"] || "", mobileNo: loan["Mobile No"] || "", startDate: startDateText,
       endDate: endDateText, paymentDate: paymentDate, days: days, interestPaid: interestPaid,
       principalPaid: principalPaid, outstandingPrincipal: remainingPrincipal, accruedInterest: remainingInterest,
-      dailyInterest: dailyInterest, totalPaid: amount
+      dailyInterest: dailyInterest, totalPaid: amount + principalPaid
     };
   } finally {
     lock.releaseLock();

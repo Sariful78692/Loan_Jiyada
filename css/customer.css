@@ -211,6 +211,16 @@ table td {
 .gold-modal.hidden { display:none; }
 .gold-modal { position:fixed; inset:0; z-index:1500; display:grid; place-items:center; padding:20px; background:#0f172a99; }
 .gold-modal-card { position:relative; width:min(480px,100%); padding:26px; background:#fff; border-radius:12px; box-shadow:0 20px 60px #0003; }
+.gold-modal-card.gold-compact-modal { width:min(400px,100%); padding:15px 17px; border-radius:11px; }
+.gold-modal-card.gold-compact-modal h2 { margin-bottom:4px; font-size:20px; }
+.gold-modal-card.gold-compact-modal .gold-emi-principal-interest { gap:7px; margin:8px 0; }
+.gold-modal-card.gold-compact-modal .gold-emi-principal-interest > div { gap:3px; padding:7px 9px; }
+.gold-modal-card.gold-compact-modal .gold-emi-principal-interest strong { font-size:15px; }
+.gold-modal-card.gold-compact-modal .gold-modal-fields { gap:8px; margin:9px 0; }
+.gold-modal-card.gold-compact-modal .gold-fine-field { gap:3px; margin:6px 0; }
+.gold-modal-card.gold-compact-modal .gold-fine-field input { min-height:33px; padding:5px 8px; }
+.gold-modal-card.gold-compact-modal .gold-fine-field input[readonly] { background:#f1f5f9; color:#475569; cursor:not-allowed; }
+.gold-modal-card.gold-compact-modal .gold-emi-preview { margin:7px 0 10px; line-height:1.35; font-size:12px; }
 .gold-modal-card h2 { margin:0 35px 8px 0; color:#805b08; }
 .gold-modal-close { position:absolute; top:12px; right:15px; border:0; background:none; font-size:28px; cursor:pointer; }
 .gold-modal-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:18px 0; }

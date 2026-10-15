@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function loadGoldLoanCustomers() {
   const body = document.getElementById("gold-loan-details-body");
+  renderGoldLoanLoadingState(body);
   try {
     const data = await fetchAppData();
     goldLoans = data.gold_loans || [];
@@ -34,8 +35,15 @@ async function loadGoldLoanCustomers() {
     renderGoldLoanCustomers();
   } catch (error) {
     console.error(error);
-    body.innerHTML = '<tr><td colspan="12" style="padding:30px;text-align:center;color:#c43b2d">Could not load Gold Loan customers.</td></tr>';
+    body.innerHTML = '<tr><td colspan="13" style="padding:30px;text-align:center;color:#c43b2d">Could not load Gold Loan customers.</td></tr>';
   }
+}
+
+function renderGoldLoanLoadingState(body) {
+  const columns = 13;
+  const skeletons = Array.from({ length: columns }, () => '<span class="customer-skeleton"></span>').join("");
+  const row = `<div class="customer-loading-row" style="grid-template-columns:repeat(${columns},minmax(50px,1fr))">${skeletons}</div>`;
+  body.innerHTML = `<tr><td colspan="${columns}" class="customer-loading-cell"><div class="customer-loading-card" role="status" aria-live="polite"><div class="customer-loading-heading"><span class="customer-loading-icon"><i class="fa-solid fa-coins"></i></span><div><strong>Loading Gold Loan customers</strong><span>Fetching customer and loan details…</span></div><i class="fa-solid fa-circle-notch fa-spin customer-loading-spinner" aria-hidden="true"></i></div><div class="customer-skeleton-table" aria-hidden="true"><div class="customer-skeleton-header" style="grid-template-columns:repeat(${columns},minmax(50px,1fr))">${skeletons}</div>${row}${row}${row}</div></div><span class="sr-only">Loading Gold Loan details</span></td></tr>`;
 }
 
 function normalizeGoldLoanPayments(savedPayments, collections) {
@@ -59,7 +67,7 @@ function renderGoldLoanCustomers() {
   const start = document.getElementById("gold-filter-start").value;
   const end = document.getElementById("gold-filter-end").value;
   if (start && end && start > end) {
-    body.innerHTML = '<tr><td colspan="12" style="padding:24px;text-align:center;color:#c43b2d">Start date must be before end date.</td></tr>';
+    body.innerHTML = '<tr><td colspan="13" style="padding:24px;text-align:center;color:#c43b2d">Start date must be before end date.</td></tr>';
     return;
   }
   const loans = goldLoans.filter(loan => {
@@ -67,7 +75,7 @@ function renderGoldLoanCustomers() {
     return (!start || appDate >= start) && (!end || appDate <= end);
   });
   if (!loans.length) {
-    body.innerHTML = '<tr><td colspan="12" style="padding:30px;text-align:center">No Gold Loan customer found for this date range.</td></tr>';
+    body.innerHTML = '<tr><td colspan="13" style="padding:30px;text-align:center">No Gold Loan customer found for this date range.</td></tr>';
     return;
   }
   body.innerHTML = loans.map(loan => {
@@ -79,6 +87,7 @@ function renderGoldLoanCustomers() {
     return `<tr>
       <td>${goldHtml(loan["Application No"] || loan.ID)}</td>
       <td><strong>${goldHtml(loan["Borrower Name"] || "—")}</strong></td>
+      <td>${goldHtml(loan["Guardian Name"] || "—")}</td>
       <td>${goldHtml(loan["Mobile No"] || "—")}</td>
       <td>${customerPhoto ? goldPhotoMarkup(customerPhoto, "Customer photo") : "—"}</td>
       <td>${goldPhoto ? goldPhotoMarkup(goldPhoto, "Pledged gold photo") : "—"}</td>
