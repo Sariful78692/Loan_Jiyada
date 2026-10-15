@@ -1,7 +1,7 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHuG_5vhnpR4J_qwvBbUhrveW6sT6gEmBJvTkemfiLF5YsNxsv-25pFlF0qijeXTIcdA/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfh4xN8CChoVDwF9xOLBSp4TIZA2wUVJd1Ia3FgmCMZa-do_s-kiTxmb62NpVWblkAwQ/exec";
 const APPS_SCRIPT_READ_URLS = [
   APPS_SCRIPT_URL,
   "https://script.google.com/macros/s/AKfycbya3O_mtwT630kTZEugyV_fafyTqTZXQwnyXRIaJPC9PZrbno7OoCZUItHQ8Uf8hhmeXw/exec",
@@ -12,9 +12,10 @@ const APP_DATA_CACHE_KEY = "loanAppDataCache_v1";
 const APP_DATA_CACHE_MAX_AGE_MS = 60000;
 const appDataRequests = new Map();
 
-async function fetchAppData(view = "") {
+async function fetchAppData(view = "", forceRefresh = false) {
   const cacheKey = view ? `${APP_DATA_CACHE_KEY}_${view}` : APP_DATA_CACHE_KEY;
   try {
+    if (forceRefresh) throw new Error("Fresh data requested");
     const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
     if (cached && cached.savedAt && Date.now() - cached.savedAt < APP_DATA_CACHE_MAX_AGE_MS && cached.data) {
       return cached.data;
@@ -23,22 +24,22 @@ async function fetchAppData(view = "") {
     invalidateAppDataCache();
   }
 
-  if (appDataRequests.has(view)) return appDataRequests.get(view);
-  const request = fetchFreshAppData(view, cacheKey);
-  appDataRequests.set(view, request);
+  if (!forceRefresh && appDataRequests.has(view)) return appDataRequests.get(view);
+  const request = fetchFreshAppData(view, cacheKey, forceRefresh);
+  if (!forceRefresh) appDataRequests.set(view, request);
   try {
     return await request;
   } finally {
-    appDataRequests.delete(view);
+    if (!forceRefresh) appDataRequests.delete(view);
   }
 }
 
-async function fetchFreshAppData(view = "", cacheKey = APP_DATA_CACHE_KEY) {
+async function fetchFreshAppData(view = "", cacheKey = APP_DATA_CACHE_KEY, forceRefresh = false) {
   let lastError = null;
   for (let urlIndex = 0; urlIndex < APPS_SCRIPT_READ_URLS.length; urlIndex++) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const query = view ? `view=${encodeURIComponent(view)}&` : "";
+        const query = `${view ? `view=${encodeURIComponent(view)}&` : ""}${forceRefresh ? "refresh=1&" : ""}`;
         const separator = APPS_SCRIPT_READ_URLS[urlIndex].includes("?") ? "&" : "?";
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);

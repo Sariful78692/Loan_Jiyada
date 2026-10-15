@@ -1,4 +1,7 @@
 function doGet(e) {
+  // A manual spreadsheet edit/delete can leave script cache entries stale.
+  // Pages that explicitly request fresh data clear those entries before reading.
+  if (e && e.parameter && e.parameter.refresh === "1") clearDashboardCache();
   if (e && e.parameter && e.parameter.view === "rd_customer_details") {
     return doGetRdCustomerDetails();
   }
@@ -1163,28 +1166,39 @@ function recordGoldDailyInterestPayment(ss, goldSheet, data) {
     if (rowNumber < 0) return { status: "error", message: "Gold loan was not found." };
     if (String(loan["Repayment Method"] || "").trim().toLowerCase() !== "daily interest") return { status: "error", message: "Daily collection is only available for Daily Interest loans." };
     var rateAnnual = Number(loan["Rate of Interest (%)"] || 0);
-    var principal = Number(loan["Outstanding Principal"] || loan["Loan Amount Requested"] || 0);
+    var originalPrincipal = Number(loan["Loan Amount Requested"] || 0);
     var accruedBalance = Number(loan["Accrued Interest Balance"] || 0);
     var amount = Number(data.amount || 0);
-    if (!(principal > 0) || !(amount > 0) || !(rateAnnual >= 0)) return { status: "error", message: "Loan balance, interest rate, or payment amount is invalid." };
+    if (!(originalPrincipal > 0) || !(amount > 0) || !isFinite(rateAnnual) || rateAnnual < 0) return { status: "error", message: "Loan balance, interest rate, or payment amount is invalid." };
     var paymentSheet = getOrCreateGoldEmiPaymentsSheet(ss);
     var paymentValues = paymentSheet.getDataRange().getValues();
     var paymentHeaders = paymentValues[0].map(function(header) { return String(header).trim(); });
     var loanCol = paymentHeaders.indexOf("Loan ID"), endCol = paymentHeaders.indexOf("Period End"), priorEnd = null;
+    var principalPaidColumn = paymentHeaders.indexOf("Principal Paid"), totalPrincipalPaid = 0;
     for (var p = 1; p < paymentValues.length; p++) {
-      if (String(paymentValues[p][loanCol]).trim() !== loanId || endCol < 0) continue;
-      var recordedEnd = parseGoldLoanDate(paymentValues[p][endCol]);
-      if (recordedEnd && (!priorEnd || recordedEnd > priorEnd)) priorEnd = recordedEnd;
+      if (String(paymentValues[p][loanCol]).trim() !== loanId) continue;
+      if (principalPaidColumn >= 0) totalPrincipalPaid += Math.max(0, Number(paymentValues[p][principalPaidColumn]) || 0);
+      if (endCol >= 0) {
+        var recordedEnd = parseGoldLoanDate(paymentValues[p][endCol]);
+        if (recordedEnd && (!priorEnd || recordedEnd > priorEnd)) priorEnd = recordedEnd;
+      }
+    }
+    // Rebuild principal from the original loan amount and recorded principal payments.
+    // This repairs stale Outstanding Principal values left by older interest-only logic.
+    var principal = Math.max(0, Math.round((originalPrincipal - totalPrincipalPaid) * 100) / 100);
+    var legacyCollectionDates = getLegacyGoldEmiCollectionDates(ss, loanId);
+    if (legacyCollectionDates.some(function(date) { return date >= startDateText && date <= endDateText; })) {
+      return { status: "error", message: "A payment is already recorded for one or more dates in this range." };
     }
     if (priorEnd && startDate <= priorEnd) return { status: "error", message: "This date range overlaps an earlier collection. Start after " + goldLoanDateIso(priorEnd) + "." };
     var days = Math.floor((endDate.getTime() - startDate.getTime()) / 86400000) + 1;
-    var interestDue = Math.round((principal * (rateAnnual / 12) / 100 * days / 30 + accruedBalance) * 100) / 100;
-    if (amount > principal + interestDue) return { status: "error", message: "Payment cannot exceed the outstanding principal plus accrued interest." };
-    var interestPaid = Math.min(amount, interestDue);
-    var principalPaid = Math.min(principal, Math.max(0, amount - interestPaid));
-    var remainingPrincipal = Math.round((principal - principalPaid) * 100) / 100;
+    var interestDue = Math.round((principal * rateAnnual / 100 * days / 30 + accruedBalance) * 100) / 100;
+    if (amount > interestDue) return { status: "error", message: "Daily interest payment cannot exceed the interest due. Principal is not changed by an interest payment." };
+    var interestPaid = amount;
+    var principalPaid = 0;
+    var remainingPrincipal = principal;
     var remainingInterest = Math.round((interestDue - interestPaid) * 100) / 100;
-    var dailyInterest = Math.round((remainingPrincipal * (rateAnnual / 12) / 100 / 30) * 100) / 100;
+    var dailyInterest = Math.round((remainingPrincipal * rateAnnual / 100 / 30) * 100) / 100;
     var extraHeaders = ["Period Start", "Period End", "Payment Type", "Interest Amount", "Principal Paid", "Outstanding Principal", "Daily Interest"];
     var missing = extraHeaders.filter(function(header) { return paymentHeaders.indexOf(header) < 0; });
     if (missing.length) {
