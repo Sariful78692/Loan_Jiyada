@@ -137,12 +137,14 @@ function calculateGoldLoan() {
   let maturity = "—";
   if (valuation && tenure) { const date = new Date(`${valuation}T00:00:00`); if (isDays) date.setDate(date.getDate() + tenure); else date.setMonth(date.getMonth() + months); maturity = date.toLocaleDateString("en-GB").replaceAll("/", "-"); }
   const applicationDate = document.getElementById("goldAppDate").value;
-  const firstEmi = applicationDate ? new Date(`${applicationDate}T00:00:00`) : null;
+  const firstPaymentDate = isDays ? valuation : applicationDate;
+  const firstEmi = firstPaymentDate ? new Date(`${firstPaymentDate}T00:00:00`) : null;
   if (firstEmi) firstEmi.setDate(firstEmi.getDate() + (isDays ? 1 : 30));
   const emiClose = firstEmi && tenure ? new Date(firstEmi.getTime()) : null;
   if (emiClose) emiClose.setDate(emiClose.getDate() + (isDays ? tenure - 1 : (months - 1) * 30));
   const firstEmiDate = formatGoldDate(firstEmi);
   maturity = formatGoldDate(emiClose);
+  document.getElementById("goldFirstEmiDate").previousElementSibling.textContent = isDays ? "First Payment Date" : "First EMI Date";
   document.getElementById("goldTotalGross").textContent = `${grossTotal.toFixed(3)} g`;
   document.getElementById("goldTotalNet").textContent = `${netTotal.toFixed(3)} g`;
   document.getElementById("goldTotalValue").textContent = money(assessedTotal);
@@ -209,11 +211,54 @@ async function loadGoldLoanForEdit(id) {
 }
 
 function printGoldLoanReceipt(data) {
-  const articles = JSON.parse(data.goldArticles || "[]").map(item => `<tr><td>${item.description || "—"}</td><td>${item.purity || "—"}</td><td>${Number(item.netWeight || 0).toFixed(3)} g</td><td>${money(item.assessedValue)}</td></tr>`).join("");
-  const printPhoto = (label, base64, mime) => base64 ? `<figure style="display:inline-block;text-align:center;margin:12px"><figcaption>${label}</figcaption><img src="data:${mime || "image/jpeg"};base64,${base64}" alt="${label}" style="display:block;width:150px;height:150px;object-fit:contain;border:1px solid #d8d1c0;margin-top:6px"></figure>` : "";
-  const photos = printPhoto("Customer Photo", data.nomineeImgBase64, data.nomineeImgType) + printPhoto("Pledged Gold Photo", data.goldItemImgBase64, data.goldItemImgType);
-  const loanDetails = `<table><tr><th>Branch Code</th><td>${data.branchCode}</td><th>Loan Officer</th><td>${data.officerName}</td></tr><tr><th>CSP Location</th><td>${data.cspLocation}</td><th>Loan Principal</th><td>${money(data.loanAmount)}</td></tr><tr><th>Processing Charge</th><td>${money(data.processingCharge)}</td><th>Document Charge</th><td>${money(data.documentCharge)}</td></tr><tr><th>Net Disbursement Amount</th><td colspan="3">${money(data.netDisbursementAmount)}</td></tr><tr><th>First EMI Date</th><td colspan="3">${data.firstEmiDate}</td></tr></table>`;
-  const popup = window.open("", "_blank", "width=850,height=750");
+  const popup = window.open("", "_blank", "width=1000,height=800");
   if (!popup) return alert("Please allow pop-ups to print the application.");
-  popup.document.write(`<!doctype html><html><head><title>Gold Loan Application</title><style>body{font-family:Arial;color:#1f2937;max-width:760px;margin:30px auto}h1{color:#805b08;border-bottom:3px solid #b8860b;padding-bottom:10px}table{width:100%;border-collapse:collapse;margin:18px 0}td,th{padding:9px;border:1px solid #d8d1c0;text-align:left}th{background:#fff4d2}.summary{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.summary div{padding:16px;min-height:54px;border:1px solid #d8d1c0;border-radius:6px;background:#fff}.summary div:nth-child(2),.summary div:nth-child(4){display:none}.muted{color:#6b7280;font-size:12px} @media print{body{margin:10mm auto}}</style></head><body><h1>Gold Loan Application</h1><p class="muted">Application No: ${data.appNo} &nbsp; | &nbsp; Date: ${data.appDate}</p><table><tr><th>Borrower</th><td>${data.borrowerName}</td><th>Mobile</th><td>${data.mobileNo}</td></tr><tr><th>Loan Amount</th><td>${money(data.loanAmount)}</td><th>Repayment</th><td>${data.repaymentType}</td></tr></table>${loanDetails}${photos ? `<h3>Photographs</h3>${photos}` : ""}<h3>Pledged Articles</h3><table><tr><th>Article</th><th>Purity</th><th>Net Weight</th><th>Value</th></tr>${articles}</table><div class="summary"><div>Eligible Amount<br><strong>${money(data.eligibleAmount)}</strong></div><div>Total Payable<br><strong>${money(data.totalPayable)}</strong></div><div>Interest<br><strong>${money(data.totalInterest)}</strong></div><div>EMI Close Date<br><strong>${data.emiCloseDate || data.maturityDate}</strong></div></div><p class="muted">This is a computer-generated application estimate.</p><script>window.onload=()=>window.print();window.onafterprint=()=>{if(window.opener&&!window.opener.closed)window.opener.location.reload();window.close();};</script></body></html>`); popup.document.close();
+  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+  const show = value => value === "" || value == null ? "—" : escapeHtml(value);
+  const showMoney = value => value === "" || value == null ? "—" : money(value);
+  const showDate = value => {
+    if (!value) return "—";
+    const date = new Date(String(value) + "T00:00:00");
+    return Number.isNaN(date.getTime()) ? escapeHtml(value) : date.toLocaleDateString("en-GB").replaceAll("/", "-");
+  };
+  const tenureUnit = data.loanTenureUnit || "Months";
+  const firstDateLabel = String(tenureUnit).toLowerCase() === "days" ? "First Payment Date" : "First EMI Date";
+  const pairs = items => {
+    let output = "";
+    for (let i = 0; i < items.length; i += 2) {
+      const left = items[i], right = items[i + 1];
+      output += "<tr><th>" + left[0] + "</th><td>" + left[1] + "</td>" + (right ? "<th>" + right[0] + "</th><td>" + right[1] + "</td>" : "<th></th><td></td>") + "</tr>";
+    }
+    return output;
+  };
+  const section = (title, items) => "<h2>" + title + "</h2><table class='details'>" + pairs(items) + "</table>";
+  const articles = (() => { try { return JSON.parse(data.goldArticles || "[]"); } catch (_) { return []; } })();
+  const articleRows = articles.map((item, index) => "<tr><td>" + (index + 1) + "</td><td>" + show(item.description) + "</td><td>" + show(item.purity) + "</td><td>" + Number(item.grossWeight || 0).toFixed(3) + " g</td><td>" + Number(item.stoneWeight || 0).toFixed(3) + " g</td><td>" + Number(item.netWeight || 0).toFixed(3) + " g</td><td>" + showMoney(item.ratePerGram) + "</td><td>" + showMoney(item.assessedValue) + "</td></tr>").join("");
+  const printPhoto = (label, base64, mime) => base64 ? "<figure><figcaption>" + label + "</figcaption><img src='data:" + escapeHtml(mime || "image/jpeg") + ";base64," + base64 + "' alt='" + label + "'></figure>" : "";
+  const photos = printPhoto("Customer Photo", data.nomineeImgBase64, data.nomineeImgType) + printPhoto("Pledged Gold Photo", data.goldItemImgBase64, data.goldItemImgType);
+  const application = section("Application & Branch Details", [
+    ["Application No.", show(data.appNo)], ["Application Date", showDate(data.appDate)], ["Branch Name", show(data.branchName)], ["Branch Code", show(data.branchCode)], ["Loan Officer Name", show(data.officerName)], ["CSP Location", show(data.cspLocation)]
+  ]);
+  const borrower = section("Borrower Details", [
+    ["Borrower Name", show(data.borrowerName)], ["Mobile No.", show(data.mobileNo)], ["Identity No.", show(data.identityNo)], ["Address", show(data.address)], ["Monthly Income", showMoney(data.monthlyIncome)], ["Guardian Name", show(data.guardianName)], ["Gender", show(data.gender)], ["Date of Birth", showDate(data.dob)], ["Religion", show(data.religion)], ["Aadhaar No.", show(data.aadhaarNo)], ["Occupation", show(data.occupation)]
+  ]);
+  const customerBank = section("Customer Bank Details", [
+    ["Bank Name", show(data.customerBankName)], ["Bank Branch", show(data.customerBankBranch)], ["IFSC Code", show(data.customerIfscCode)], ["Account Holder", show(data.customerAccountHolder)], ["Account Number", show(data.customerAccountNumber)]
+  ]);
+  const nominee = section("Nominee Details", [
+    ["Nominee Name", show(data.nomineeName)], ["Guardian Name", show(data.nomineeGuardianName)], ["Gender", show(data.nomineeGender)], ["Occupation", show(data.nomineeOccupation)], ["Date of Birth", showDate(data.nomineeDob)], ["Aadhaar No.", show(data.nomineeAadhaar)], ["Relation with Applicant", show(data.relationWithApplicant)]
+  ]);
+  const valuation = section("Gold Valuation", [
+    ["Valuation Date", showDate(data.valuationDate)], ["Total Gross Weight", Number(data.totalGrossWeight || 0).toFixed(3) + " g"], ["Total Net Weight", Number(data.totalNetWeight || 0).toFixed(3) + " g"], ["Total Assessed Value", showMoney(data.assessedValue)], ["LTV", show(data.ltvPercent) + "%"], ["Eligible Amount", showMoney(data.eligibleAmount)]
+  ]);
+  const loan = section("Loan & Repayment Details", [
+    ["Loan Amount Requested", showMoney(data.loanAmount)], ["Processing Charge", showMoney(data.processingCharge)], ["Document Charge", showMoney(data.documentCharge)], ["Net Disbursement Amount", showMoney(data.netDisbursementAmount)], ["Tenure", show(data.loanTenure) + " " + escapeHtml(tenureUnit)], ["Interest Rate", show(data.interestRate) + (String(tenureUnit).toLowerCase() === "days" ? "% per month" : "% p.a.")], ["Repayment Method", show(data.repaymentType)], ["Installment / Interest Amount", showMoney(data.installmentAmount)], ["Total Interest", showMoney(data.totalInterest)], ["Total Payable", showMoney(data.totalPayable)], [firstDateLabel, showDate(data.firstEmiDate)], ["EMI Close Date", showDate(data.emiCloseDate)], ["Maturity Date", showDate(data.maturityDate)], ["Purpose of Loan", show(data.purpose)], ["Scheme", show(data.scheme)], ["Disbursement Mode", show(data.disbursementMode)]
+  ]);
+  const bank = section("Disbursement Bank Details", [
+    ["Bank Name", show(data.bankName)], ["Account Holder", show(data.acHolderName)], ["Account Number", show(data.acNumber)], ["IFSC Code", show(data.ifscCode)], ["Bank Branch", show(data.bankBranch)]
+  ]);
+  const documents = section("Documents Checklist", [["Submitted Documents", show(data.submittedDocuments)]]);
+  const html = "<!doctype html><html><head><meta charset='utf-8'><title>Gold Loan Application</title><style>body{font:13px Arial,sans-serif;color:#1f2937;max-width:980px;margin:26px auto}h1{color:#805b08;border-bottom:3px solid #b8860b;padding-bottom:10px}h2{font-size:16px;color:#805b08;margin:20px 0 6px}p{color:#64748b}.details,.articles{width:100%;border-collapse:collapse;margin:0 0 14px;table-layout:fixed}.details th,.details td,.articles th,.articles td{padding:7px;border:1px solid #d8d1c0;text-align:left;overflow-wrap:anywhere}.details th,.articles th{background:#fff4d2}.details th{width:18%}.details td{width:32%}.photos{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0}.photos figure{margin:0;text-align:center}.photos img{display:block;width:145px;height:145px;object-fit:contain;border:1px solid #d8d1c0;margin-top:5px}.articles{font-size:12px}tr{page-break-inside:avoid}@page{size:A4 portrait;margin:12mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>Gold Loan Application</h1><p>Application No.: " + show(data.appNo) + " &nbsp; | &nbsp; Application Date: " + showDate(data.appDate) + "</p>" + (photos ? "<h2>Photographs</h2><div class='photos'>" + photos + "</div>" : "") + application + borrower + customerBank + nominee + valuation + "<h2>Pledged Gold Articles</h2><table class='articles'><thead><tr><th>Sl.</th><th>Article</th><th>Purity</th><th>Gross Wt.</th><th>Less Stone</th><th>Net Wt.</th><th>Rate / g</th><th>Assessed Value</th></tr></thead><tbody>" + (articleRows || "<tr><td colspan='8'>No article details found.</td></tr>") + "</tbody></table>" + loan + bank + documents + "<p>This is a computer-generated application record.</p><script>window.onload=()=>window.print();</script></body></html>";
+  popup.document.write(html);
+  popup.document.close();
 }

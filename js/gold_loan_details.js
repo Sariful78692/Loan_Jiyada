@@ -93,6 +93,7 @@ function renderGoldLoanCustomers() {
     const goldPhoto = goldPhotoUrls(loan["Gold Item Photo URL"]);
     const emiCount = goldEmiPayments.filter(payment => String(payment["Loan ID"]) === String(loan.ID)).length;
     const isEmi = String(loan["Repayment Method"] || "").toLowerCase() === "emi";
+    const firstDateLabel = String(loan["Loan Tenure Unit"] || "Months").trim().toLowerCase() === "days" ? "First Payment Date" : "First EMI Date";
     return `<tr>
       <td>${goldHtml(loan["Application No"] || loan.ID)}</td>
       <td><strong>${goldHtml(loan["Borrower Name"] || "—")}</strong></td>
@@ -103,7 +104,7 @@ function renderGoldLoanCustomers() {
       <td>${Number(loan["Total Net Weight (g)"] || 0).toFixed(3)} g</td>
       <td>${goldMoney(loan["Eligible Amount"])}</td>
       <td>${goldMoney(loan["Loan Amount Requested"])}</td>
-      <td>${goldHtml(loan["First EMI Date"] || "—")}</td>
+      <td><small>${firstDateLabel}</small><br>${goldHtml(loan["First EMI Date"] || "—")}</td>
       <td>${goldHtml(loan["EMI Close Date"] || loan["Maturity Date"] || "—")}</td>
       <td>${goldHtml(loan.Status || "Active")}${isEmi ? `<small class="gold-emi-count">${emiCount}/${Number(loan["Loan Tenure"] || 0)} EMI paid</small>` : ""}</td>
       <td class="gold-row-actions">
