@@ -152,7 +152,19 @@ async function handleGoldTableAction(event) {
   if (!button) return;
   const loan = goldLoans.find(item => String(item.ID) === button.dataset.id);
   if (!loan) return;
-  if (button.dataset.action === "print") printGoldLoanDetails(loan);
+  if (button.dataset.action === "print") {
+    const popup = window.open("", "_blank", "width=900,height=800");
+    if (!popup) return alert("Please allow pop-ups to print the Gold Loan application.");
+    try {
+      const data = await fetchAppData("", true);
+      const freshLoan = (data.gold_loans || []).find(item => String(item.ID) === button.dataset.id);
+      printGoldLoanDetails(freshLoan || loan, popup);
+    } catch (error) {
+      console.warn("Could not refresh the Gold Loan record before printing; using the loaded record.", error);
+      printGoldLoanDetails(loan, popup);
+    }
+    return;
+  }
   if (button.dataset.action === "pay") openGoldEmiModal(loan);
   if (button.dataset.action === "delete") await deleteGoldLoan(loan.ID);
 }
@@ -184,8 +196,7 @@ function hideGoldPhotoPreview(event) {
   }
 }
 
-function printGoldLoanDetails(loan) {
-  const popup = window.open("", "_blank", "width=900,height=800");
+function printGoldLoanDetails(loan, popup = window.open("", "_blank", "width=900,height=800")) {
   if (!popup) return alert("Please allow pop-ups to print the Gold Loan application.");
   const articleData = (() => { try { return JSON.parse(loan["Gold Articles Details"] || "[]"); } catch (_) { return []; } })();
   const articleRows = articleData.map(article => `<tr><td>${goldHtml(article.description || "—")}</td><td>${goldHtml(article.purity || "—")}</td><td>${Number(article.grossWeight || 0).toFixed(3)} g</td><td>${Number(article.stoneWeight || 0).toFixed(3)} g</td><td>${Number(article.netWeight || 0).toFixed(3)} g</td><td>${goldMoney(article.ratePerGram)}</td><td>${goldMoney(article.assessedValue)}</td></tr>`).join("");
