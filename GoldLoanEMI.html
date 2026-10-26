@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gold Loan EMI Payments</title>
     <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
-    <link rel="stylesheet" href="css/customer.css?v=20261026-daily-interest-validation-4">
+    <link rel="stylesheet" href="css/customer.css?v=20261026-collect-confirm-1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -22,7 +22,9 @@
         <main class="main-content">
             <section class="content-section">
                 <div class="gold-page-header"><div><p class="gold-eyebrow">PAYMENT COLLECTION</p><h1><i class="fa-solid fa-money-bill-wave"></i> Gold Loan EMI</h1><p>Review installment dates and collect the next EMI.</p></div><a href="GoldLoanDetails.html" class="btn-secondary">Gold Loan Customers</a></div>
+                <div class="gold-emi-table-tools"><label class="gold-emi-search"><span>Search customer</span><span class="gold-emi-search-box"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="gold-emi-search" type="search" placeholder="Name or mobile number" autocomplete="off"></span></label><label class="gold-emi-page-size">Rows per page<select id="gold-emi-page-size"><option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="50">50</option><option value="all">All</option></select></label></div>
                 <div class="table-container" style="overflow-x:auto;background:#fff;padding:10px"><table class="data-table gold-details-table" style="width:100%;border-collapse:collapse"><thead><tr><th>Application No</th><th>Application Date</th><th>Customer Name</th><th>Guardian Name</th><th>Mobile No</th><th>Loan Amount</th><th>Pay EMI Amount</th><th>First EMI date</th><th>EMI Close Date</th><th>Action</th></tr></thead><tbody id="gold-emi-body"><tr><td colspan="10" role="status" style="padding:30px;text-align:center"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Loading EMI accounts…</td></tr></tbody></table></div>
+                <div class="gold-emi-pagination"><span id="gold-emi-page-info" aria-live="polite">Showing 0–0 of 0</span><div><button id="gold-emi-prev" type="button" class="btn-secondary" disabled>Previous</button><span id="gold-emi-page-label">Page 1 of 1</span><button id="gold-emi-next" type="button" class="btn-secondary" disabled>Next</button></div></div>
             </section>
         </main>
     </div>
@@ -35,14 +37,15 @@
             <label class="gold-fine-field hidden" id="gold-fine-wrap">Late EMI fine (₹) <input id="gold-emi-fine" type="number" min="0" step="0.01" value="0"></label>
             <div id="gold-daily-collection-fields" class="hidden">
                 <div class="gold-modal-fields"><label>From date <input id="gold-daily-from" type="date" required></label><label>To date <input id="gold-daily-to" type="date" required></label></div>
+                <p id="gold-daily-days-count" class="gold-emi-preview gold-days-selected" aria-live="polite">Select dates to see the number of days.</p>
                 <label class="gold-fine-field">Interest payment (₹) <input id="gold-daily-amount" type="number" min="0.01" step="0.01" required readonly></label>
                 <label class="gold-fine-field">Principal repayment (optional) <input id="gold-daily-principal" type="number" min="0" step="0.01" value="0"></label>
                 <p id="gold-daily-summary" class="gold-emi-preview" aria-live="polite"></p>
             </div>
             <p id="gold-emi-summary" class="gold-emi-preview"></p>
-            <div class="gold-modal-actions"><button type="submit" id="gold-emi-submit" class="btn-primary">Pay EMI</button><button type="button" id="gold-emi-print" class="btn-secondary hidden">Print Receipt</button><button type="button" id="gold-emi-cancel" class="btn-secondary">Cancel</button></div>
+            <div class="gold-modal-actions"><button type="submit" id="gold-emi-submit" class="btn-primary">Pay EMI</button><button type="button" id="gold-emi-print" class="btn-secondary hidden">Print Receipt</button><button type="button" id="gold-emi-cancel" class="btn-secondary gold-cancel">Cancel</button></div>
         </form>
     </div>
-    <script src="js/common.js?v=20261026-apps-script-url-1"></script><script src="js/gold_loan_emi.js?v=20261026-daily-interest-validation-4"></script>
+    <script src="js/common.js?v=20261026-apps-script-url-1"></script><script src="js/gold_loan_emi.js?v=20261026-collect-confirm-1"></script>
 </body>
 </html>

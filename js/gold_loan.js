@@ -298,10 +298,15 @@ async function handleGoldLoanSubmit(event) {
 }
 
 async function loadGoldLoanForEdit(id) {
+  const loader = document.getElementById("gold-edit-loader");
+  loader?.classList.remove("hidden");
   try {
     const data = await fetchAppData("", true);
     const loan = (data.gold_loans || []).find(item => String(item.ID) === String(id));
-    if (!loan) return alert("Gold loan customer was not found.");
+    if (!loan) {
+      loader?.classList.add("hidden");
+      return alert("Gold loan customer was not found.");
+    }
     const fields = { goldAppNo: "Application No", goldAppDate: "Application Date", goldBranchName: "Branch Name", goldBranchCode: "Branch Code", goldOfficerName: "Loan Officer Name", goldCspLocation: "CSP Location", goldCustomerName: "Borrower Name", goldMobileNo: "Mobile No", goldIdentityNo: "Identity No", goldAddress: "Address", goldMonthlyIncome: "Monthly Income", goldGuardianName: "Guardian Name", goldGender: "Gender", goldDob: "DOB", goldReligion: "Religion", goldAadhaarNo: "Aadhaar No", goldOccupation: "Occupation", goldCustomerBankName: "Customer Bank Name", goldCustomerBankBranch: "Customer Bank Branch", goldCustomerIfscCode: "Customer IFSC Code", goldCustomerAccountHolder: "Customer Account Holder", goldCustomerAccountNumber: "Customer Account Number", goldNomineeName: "Nominee Name", goldNomineeGuardianName: "Nominee Guardian Name", goldNomineeGender: "Nominee Gender", goldNomineeOccupation: "Nominee Occupation", goldNomineeDob: "Nominee DOB", goldNomineeAadhaar: "Nominee Aadhaar", goldRelationWithApplicant: "Relation With Applicant", goldValuationDate: "Valuation Date", goldLtvPercent: "LTV (%)", goldLoanAmount: "Loan Amount Requested", goldProcessingCharge: "Processing Charge", goldDocumentCharge: "Document Charge", goldLoanTenure: "Loan Tenure", goldInterestRate: "Rate of Interest (%)", goldRepaymentType: "Repayment Method", goldPurpose: "Purpose of Loan", goldScheme: "Scheme", goldDisbursementMode: "Disbursement Mode" };
     Object.entries(fields).forEach(([id, header]) => {
       const element = document.getElementById(id);
@@ -322,7 +327,12 @@ async function loadGoldLoanForEdit(id) {
     document.querySelector(".gold-page-header h1").innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Edit Gold Loan Customer';
     document.getElementById("cancel-gold-btn").classList.remove("hidden");
     document.getElementById("submit-gold-btn").innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Gold Loan'; calculateGoldLoan();
-  } catch (error) { console.error(error); alert("Could not load the Gold Loan customer for editing."); }
+    loader?.classList.add("hidden");
+  } catch (error) {
+    console.error(error);
+    loader?.classList.add("hidden");
+    alert("Could not load the Gold Loan customer for editing.");
+  }
 }
 
 function goldDateInputValue(value) {

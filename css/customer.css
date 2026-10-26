@@ -252,16 +252,44 @@ table td {
 .gold-modal-card.gold-compact-modal .gold-emi-preview { margin:7px 0 10px; line-height:1.35; font-size:12px; }
 @media (max-width:560px) { .gold-daily-modal .gold-daily-heading { align-items:flex-start; flex-direction:column; gap:5px; } .gold-daily-modal #gold-emi-customer { white-space:normal; } }
 .gold-modal-card h2 { margin:0 35px 8px 0; color:#805b08; }
-.gold-modal-close { position:absolute; top:12px; right:15px; border:0; background:none; font-size:28px; cursor:pointer; }
+.gold-modal-close { position:absolute; top:12px; right:15px; border:0; border-radius:50%; background:#fff1f2; color:#dc2626; font-size:28px; line-height:1; cursor:pointer; transition:background .2s ease, color .2s ease, transform .25s ease; }
+.gold-modal-close:hover { background:#dc2626; color:#fff; transform:rotate(90deg) scale(1.08); }
 .gold-modal-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:18px 0; }
 .gold-emi-preview { min-height:22px; color:#475569; font-weight:700; }
+.gold-days-selected { display:table; min-height:0; margin:8px 0; padding:6px 11px; border:1px solid #a5b4fc; border-radius:999px; background:linear-gradient(100deg,#eef2ff,#fdf2f8,#ecfeff); color:#4338ca; font-size:12px; font-weight:800; box-shadow:0 2px 7px #6366f11a; }
 .gold-fine-field.hidden { display:none; }
 .gold-fine-field { display:grid; gap:6px; margin:12px 0; color:#475569; font-size:12px; font-weight:700; }
 .gold-fine-field input { min-height:38px; padding:7px 10px; border:1px solid #cbd5e1; border-radius:5px; font:inherit; }
 .gold-modal-actions { display:flex; flex-wrap:wrap; gap:10px; }
+.gold-modal-actions .gold-cancel { border:1px solid #dc2626; background:#dc2626; color:#fff; transition:background .2s ease, box-shadow .2s ease, transform .2s ease; }
+.gold-modal-actions .gold-cancel:hover { background:#b91c1c; box-shadow:0 5px 14px #dc262655; transform:translateY(-2px); }
 .gold-emi-principal-interest { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0; }
 .gold-emi-principal-interest > div { display:grid; gap:6px; padding:12px; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc; }
 .gold-emi-principal-interest span { color:#64748b; font-size:12px; }
 .gold-emi-principal-interest strong { color:#0f172a; font-size:17px; }
 @media (max-width:520px) { .gold-modal-fields,.gold-emi-principal-interest { grid-template-columns:1fr; } }
+
+.gold-edit-loader { position:fixed; inset:0; z-index:10050; display:grid; place-items:center; padding:20px; background:rgba(15,23,42,.42); backdrop-filter:blur(3px); }
+.gold-edit-loader.hidden { display:none; }
+.gold-edit-loader-card { display:grid; justify-items:center; gap:10px; min-width:250px; padding:26px 30px; border:1px solid #f2d488; border-radius:14px; background:#fffdf7; box-shadow:0 18px 48px rgba(15,23,42,.22); color:#334155; text-align:center; }
+.gold-edit-loader-card strong { color:#805b08; font-size:15px; }
+.gold-edit-loader-card > span:last-child { color:#64748b; font-size:12px; }
+.gold-edit-spinner { width:36px; height:36px; border:4px solid #f3e7c7; border-top-color:#b8860b; border-radius:50%; animation:gold-edit-spin .75s linear infinite; }
+@keyframes gold-edit-spin { to { transform:rotate(360deg); } }
+
+.gold-emi-table-tools { display:flex; align-items:end; justify-content:space-between; gap:14px; margin:0 0 12px; padding:12px; border:1px solid #eadfbe; border-radius:10px; background:#fffdf7; }
+.gold-emi-table-tools label { display:grid; gap:5px; color:#475569; font-size:12px; font-weight:700; }
+.gold-emi-search { flex:1; max-width:420px; }
+.gold-emi-search-box { display:flex; align-items:center; gap:8px; min-height:40px; padding:0 10px; border:1px solid #cbd5e1; border-radius:7px; background:#fff; color:#9a7b35; }
+.gold-emi-search-box input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:#1f2937; font:inherit; }
+.gold-emi-page-size { width:140px; }
+.gold-emi-page-size select { min-height:40px; padding:7px 10px; border:1px solid #cbd5e1; border-radius:7px; background:#fff; color:#1f2937; font:inherit; }
+.gold-emi-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; color:#64748b; font-size:12px; }
+.gold-emi-pagination > div { display:flex; align-items:center; gap:10px; }
+.gold-emi-pagination button { min-height:34px; padding:6px 11px; }
+.gold-emi-pagination button:disabled { opacity:.5; cursor:not-allowed; }
+.gold-closing-date { color:#dc2626; font-weight:800; }
+.gold-pay small { margin-left:2px; font-size:10px; font-weight:700; white-space:nowrap; }
+.gold-application-days { display:inline-block; margin-left:3px; padding:3px 8px; border:1px solid #f3d47b; border-radius:999px; background:#fff2c2; color:#805b08; font-size:12px; font-weight:800; white-space:nowrap; }
+@media(max-width:520px) { .gold-emi-table-tools { align-items:stretch; flex-direction:column; }.gold-emi-search,.gold-emi-page-size { max-width:none; width:100%; }.gold-emi-pagination { align-items:flex-start; flex-direction:column; }.gold-emi-pagination > div { width:100%; justify-content:space-between; } }
 
