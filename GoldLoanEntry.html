@@ -7,7 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gold Loan Entry - Loan Management</title>
     <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
-    <link rel="stylesheet" href="css/customer.css?v=20261026-edit-photo-date-cancel-2">
+    <link rel="stylesheet" href="css/customer.css?v=20261026-photo-preview-card-2">
+    <link rel="stylesheet" href="css/metal_rates.css?v=20261026-india-today-chart-1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,6 +53,7 @@
                         <p>Article valuation, loan eligibility and repayment estimate.</p>
                     </div>
                 </div>
+                <section id="gold-metal-rates" class="metal-rates-widget" aria-label="Today's gold and metal rates" aria-live="polite"></section>
                 <form id="gold-loan-form" class="gold-loan-form">
                     <div class="gold-form-note"><i class="fa-solid fa-shield-halved"></i> Calculations are estimates.
                         Verify gold purity, weight and documents before disbursement.</div>
@@ -72,9 +74,9 @@
                     </div>
                     <div class="gold-upload-grid">
                         <div class="form-group"><label>Customer Photo</label><input id="goldNomineeImage"
-                                type="file" accept="image/*"><img id="goldNomineeImagePreview" class="gold-entry-photo-preview hidden" alt="Customer photo preview"></div>
+                                type="file" accept="image/*"><div id="goldNomineePhotoCard" class="gold-entry-photo-card"><img id="goldNomineeImagePreview" class="hidden" alt="Customer photo preview"><div class="gold-entry-photo-placeholder"><i class="fa-regular fa-image"></i><span>Choose a photo to preview</span></div><div><strong>Customer photo</strong><small id="goldNomineePhotoCaption">No photo selected</small></div></div></div>
                         <div class="form-group"><label>Pledged Gold Photo</label><input id="goldItemImage" type="file"
-                                accept="image/*"><img id="goldItemImagePreview" class="gold-entry-photo-preview hidden" alt="Pledged gold photo preview"></div>
+                                accept="image/*"><div id="goldItemPhotoCard" class="gold-entry-photo-card"><img id="goldItemImagePreview" class="hidden" alt="Pledged gold photo preview"><div class="gold-entry-photo-placeholder"><i class="fa-regular fa-image"></i><span>Choose a photo to preview</span></div><div><strong>Pledged gold photo</strong><small id="goldItemPhotoCaption">No photo selected</small></div></div></div>
                     </div>
                     <h4 class="gold-section-title">PLEDGED GOLD ARTICLE VALUATION</h4>
                     <div class="table-responsive">
@@ -207,7 +209,8 @@
         </main>
     </div>
     <script src="js/common.js?v=20261026-apps-script-url-1"></script>
-    <script src="js/gold_loan.js?v=20261026-edit-photo-date-cancel-1"></script>
+    <script src="js/gold_loan.js?v=20261026-photo-preview-card-2"></script>
+    <script src="js/metal_rates.js?v=20261026-india-today-chart-1"></script>
     <script src="js/goldLoanEntry.js"></script>
 </body>
 

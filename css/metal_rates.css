@@ -1,0 +1,42 @@
+.metal-rates-widget { display:grid; grid-template-columns:minmax(220px,1fr) minmax(250px,1.1fr) minmax(160px,.72fr); align-items:stretch; gap:10px; max-width:900px; margin:14px 0 20px; }
+.metal-rates-panel { min-width:0; padding:12px; border:1px solid #e7e5e4; border-radius:13px; background:linear-gradient(145deg,#fff,#fafaf9); box-shadow:0 4px 14px #0f172a12; }
+.metal-today-panel { border-color:#f5d98b; background:linear-gradient(145deg,#fff9e8,#fff 74%); }
+.metal-list-panel { border-color:#b9e6db; background:linear-gradient(145deg,#eafff8,#fff 74%); }
+.metal-chart-panel { border-color:#c9c5ff; background:linear-gradient(145deg,#f1efff,#fff 78%); }
+.metal-rates-heading { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.metal-rates-heading h2 { margin:0; color:#1f2937; font-size:14px; }
+.metal-rates-heading small { display:block; margin-top:3px; color:#88723b; font-size:9px; line-height:1.35; }
+.metal-rates-heading small a { color:#8a5b00; font-weight:700; text-decoration:underline; }
+.metal-heading-icon { display:grid; flex:0 0 32px; width:32px; height:32px; place-items:center; border-radius:9px; background:#ffe9a8; color:#a66b00; }
+.metal-heading-icon.metals { background:#c8f4e8; color:#08785f; }
+.metal-heading-icon.chart { background:#dedbff; color:#5b50c8; }
+.metal-today-values { display:grid; gap:6px; }
+.metal-today-values > div { display:flex; align-items:center; justify-content:space-between; gap:7px; padding:8px 9px; border:1px solid #f1d68d; border-radius:8px; background:#fffdf6; }
+.metal-today-values > div:last-child { border-color:#f4c8a1; background:#fff6ef; }
+.metal-today-values span { color:#475569; font-size:11px; font-weight:700; }
+.metal-today-values span small { color:#94a3b8; font-size:9px; font-weight:500; }
+.metal-today-values strong { color:#1f2937; font-size:16px; white-space:nowrap; }
+.metal-rate-list { display:grid; }
+.metal-rate-row { display:grid; grid-template-columns:27px minmax(70px,1fr) auto; align-items:center; gap:7px; padding:6px 0; border-bottom:1px solid #dcefe9; }
+.metal-rate-row:last-child { border-bottom:0; }
+.metal-rate-icon { display:grid; width:25px; height:25px; place-items:center; border-radius:8px; background:#ffefc9; color:#a66b00; font-size:11px; }
+.metal-rate-icon.silver { background:#e6edf5; color:#64748b; }
+.metal-rate-icon.platinum { background:#e8e4ff; color:#6366f1; }
+.metal-rate-name { color:#334155; font-size:11px; font-weight:700; }
+.metal-rate-name small { display:block; margin-top:2px; color:#94a3b8; font-size:9px; font-weight:500; }
+.metal-rate-row > strong { color:#1f2937; font-size:12px; white-space:nowrap; }
+.metal-rates-updated { margin:7px 0 0; color:#94a3b8; font-size:9px; text-align:right; }
+.metal-rates-note { grid-column:1/-1; margin:-4px 2px 0; color:#64748b; font-size:9px; }
+.metal-rates-loading { margin:12px 0; color:#64748b; font-size:12px; }
+.metal-rates-error { display:flex; align-items:center; justify-content:space-between; gap:12px; color:#b91c1c; font-size:13px; }
+.metal-rates-retry { padding:7px 12px; border:0; border-radius:6px; background:#b8860b; color:white; cursor:pointer; }
+.metal-chart-svg { display:block; width:100%; height:72px; overflow:visible; }
+.metal-chart-empty { min-height:52px; margin:0; display:grid; place-items:center; color:#7c75be; font-size:10px; text-align:center; }
+.metal-chart-current { display:flex; align-items:center; justify-content:space-between; gap:5px; margin-top:4px; color:#7069ae; font-size:9px; }
+.metal-chart-current strong { color:#443b9b; font-size:12px; }
+.metal-chart-legend { display:flex; justify-content:center; gap:14px; margin-top:2px; color:#635b9d; font-size:9px; }
+.metal-chart-legend span { display:flex; align-items:center; gap:4px; }
+.metal-chart-legend i { display:inline-block; width:13px; height:3px; border-radius:2px; background:#c58b16; }
+.metal-chart-legend i.gold22-line { background:#e87942; }
+@media(max-width:760px) { .metal-rates-widget { grid-template-columns:repeat(2,minmax(0,1fr)); max-width:none; }.metal-chart-panel { grid-column:1/-1; }.metal-rates-note { grid-column:1/-1; } }
+@media(max-width:480px) { .metal-rates-widget { grid-template-columns:1fr; }.metal-chart-panel { grid-column:auto; }.metal-rates-note { grid-column:auto; } }

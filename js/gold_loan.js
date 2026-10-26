@@ -23,10 +23,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("gold-table-body").addEventListener("input", calculateGoldLoan);
   document.getElementById("gold-loan-form").addEventListener("submit", handleGoldLoanSubmit);
   document.getElementById("cancel-gold-btn").addEventListener("click", () => { window.location.href = "GoldLoanDetails.html"; });
-  [["goldNomineeImage", "goldNomineeImagePreview"], ["goldItemImage", "goldItemImagePreview"]].forEach(([inputId, previewId]) => {
+  [["goldNomineeImage", "goldNomineeImagePreview", "goldNomineePhotoCard", "goldNomineePhotoCaption"], ["goldItemImage", "goldItemImagePreview", "goldItemPhotoCard", "goldItemPhotoCaption"]].forEach(([inputId, previewId, cardId, captionId]) => {
     document.getElementById(inputId).addEventListener("change", event => {
       const file = event.target.files[0];
-      if (file) showGoldEntryPhoto(previewId, URL.createObjectURL(file));
+      if (file) showGoldEntryPhoto(previewId, URL.createObjectURL(file), "", file.name, cardId, captionId);
     });
   });
   updateGoldTenureUnit();
@@ -94,12 +94,17 @@ function valueOf(selector) { return Number(document.querySelector(selector)?.val
 function money(value) { return `\u20B9${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
 function fieldValue(id) { return document.getElementById(id)?.value?.trim() || ""; }
 
-function showGoldEntryPhoto(previewId, source, fallback = "") {
+function showGoldEntryPhoto(previewId, source, fallback = "", caption = "Photo ready", cardId = "", captionId = "") {
   const image = document.getElementById(previewId);
   if (!image || !source) return;
   image.onerror = fallback ? () => { image.onerror = null; image.src = fallback; } : null;
   image.src = source;
   image.classList.remove("hidden");
+  const card = document.getElementById(cardId || (previewId === "goldNomineeImagePreview" ? "goldNomineePhotoCard" : "goldItemPhotoCard"));
+  card?.classList.remove("hidden");
+  card?.querySelector(".gold-entry-photo-placeholder")?.classList.add("hidden");
+  const captionElement = document.getElementById(captionId || (previewId === "goldNomineeImagePreview" ? "goldNomineePhotoCaption" : "goldItemPhotoCaption"));
+  if (captionElement) captionElement.textContent = caption;
 }
 
 function goldEntryPhotoSource(url) {
@@ -306,9 +311,9 @@ async function loadGoldLoanForEdit(id) {
       if (element.tagName === "SELECT" && savedValue && ![...element.options].some(option => option.value === savedValue)) element.add(new Option(savedValue, savedValue));
       element.value = savedValue;
     });
-    [["goldNomineeImagePreview", loan["Nominee Photo URL"]], ["goldItemImagePreview", loan["Gold Item Photo URL"]]].forEach(([previewId, url]) => {
+    [["goldNomineeImagePreview", loan["Nominee Photo URL"], "goldNomineePhotoCard", "goldNomineePhotoCaption"], ["goldItemImagePreview", loan["Gold Item Photo URL"], "goldItemPhotoCard", "goldItemPhotoCaption"]].forEach(([previewId, url, cardId, captionId]) => {
       const photo = goldEntryPhotoSource(url);
-      if (photo.source) showGoldEntryPhoto(previewId, photo.source, photo.fallback);
+      if (photo.source) showGoldEntryPhoto(previewId, photo.source, photo.fallback, "Saved photo", cardId, captionId);
     });
     document.getElementById("goldLoanTenureUnit").value = loan["Loan Tenure Unit"] || "Months";
     updateGoldTenureUnit();

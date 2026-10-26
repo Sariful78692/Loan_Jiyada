@@ -166,7 +166,12 @@ table td {
 .gold-loan-form { padding:24px; background:#fffcf4; border:1px solid #eadfbe; border-top:0; border-radius:0 0 14px 14px; }
 .gold-form-note { color:#755715; background:#fff3cd; border:1px solid #f0d890; border-radius:8px; padding:11px 13px; margin-bottom:20px; font-size:13px; }
 .gold-panel,.gold-upload-grid { background:#fff; border:1px solid #e8dfc9; padding:18px; margin-bottom:20px; }.gold-upload-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
-.gold-entry-photo-preview { display:block; width:86px; height:86px; margin-top:8px; border:1px solid #d8d1c0; border-radius:7px; background:#fff; object-fit:contain; }
+.gold-entry-photo-card { display:flex; align-items:center; gap:11px; width:min(260px,100%); box-sizing:border-box; margin-top:9px; padding:9px; border:1px solid #ead9a9; border-radius:9px; background:linear-gradient(135deg,#fffdf6,#fff6dc); box-shadow:0 3px 10px #805b0812; }
+.gold-entry-photo-card img { display:block; flex:0 0 68px; width:68px; height:68px; border:1px solid #e1d2ab; border-radius:7px; background:#fff; object-fit:cover; }
+.gold-entry-photo-placeholder { display:flex; flex:0 0 68px; width:68px; height:68px; box-sizing:border-box; flex-direction:column; align-items:center; justify-content:center; gap:5px; border:1px dashed #c7ad6a; border-radius:7px; background:#fffaf0; color:#9a741e; text-align:center; }.gold-entry-photo-placeholder i { font-size:19px; }.gold-entry-photo-placeholder span { padding:0 3px; font-size:8px; line-height:1.2; }
+.gold-entry-photo-card strong,.gold-entry-photo-card small { display:block; overflow-wrap:anywhere; }
+.gold-entry-photo-card strong { color:#684907; font-size:12px; }
+.gold-entry-photo-card small { margin-top:4px; color:#64748b; font-size:11px; }
 #cancel-gold-btn { background:#dc2626; border:1px solid #b91c1c; color:#fff; transition:background-color .18s ease, border-color .18s ease, box-shadow .18s ease; }
 #cancel-gold-btn:hover { background:#b91c1c; border-color:#991b1b; box-shadow:0 3px 9px #991b1b40; }
 #cancel-gold-btn:focus-visible { outline:3px solid #fca5a5; outline-offset:2px; }
