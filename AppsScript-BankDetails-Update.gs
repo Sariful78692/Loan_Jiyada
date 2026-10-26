@@ -879,7 +879,7 @@ function doPost(e) {
       if (!/^\d{10}$/.test(String(data.mobileNo || "")) || !/^\d{12}$/.test(String(data.aadhaarNo || "")) || (data.nomineeAadhaar && !/^\d{12}$/.test(String(data.nomineeAadhaar)))) {
         return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Mobile must be 10 digits and Aadhaar numbers must be 12 digits." })).setMimeType(ContentService.MimeType.JSON);
       }
-      var updatedGoldLoan = updateGoldLoanRecord(goldSheet, data);
+      var updatedGoldLoan = updateGoldLoanRecord(goldSheet, data, folderId);
       if (updatedGoldLoan) clearDashboardCache();
       return ContentService.createTextOutput(JSON.stringify({ status: updatedGoldLoan ? "success" : "error", message: updatedGoldLoan ? "" : "Gold loan not found" })).setMimeType(ContentService.MimeType.JSON);
     }
@@ -1449,13 +1449,22 @@ function deleteGoldLoanRecord(sheet, id) {
   return false;
 }
 
-function updateGoldLoanRecord(sheet, data) {
+function updateGoldLoanRecord(sheet, data, folderId) {
   var values = sheet.getDataRange().getValues(), headers = values[0].map(function(header) { return String(header).trim(); });
   var idColumn = headers.indexOf("ID"), rowNumber = -1;
   for (var row = 1; row < values.length; row++) if (String(values[row][idColumn]).trim() === String(data.id).trim()) { rowNumber = row + 1; break; }
   if (rowNumber === -1) return false;
   var fields = { "Branch Name": data.branchName, "Branch Code": data.branchCode, "Loan Officer Name": data.officerName, "CSP Location": data.cspLocation, "Borrower Name": data.borrowerName, "Mobile No": data.mobileNo, "Identity No": data.identityNo, "Address": data.address, "Monthly Income": data.monthlyIncome, "Guardian Type": data.guardianType, "Guardian Name": data.guardianName, "Gender": data.gender, "DOB": data.dob, "Religion": data.religion, "Aadhaar No": data.aadhaarNo, "Occupation": data.occupation, "Customer Bank Name": data.customerBankName, "Customer Bank Branch": data.customerBankBranch, "Customer IFSC Code": data.customerIfscCode, "Customer Account Holder": data.customerAccountHolder, "Customer Account Number": data.customerAccountNumber, "Nominee Name": data.nomineeName, "Nominee Guardian Type": data.nomineeGuardianType, "Nominee Guardian Name": data.nomineeGuardianName, "Nominee Gender": data.nomineeGender, "Nominee Occupation": data.nomineeOccupation, "Nominee DOB": data.nomineeDob, "Nominee Aadhaar": data.nomineeAadhaar, "Relation With Applicant": data.relationWithApplicant, "Gold Articles Details": data.goldArticles, "Valuation Date": data.valuationDate, "Total Gross Weight (g)": data.totalGrossWeight, "Total Net Weight (g)": data.totalNetWeight, "Total Assessed Value": data.assessedValue, "LTV (%)": data.ltvPercent, "Eligible Amount": data.eligibleAmount, "Loan Amount Requested": data.loanAmount, "Processing Charge": data.processingCharge, "Document Charge": data.documentCharge, "Net Disbursement Amount": data.netDisbursementAmount, "Loan Tenure": data.loanTenure, "Loan Tenure Unit": data.loanTenureUnit || "Months", "Rate of Interest (%)": data.interestRate, "Repayment Method": data.repaymentType, "Installment Amount": data.installmentAmount, "Total Interest": data.totalInterest, "Total Payable": data.totalPayable, "First EMI Date": data.firstEmiDate, "EMI Close Date": data.emiCloseDate || data.maturityDate, "Maturity Date": data.maturityDate || data.emiCloseDate, "Purpose of Loan": data.purpose, "Scheme": data.scheme, "Disbursement Mode": data.disbursementMode, "Submitted Documents": data.submittedDocuments };
-  var newHeaders = ["Processing Charge", "Document Charge", "Net Disbursement Amount", "First EMI Date", "EMI Close Date", "Loan Tenure Unit"].filter(function(header) { return headers.indexOf(header) === -1; });
+  fields["Application Date"] = data.appDate || "";
+  var currentRow = values[rowNumber - 1];
+  var nomineePhotoColumn = headers.indexOf("Nominee Photo URL"), goldPhotoColumn = headers.indexOf("Gold Item Photo URL");
+  var nomineePhotoUrl = nomineePhotoColumn >= 0 ? currentRow[nomineePhotoColumn] : "";
+  var goldItemPhotoUrl = goldPhotoColumn >= 0 ? currentRow[goldPhotoColumn] : "";
+  if (data.nomineeImgBase64 && data.nomineeImgName) nomineePhotoUrl = uploadImageToDrive(data.nomineeImgBase64, data.nomineeImgType, data.nomineeImgName, folderId) || nomineePhotoUrl;
+  if (data.goldItemImgBase64 && data.goldItemImgName) goldItemPhotoUrl = uploadImageToDrive(data.goldItemImgBase64, data.goldItemImgType, data.goldItemImgName, folderId) || goldItemPhotoUrl;
+  fields["Nominee Photo URL"] = nomineePhotoUrl;
+  fields["Gold Item Photo URL"] = goldItemPhotoUrl;
+  var newHeaders = ["Application Date", "Processing Charge", "Document Charge", "Net Disbursement Amount", "First EMI Date", "EMI Close Date", "Loan Tenure Unit", "Nominee Photo URL", "Gold Item Photo URL"].filter(function(header) { return headers.indexOf(header) === -1; });
   if (newHeaders.length) {
     sheet.getRange(1, headers.length + 1, 1, newHeaders.length).setValues([newHeaders]);
     sheet.getRange(1, headers.length + 1, 1, newHeaders.length).setFontWeight("bold");

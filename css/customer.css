@@ -166,6 +166,10 @@ table td {
 .gold-loan-form { padding:24px; background:#fffcf4; border:1px solid #eadfbe; border-top:0; border-radius:0 0 14px 14px; }
 .gold-form-note { color:#755715; background:#fff3cd; border:1px solid #f0d890; border-radius:8px; padding:11px 13px; margin-bottom:20px; font-size:13px; }
 .gold-panel,.gold-upload-grid { background:#fff; border:1px solid #e8dfc9; padding:18px; margin-bottom:20px; }.gold-upload-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
+.gold-entry-photo-preview { display:block; width:86px; height:86px; margin-top:8px; border:1px solid #d8d1c0; border-radius:7px; background:#fff; object-fit:contain; }
+#cancel-gold-btn { background:#dc2626; border:1px solid #b91c1c; color:#fff; transition:background-color .18s ease, border-color .18s ease, box-shadow .18s ease; }
+#cancel-gold-btn:hover { background:#b91c1c; border-color:#991b1b; box-shadow:0 3px 9px #991b1b40; }
+#cancel-gold-btn:focus-visible { outline:3px solid #fca5a5; outline-offset:2px; }
 .gold-section-title { background:linear-gradient(90deg,#7d5608,#b8860b); margin:20px 0 0; border-radius:8px 8px 0 0; letter-spacing:.05em; }
 .gold-loan-form .form-group input,.gold-loan-form .form-group select { background:#fffdf7; }.gold-loan-form input[readonly] { background:#f4f1e9; color:#6b5a2e; font-weight:700; }
 .gold-required-star { color:#dc2626; font-weight:800; }

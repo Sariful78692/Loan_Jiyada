@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gold Loan Entry - Loan Management</title>
     <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
-    <link rel="stylesheet" href="css/customer.css">
+    <link rel="stylesheet" href="css/customer.css?v=20261026-edit-photo-date-cancel-2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -72,9 +72,9 @@
                     </div>
                     <div class="gold-upload-grid">
                         <div class="form-group"><label>Customer Photo</label><input id="goldNomineeImage"
-                                type="file" accept="image/*"></div>
+                                type="file" accept="image/*"><img id="goldNomineeImagePreview" class="gold-entry-photo-preview hidden" alt="Customer photo preview"></div>
                         <div class="form-group"><label>Pledged Gold Photo</label><input id="goldItemImage" type="file"
-                                accept="image/*"></div>
+                                accept="image/*"><img id="goldItemImagePreview" class="gold-entry-photo-preview hidden" alt="Pledged gold photo preview"></div>
                     </div>
                     <h4 class="gold-section-title">PLEDGED GOLD ARTICLE VALUATION</h4>
                     <div class="table-responsive">
@@ -201,13 +201,13 @@
                                 value="Ownership Declaration"> Gold ownership declaration</label></div>
                     <div class="form-actions"><button type="submit" id="submit-gold-btn"
                             class="btn-primary gold-submit"><i class="fa-solid fa-lock"></i> Submit Gold
-                            Loan</button></div>
+                            Loan</button><button type="button" id="cancel-gold-btn" class="btn-secondary hidden">Cancel</button></div>
                 </form>
             </section>
         </main>
     </div>
-    <script src="js/common.js?v=20261026-required-stars-1"></script>
-    <script src="js/gold_loan.js?v=20261026-full-application-print-1"></script>
+    <script src="js/common.js?v=20261026-apps-script-url-1"></script>
+    <script src="js/gold_loan.js?v=20261026-edit-photo-date-cancel-1"></script>
     <script src="js/goldLoanEntry.js"></script>
 </body>
 

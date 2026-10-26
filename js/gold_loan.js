@@ -11,15 +11,24 @@ document.addEventListener("DOMContentLoaded", () => {
   firstEmiCard.querySelector("strong").id = "goldFirstEmiDate";
   closeDateCard.parentElement.insertBefore(firstEmiCard, closeDateCard);
   if (goldEditId) loadGoldLoanForEdit(goldEditId);
-  const today = localDate(new Date());
-  document.getElementById("goldAppDate").value = today;
-  document.getElementById("goldValuationDate").value = today;
+  else {
+    const today = localDate(new Date());
+    document.getElementById("goldAppDate").value = today;
+    document.getElementById("goldValuationDate").value = today;
+  }
   toggleBankDetails();
   ["goldLtvPercent", "goldLoanAmount", "goldProcessingCharge", "goldDocumentCharge", "goldLoanTenure", "goldInterestRate", "goldRepaymentType", "goldValuationDate", "goldAppDate"].forEach(id => document.getElementById(id).addEventListener("input", calculateGoldLoan));
   ["goldRepaymentType", "goldValuationDate", "goldAppDate", "goldLoanTenureUnit"].forEach(id => document.getElementById(id).addEventListener("change", () => { updateGoldTenureUnit(); calculateGoldLoan(); }));
   document.getElementById("goldDisbursementMode").addEventListener("change", toggleBankDetails);
   document.getElementById("gold-table-body").addEventListener("input", calculateGoldLoan);
   document.getElementById("gold-loan-form").addEventListener("submit", handleGoldLoanSubmit);
+  document.getElementById("cancel-gold-btn").addEventListener("click", () => { window.location.href = "GoldLoanDetails.html"; });
+  [["goldNomineeImage", "goldNomineeImagePreview"], ["goldItemImage", "goldItemImagePreview"]].forEach(([inputId, previewId]) => {
+    document.getElementById(inputId).addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (file) showGoldEntryPhoto(previewId, URL.createObjectURL(file));
+    });
+  });
   updateGoldTenureUnit();
   calculateGoldLoan();
 });
@@ -80,10 +89,27 @@ function setupGoldFieldValidation() {
 }
 
 function localDate(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
-function formatGoldDate(date) { return date ? date.toLocaleDateString("en-GB").replaceAll("/", "-") : "�"; }
+function formatGoldDate(date) { return date ? date.toLocaleDateString("en-GB").replaceAll("/", "-") : "—"; }
 function valueOf(selector) { return Number(document.querySelector(selector)?.value) || 0; }
-function money(value) { return `?${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
+function money(value) { return `\u20B9${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
 function fieldValue(id) { return document.getElementById(id)?.value?.trim() || ""; }
+
+function showGoldEntryPhoto(previewId, source, fallback = "") {
+  const image = document.getElementById(previewId);
+  if (!image || !source) return;
+  image.onerror = fallback ? () => { image.onerror = null; image.src = fallback; } : null;
+  image.src = source;
+  image.classList.remove("hidden");
+}
+
+function goldEntryPhotoSource(url) {
+  const source = String(url || "").trim();
+  const match = source.match(/[?&]id=([^&]+)/i) || source.match(/\/d\/([^/?]+)/i);
+  if (!match) return { source, fallback: "" };
+  let id = match[1];
+  try { id = decodeURIComponent(id); } catch (_) {}
+  return { source: `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w400`, fallback: source };
+}
 
 // Same applicant and nominee fields used in Customer Entry are added to the Gold Loan application.
 function addGoldCustomerFields() {
@@ -137,7 +163,7 @@ function manageGoldOccupation(selectId, label, action) {
       selected.value = selected.textContent = value;
       select.value = value;
     } else {
-      if (!confirm(`Delete �${selected.value}� from the ${label} list?`)) return;
+      if (!confirm(`Delete "${selected.value}" from the ${label} list?`)) return;
       selected.remove();
       select.value = "";
     }
@@ -155,7 +181,7 @@ function toggleBankDetails() {
 function addGoldRow() {
   const tbody = document.getElementById("gold-table-body");
   const row = document.createElement("tr");
-  row.innerHTML = `<td class="row-sl"></td><td><input type="text" class="gold-input gold-description" placeholder="e.g. Chain"></td><td><select class="gold-input gold-purity"><option value="22K">22K</option><option value="24K">24K</option><option value="21K">21K</option><option value="18K">18K</option></select></td><td><input type="number" class="gold-input gold-gross" min="0" step="0.001" placeholder="0.000"></td><td><input type="number" class="gold-input gold-stone" min="0" step="0.001" value="0"></td><td><input type="number" class="gold-input gold-net" readonly placeholder="0.000"></td><td><input type="number" class="gold-input gold-rate" min="0" step="0.01" placeholder="0.00"></td><td><output class="gold-assessed-value">?0.00</output></td><td><button type="button" class="btn-delete" onclick="deleteRow(this)" aria-label="Remove article"><i class="fa-solid fa-trash"></i></button></td>`;
+  row.innerHTML = `<td class="row-sl"></td><td><input type="text" class="gold-input gold-description" placeholder="e.g. Chain"></td><td><select class="gold-input gold-purity"><option value="22K">22K</option><option value="24K">24K</option><option value="21K">21K</option><option value="18K">18K</option></select></td><td><input type="number" class="gold-input gold-gross" min="0" step="0.001" placeholder="0.000"></td><td><input type="number" class="gold-input gold-stone" min="0" step="0.001" value="0"></td><td><input type="number" class="gold-input gold-net" readonly placeholder="0.000"></td><td><input type="number" class="gold-input gold-rate" min="0" step="0.01" placeholder="0.00"></td><td><output class="gold-assessed-value">\u20B90.00</output></td><td><button type="button" class="btn-delete" onclick="deleteRow(this)" aria-label="Remove article"><i class="fa-solid fa-trash"></i></button></td>`;
   tbody.appendChild(row); updateSerialNumbers(); calculateGoldLoan();
 }
 
@@ -206,7 +232,7 @@ function calculateGoldLoan() {
     else { totalPayable = principal * (1 + annualRate / 100 * months / 12); payment = totalPayable; paymentLabel = "Payable at maturity"; }
   }
   const valuation = document.getElementById("goldValuationDate").value;
-  let maturity = "�";
+  let maturity = "—";
   if (valuation && tenure) { const date = new Date(`${valuation}T00:00:00`); if (isDays) date.setDate(date.getDate() + tenure); else date.setMonth(date.getMonth() + months); maturity = date.toLocaleDateString("en-GB").replaceAll("/", "-"); }
   const applicationDate = document.getElementById("goldAppDate").value;
   const firstPaymentDate = isDays ? valuation : applicationDate;
@@ -272,24 +298,43 @@ async function loadGoldLoanForEdit(id) {
     const loan = (data.gold_loans || []).find(item => String(item.ID) === String(id));
     if (!loan) return alert("Gold loan customer was not found.");
     const fields = { goldAppNo: "Application No", goldAppDate: "Application Date", goldBranchName: "Branch Name", goldBranchCode: "Branch Code", goldOfficerName: "Loan Officer Name", goldCspLocation: "CSP Location", goldCustomerName: "Borrower Name", goldMobileNo: "Mobile No", goldIdentityNo: "Identity No", goldAddress: "Address", goldMonthlyIncome: "Monthly Income", goldGuardianName: "Guardian Name", goldGender: "Gender", goldDob: "DOB", goldReligion: "Religion", goldAadhaarNo: "Aadhaar No", goldOccupation: "Occupation", goldCustomerBankName: "Customer Bank Name", goldCustomerBankBranch: "Customer Bank Branch", goldCustomerIfscCode: "Customer IFSC Code", goldCustomerAccountHolder: "Customer Account Holder", goldCustomerAccountNumber: "Customer Account Number", goldNomineeName: "Nominee Name", goldNomineeGuardianName: "Nominee Guardian Name", goldNomineeGender: "Nominee Gender", goldNomineeOccupation: "Nominee Occupation", goldNomineeDob: "Nominee DOB", goldNomineeAadhaar: "Nominee Aadhaar", goldRelationWithApplicant: "Relation With Applicant", goldValuationDate: "Valuation Date", goldLtvPercent: "LTV (%)", goldLoanAmount: "Loan Amount Requested", goldProcessingCharge: "Processing Charge", goldDocumentCharge: "Document Charge", goldLoanTenure: "Loan Tenure", goldInterestRate: "Rate of Interest (%)", goldRepaymentType: "Repayment Method", goldPurpose: "Purpose of Loan", goldScheme: "Scheme", goldDisbursementMode: "Disbursement Mode" };
-    Object.entries(fields).forEach(([id, header]) => { const element = document.getElementById(id); if (!element || loan[header] == null) return; const savedValue = String(loan[header]); if (element.tagName === "SELECT" && savedValue && ![...element.options].some(option => option.value === savedValue)) element.add(new Option(savedValue, savedValue)); element.value = savedValue; });
+    Object.entries(fields).forEach(([id, header]) => {
+      const element = document.getElementById(id);
+      if (!element || loan[header] == null) return;
+      let savedValue = String(loan[header]);
+      if (element.type === "date") savedValue = goldDateInputValue(loan[header]);
+      if (element.tagName === "SELECT" && savedValue && ![...element.options].some(option => option.value === savedValue)) element.add(new Option(savedValue, savedValue));
+      element.value = savedValue;
+    });
+    [["goldNomineeImagePreview", loan["Nominee Photo URL"]], ["goldItemImagePreview", loan["Gold Item Photo URL"]]].forEach(([previewId, url]) => {
+      const photo = goldEntryPhotoSource(url);
+      if (photo.source) showGoldEntryPhoto(previewId, photo.source, photo.fallback);
+    });
     document.getElementById("goldLoanTenureUnit").value = loan["Loan Tenure Unit"] || "Months";
     updateGoldTenureUnit();
     const articles = JSON.parse(loan["Gold Articles Details"] || "[]");
     if (articles.length) { document.getElementById("gold-table-body").innerHTML = ""; articles.forEach((article, index) => { if (index) addGoldRow(); else addGoldRow(); const row = document.querySelector("#gold-table-body tr:last-child"); row.querySelector(".gold-description").value = article.description || ""; row.querySelector(".gold-purity").value = article.purity || "22K"; row.querySelector(".gold-gross").value = article.grossWeight || ""; row.querySelector(".gold-stone").value = article.stoneWeight || 0; row.querySelector(".gold-rate").value = article.ratePerGram || ""; }); }
     document.querySelector(".gold-page-header h1").innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Edit Gold Loan Customer';
+    document.getElementById("cancel-gold-btn").classList.remove("hidden");
     document.getElementById("submit-gold-btn").innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Gold Loan'; calculateGoldLoan();
   } catch (error) { console.error(error); alert("Could not load the Gold Loan customer for editing."); }
+}
+
+function goldDateInputValue(value) {
+  const raw = String(value || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? raw : localDate(date);
 }
 
 function printGoldLoanReceipt(data) {
   const popup = window.open("", "_blank", "width=1000,height=800");
   if (!popup) return alert("Please allow pop-ups to print the application.");
   const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
-  const show = value => value === "" || value == null ? "�" : escapeHtml(value);
-  const showMoney = value => value === "" || value == null ? "�" : money(value);
+  const show = value => value === "" || value == null ? "—" : escapeHtml(value);
+  const showMoney = value => value === "" || value == null ? "—" : money(value);
   const showDate = value => {
-    if (!value) return "�";
+    if (!value) return "—";
     const date = new Date(String(value) + "T00:00:00");
     return Number.isNaN(date.getTime()) ? escapeHtml(value) : date.toLocaleDateString("en-GB").replaceAll("/", "-");
   };
