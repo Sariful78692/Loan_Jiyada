@@ -37,6 +37,31 @@ function updateGoldTenureUnit() {
   dailyOption.disabled = !days;
   if (days && ["EMI", "Interest Only"].includes(repayment.value)) repayment.value = "Daily Interest";
   if (!days && repayment.value === "Daily Interest") repayment.value = "Interest Only";
+  styleGoldRequiredStars();
+}
+
+function styleGoldRequiredStars() {
+  document.querySelectorAll("#gold-loan-form label").forEach(label => {
+    const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT, {
+      acceptNode: node => node.nodeValue.includes("*") && !node.parentElement?.classList.contains("gold-required-star") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+      const parts = node.nodeValue.split("*");
+      const fragment = document.createDocumentFragment();
+      parts.forEach((part, index) => {
+        if (part) fragment.append(document.createTextNode(part));
+        if (index < parts.length - 1) {
+          const star = document.createElement("span");
+          star.className = "gold-required-star";
+          star.textContent = "*";
+          fragment.append(star);
+        }
+      });
+      node.replaceWith(fragment);
+    });
+  });
 }
 
 function setupGoldFieldValidation() {
@@ -45,7 +70,7 @@ function setupGoldFieldValidation() {
     if (!input) return;
     input.addEventListener("input", () => { input.value = input.value.replace(/\D/g, "").slice(0, id === "goldMobileNo" ? 10 : 12); });
   });
-  const titleCaseIds = new Set(["goldBranchName", "goldOfficerName", "goldCspLocation", "goldCustomerName", "goldAddress", "goldGuardianName", "goldCustomerBankName", "goldCustomerBankBranch", "goldCustomerAccountHolder", "goldAcHolderName", "goldBankBranch", "goldNomineeName", "goldNomineeGuardianName", "goldNomineeOccupation", "goldPurpose", "goldScheme"]);
+  const titleCaseIds = new Set(["goldBranchName", "goldOfficerName", "goldCspLocation", "goldCustomerName", "goldAddress", "goldGuardianName", "goldCustomerBankName", "goldCustomerBankBranch", "goldCustomerAccountHolder", "goldAcHolderName", "goldBankBranch", "goldNomineeName", "goldNomineeGuardianName", "goldPurpose", "goldScheme"]);
   document.getElementById("gold-loan-form").addEventListener("focusout", event => {
     const input = event.target;
     if (titleCaseIds.has(input.id) || input.matches(".gold-description")) {
@@ -55,9 +80,9 @@ function setupGoldFieldValidation() {
 }
 
 function localDate(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
-function formatGoldDate(date) { return date ? date.toLocaleDateString("en-GB").replaceAll("/", "-") : "—"; }
+function formatGoldDate(date) { return date ? date.toLocaleDateString("en-GB").replaceAll("/", "-") : "�"; }
 function valueOf(selector) { return Number(document.querySelector(selector)?.value) || 0; }
-function money(value) { return `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
+function money(value) { return `?${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
 function fieldValue(id) { return document.getElementById(id)?.value?.trim() || ""; }
 
 // Same applicant and nominee fields used in Customer Entry are added to the Gold Loan application.
@@ -65,13 +90,60 @@ function addGoldCustomerFields() {
   const uploadSection = document.querySelector(".gold-upload-grid");
   if (!uploadSection) return;
   const customerDetails = document.createElement("div");
-  customerDetails.innerHTML = `<h4 class="gold-section-title">CUSTOMER DETAILS</h4><div class="gold-panel form-grid"><div class="form-group"><label>Guardian Name *</label><input id="goldGuardianName" required></div><div class="form-group"><label>Gender *</label><select id="goldGender" required><option value="">Select gender</option><option>Male</option><option>Female</option><option>Other</option></select></div><div class="form-group"><label>Date of Birth *</label><input id="goldDob" type="date" required></div><div class="form-group"><label>Religion</label><select id="goldReligion"><option value="">Select religion</option><option>Muslim</option><option>Hinduism</option></select></div><div class="form-group"><label>Aadhaar No. *</label><input id="goldAadhaarNo" inputmode="numeric" maxlength="12" pattern="\\d{12}" required></div><div class="form-group"><label>Occupation *</label><select id="goldOccupation" required><option value="">Select occupation</option><option>Labour</option><option>Service</option><option>Self Employed</option><option>Hand Embrodary</option></select></div><div class="form-group"><label>Customer Bank Name</label><input id="goldCustomerBankName" placeholder="Bank name"></div><div class="form-group"><label>Customer Bank Branch</label><input id="goldCustomerBankBranch"></div><div class="form-group"><label>Customer IFSC Code</label><input id="goldCustomerIfscCode" style="text-transform:uppercase"></div><div class="form-group"><label>Customer Account Holder</label><input id="goldCustomerAccountHolder"></div><div class="form-group"><label>Customer Account Number</label><input id="goldCustomerAccountNumber" inputmode="numeric"></div></div><h4 class="gold-section-title">NOMINEE DETAILS</h4><div class="gold-panel form-grid"><div class="form-group"><label>Nominee Name *</label><input id="goldNomineeName" required></div><div class="form-group"><label>Nominee Guardian Name</label><input id="goldNomineeGuardianName"></div><div class="form-group"><label>Nominee Gender</label><select id="goldNomineeGender"><option value="">Select gender</option><option>Male</option><option>Female</option><option>Other</option></select></div><div class="form-group"><label>Nominee Occupation</label><input id="goldNomineeOccupation"></div><div class="form-group"><label>Nominee DOB</label><input id="goldNomineeDob" type="date"></div><div class="form-group"><label>Nominee Aadhaar</label><input id="goldNomineeAadhaar" inputmode="numeric" maxlength="12"></div><div class="form-group"><label>Relation with Applicant *</label><select id="goldRelationWithApplicant" required><option value="">Select relation</option><option>Father's</option><option>Husband's</option><option>Wife</option><option>Daughter</option><option>Son</option></select></div></div>`;
+  customerDetails.innerHTML = `<h4 class="gold-section-title">CUSTOMER DETAILS</h4><div class="gold-panel form-grid"><div class="form-group"><label>Customer Name *</label><input id="goldCustomerName" type="text" placeholder="Full name" required></div><div class="form-group"><label>Mobile Number *</label><input id="goldMobileNo" type="tel" inputmode="numeric" minlength="10" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit number" required></div><div class="form-group"><label>VOTER ID / PAN No.</label><input id="goldIdentityNo" type="text" placeholder="Identity reference"></div><div class="form-group"><label>Monthly Income (&#8377;)</label><input id="goldMonthlyIncome" type="text" min="0" step="0.01" placeholder="0.00"></div><div class="form-group gold-wide"><label>Residential Address</label><input id="goldAddress" type="text" placeholder="Full address"></div><div class="form-group"><label>Guardian Name *</label><input id="goldGuardianName" required></div><div class="form-group"><label>Gender *</label><select id="goldGender" required><option value="">Select gender</option><option>Male</option><option>Female</option><option>Other</option></select></div><div class="form-group"><label>Date of Birth *</label><input id="goldDob" type="date" required></div><div class="form-group"><label>Religion</label><select id="goldReligion"><option value="">Select religion</option><option>Muslim</option><option>Hinduism</option></select></div><div class="form-group"><label>Aadhaar No. *</label><input id="goldAadhaarNo" inputmode="numeric" maxlength="12" pattern="\\d{12}" required></div><div class="form-group"><label>Occupation *</label><div class="gold-option-control"><select id="goldOccupation" required><option value="">Select occupation</option><option>Labour</option><option>Service</option><option>Self Employed</option><option>Hand Embrodary</option></select><div class="gold-option-buttons"><button type="button" aria-label="Add occupation" title="Add occupation" onclick="manageGoldOccupation('goldOccupation','Occupation','add')"><i class="fa-solid fa-plus"></i></button><button type="button" aria-label="Edit occupation" title="Edit occupation" onclick="manageGoldOccupation('goldOccupation','Occupation','edit')"><i class="fa-solid fa-pen"></i></button><button type="button" aria-label="Delete occupation" title="Delete occupation" onclick="manageGoldOccupation('goldOccupation','Occupation','delete')"><i class="fa-solid fa-trash"></i></button></div></div></div><div class="form-group"><label>Customer Bank Name</label><input id="goldCustomerBankName" placeholder="Bank name"></div><div class="form-group"><label>Customer Bank Branch</label><input id="goldCustomerBankBranch"></div><div class="form-group"><label>Customer IFSC Code</label><input id="goldCustomerIfscCode" style="text-transform:uppercase"></div><div class="form-group"><label>Customer Account Holder</label><input id="goldCustomerAccountHolder"></div><div class="form-group"><label>Customer Account Number</label><input id="goldCustomerAccountNumber" inputmode="numeric"></div></div><h4 class="gold-section-title">NOMINEE DETAILS</h4><div class="gold-panel form-grid"><div class="form-group"><label>Nominee Name *</label><input id="goldNomineeName" required></div><div class="form-group"><label>Nominee Guardian Name</label><input id="goldNomineeGuardianName"></div><div class="form-group"><label>Nominee Gender</label><select id="goldNomineeGender"><option value="">Select gender</option><option>Male</option><option>Female</option><option>Other</option></select></div><div class="form-group"><label>Nominee Occupation</label><div class="gold-option-control"><select id="goldNomineeOccupation"><option value="">Select occupation</option></select><div class="gold-option-buttons"><button type="button" aria-label="Add nominee occupation" title="Add nominee occupation" onclick="manageGoldOccupation('goldNomineeOccupation','Nominee Occupation','add')"><i class="fa-solid fa-plus"></i></button><button type="button" aria-label="Edit nominee occupation" title="Edit nominee occupation" onclick="manageGoldOccupation('goldNomineeOccupation','Nominee Occupation','edit')"><i class="fa-solid fa-pen"></i></button><button type="button" aria-label="Delete nominee occupation" title="Delete nominee occupation" onclick="manageGoldOccupation('goldNomineeOccupation','Nominee Occupation','delete')"><i class="fa-solid fa-trash"></i></button></div></div></div><div class="form-group"><label>Nominee DOB</label><input id="goldNomineeDob" type="date"></div><div class="form-group"><label>Nominee Aadhaar</label><input id="goldNomineeAadhaar" inputmode="numeric" maxlength="12"></div><div class="form-group"><label>Relation with Applicant *</label><select id="goldRelationWithApplicant" required><option value="">Select relation</option><option>Father's</option><option>Husband's</option><option>Wife</option><option>Daughter</option><option>Son</option></select></div></div>`;
   customerDetails.querySelector("#goldAadhaarNo").setAttribute("minlength", "12");
   customerDetails.querySelector("#goldAadhaarNo").setAttribute("pattern", "[0-9]{12}");
   const nomineeAadhaar = customerDetails.querySelector("#goldNomineeAadhaar");
   nomineeAadhaar.setAttribute("minlength", "12");
   nomineeAadhaar.setAttribute("pattern", "[0-9]{12}");
   uploadSection.before(customerDetails);
+  loadGoldOccupationOptions("goldOccupation", ["Labour", "Service", "Self Employed", "Hand Embrodary"]);
+  loadGoldOccupationOptions("goldNomineeOccupation", []);
+}
+
+function loadGoldOccupationOptions(selectId, defaults) {
+  const select = document.getElementById(selectId);
+  const storageKey = `goldOccupationOptions:${selectId}`;
+  let values = defaults;
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (stored !== null) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) values = parsed;
+    }
+  } catch (_) {}
+  select.replaceChildren(new Option("Select occupation", ""));
+  [...new Set(values.filter(value => typeof value === "string" && value.trim()))].forEach(value => select.add(new Option(value, value)));
+}
+
+function manageGoldOccupation(selectId, label, action) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  if (action === "add") {
+    const entered = prompt(`Add ${label}:`);
+    if (!entered || !entered.trim()) return;
+    const value = entered.trim();
+    if ([...select.options].some(option => option.value.toLowerCase() === value.toLowerCase())) return alert(`This ${label.toLowerCase()} already exists.`);
+    select.add(new Option(value, value));
+    select.value = value;
+  } else {
+    if (!select.value) return alert(`Please select a ${label.toLowerCase()} first.`);
+    const selected = select.options[select.selectedIndex];
+    if (action === "edit") {
+      const entered = prompt(`Edit ${label}:`, selected.value);
+      if (!entered || !entered.trim()) return;
+      const value = entered.trim();
+      if ([...select.options].some(option => option !== selected && option.value.toLowerCase() === value.toLowerCase())) return alert(`This ${label.toLowerCase()} already exists.`);
+      selected.value = selected.textContent = value;
+      select.value = value;
+    } else {
+      if (!confirm(`Delete �${selected.value}� from the ${label} list?`)) return;
+      selected.remove();
+      select.value = "";
+    }
+  }
+  const values = [...select.options].map(option => option.value).filter(Boolean);
+  localStorage.setItem(`goldOccupationOptions:${selectId}`, JSON.stringify(values));
 }
 
 function toggleBankDetails() {
@@ -83,7 +155,7 @@ function toggleBankDetails() {
 function addGoldRow() {
   const tbody = document.getElementById("gold-table-body");
   const row = document.createElement("tr");
-  row.innerHTML = `<td class="row-sl"></td><td><input type="text" class="gold-input gold-description" placeholder="e.g. Chain"></td><td><select class="gold-input gold-purity"><option value="22K">22K</option><option value="24K">24K</option><option value="21K">21K</option><option value="18K">18K</option></select></td><td><input type="number" class="gold-input gold-gross" min="0" step="0.001" placeholder="0.000"></td><td><input type="number" class="gold-input gold-stone" min="0" step="0.001" value="0"></td><td><input type="number" class="gold-input gold-net" readonly placeholder="0.000"></td><td><input type="number" class="gold-input gold-rate" min="0" step="0.01" placeholder="0.00"></td><td><output class="gold-assessed-value">₹0.00</output></td><td><button type="button" class="btn-delete" onclick="deleteRow(this)" aria-label="Remove article"><i class="fa-solid fa-trash"></i></button></td>`;
+  row.innerHTML = `<td class="row-sl"></td><td><input type="text" class="gold-input gold-description" placeholder="e.g. Chain"></td><td><select class="gold-input gold-purity"><option value="22K">22K</option><option value="24K">24K</option><option value="21K">21K</option><option value="18K">18K</option></select></td><td><input type="number" class="gold-input gold-gross" min="0" step="0.001" placeholder="0.000"></td><td><input type="number" class="gold-input gold-stone" min="0" step="0.001" value="0"></td><td><input type="number" class="gold-input gold-net" readonly placeholder="0.000"></td><td><input type="number" class="gold-input gold-rate" min="0" step="0.01" placeholder="0.00"></td><td><output class="gold-assessed-value">?0.00</output></td><td><button type="button" class="btn-delete" onclick="deleteRow(this)" aria-label="Remove article"><i class="fa-solid fa-trash"></i></button></td>`;
   tbody.appendChild(row); updateSerialNumbers(); calculateGoldLoan();
 }
 
@@ -134,7 +206,7 @@ function calculateGoldLoan() {
     else { totalPayable = principal * (1 + annualRate / 100 * months / 12); payment = totalPayable; paymentLabel = "Payable at maturity"; }
   }
   const valuation = document.getElementById("goldValuationDate").value;
-  let maturity = "—";
+  let maturity = "�";
   if (valuation && tenure) { const date = new Date(`${valuation}T00:00:00`); if (isDays) date.setDate(date.getDate() + tenure); else date.setMonth(date.getMonth() + months); maturity = date.toLocaleDateString("en-GB").replaceAll("/", "-"); }
   const applicationDate = document.getElementById("goldAppDate").value;
   const firstPaymentDate = isDays ? valuation : applicationDate;
@@ -200,7 +272,7 @@ async function loadGoldLoanForEdit(id) {
     const loan = (data.gold_loans || []).find(item => String(item.ID) === String(id));
     if (!loan) return alert("Gold loan customer was not found.");
     const fields = { goldAppNo: "Application No", goldAppDate: "Application Date", goldBranchName: "Branch Name", goldBranchCode: "Branch Code", goldOfficerName: "Loan Officer Name", goldCspLocation: "CSP Location", goldCustomerName: "Borrower Name", goldMobileNo: "Mobile No", goldIdentityNo: "Identity No", goldAddress: "Address", goldMonthlyIncome: "Monthly Income", goldGuardianName: "Guardian Name", goldGender: "Gender", goldDob: "DOB", goldReligion: "Religion", goldAadhaarNo: "Aadhaar No", goldOccupation: "Occupation", goldCustomerBankName: "Customer Bank Name", goldCustomerBankBranch: "Customer Bank Branch", goldCustomerIfscCode: "Customer IFSC Code", goldCustomerAccountHolder: "Customer Account Holder", goldCustomerAccountNumber: "Customer Account Number", goldNomineeName: "Nominee Name", goldNomineeGuardianName: "Nominee Guardian Name", goldNomineeGender: "Nominee Gender", goldNomineeOccupation: "Nominee Occupation", goldNomineeDob: "Nominee DOB", goldNomineeAadhaar: "Nominee Aadhaar", goldRelationWithApplicant: "Relation With Applicant", goldValuationDate: "Valuation Date", goldLtvPercent: "LTV (%)", goldLoanAmount: "Loan Amount Requested", goldProcessingCharge: "Processing Charge", goldDocumentCharge: "Document Charge", goldLoanTenure: "Loan Tenure", goldInterestRate: "Rate of Interest (%)", goldRepaymentType: "Repayment Method", goldPurpose: "Purpose of Loan", goldScheme: "Scheme", goldDisbursementMode: "Disbursement Mode" };
-    Object.entries(fields).forEach(([id, header]) => { const element = document.getElementById(id); if (element && loan[header] != null) element.value = loan[header]; });
+    Object.entries(fields).forEach(([id, header]) => { const element = document.getElementById(id); if (!element || loan[header] == null) return; const savedValue = String(loan[header]); if (element.tagName === "SELECT" && savedValue && ![...element.options].some(option => option.value === savedValue)) element.add(new Option(savedValue, savedValue)); element.value = savedValue; });
     document.getElementById("goldLoanTenureUnit").value = loan["Loan Tenure Unit"] || "Months";
     updateGoldTenureUnit();
     const articles = JSON.parse(loan["Gold Articles Details"] || "[]");
@@ -214,10 +286,10 @@ function printGoldLoanReceipt(data) {
   const popup = window.open("", "_blank", "width=1000,height=800");
   if (!popup) return alert("Please allow pop-ups to print the application.");
   const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
-  const show = value => value === "" || value == null ? "—" : escapeHtml(value);
-  const showMoney = value => value === "" || value == null ? "—" : money(value);
+  const show = value => value === "" || value == null ? "�" : escapeHtml(value);
+  const showMoney = value => value === "" || value == null ? "�" : money(value);
   const showDate = value => {
-    if (!value) return "—";
+    if (!value) return "�";
     const date = new Date(String(value) + "T00:00:00");
     return Number.isNaN(date.getTime()) ? escapeHtml(value) : date.toLocaleDateString("en-GB").replaceAll("/", "-");
   };

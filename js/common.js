@@ -230,11 +230,38 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // লেবেলের (*) লাল করা
-  document.querySelectorAll("label").forEach(label => {
-    if (label.innerHTML.includes("*")) {
-      label.innerHTML = label.innerHTML.replace(/\*/g, "<span style='color: #ef4444;'>*</span>");
-    }
-  });
+  const colorRequiredStars = root => {
+    const labels = root.matches?.("label") ? [root] : [...(root.querySelectorAll?.("label") || [])];
+    labels.forEach(label => {
+      const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT, {
+        acceptNode: node => node.nodeValue.includes("*") && !node.parentElement?.closest(".common-required-star, .gold-required-star") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+      });
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(node => {
+        const parts = node.nodeValue.split("*");
+        const fragment = document.createDocumentFragment();
+        parts.forEach((part, index) => {
+          if (part) fragment.append(document.createTextNode(part));
+          if (index < parts.length - 1) {
+            const star = document.createElement("span");
+            star.className = "common-required-star";
+            star.textContent = "*";
+            fragment.append(star);
+          }
+        });
+        node.replaceWith(fragment);
+      });
+    });
+  };
+  const requiredStarStyle = document.createElement("style");
+  requiredStarStyle.textContent = ".common-required-star { color:#ef4444 !important; font-weight:800; }";
+  document.head.append(requiredStarStyle);
+  colorRequiredStars(document);
+  new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => {
+    if (node.nodeType === Node.ELEMENT_NODE) colorRequiredStars(node);
+    else if (node.nodeType === Node.TEXT_NODE && node.parentElement?.closest("label")) colorRequiredStars(node.parentElement.closest("label"));
+  }))).observe(document.body, { childList: true, subtree: true, characterData: true });
 });
 
 function addGroupLoanMenu() {
