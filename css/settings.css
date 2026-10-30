@@ -190,6 +190,8 @@
 .logo-settings-controls > input { max-width: 100%; font-size: 12px; }
 .logo-settings-controls > small { display: block; margin-top: 5px; color: #94a3b8; font-size: 11px; }
 .logo-settings-actions { display: flex; gap: 8px; margin-top: 12px; }
+.logo-settings-actions { flex-wrap: wrap; gap: 6px; }
+.logo-settings-actions .btn-save { width: auto; padding: 7px 7px; font-size: 11px; white-space: nowrap; }
 .logo-reset-button { background: #64748b; }
 .logo-reset-button:hover { background: #475569; }
 .logo-remove-button { background: #dc2626; }
