@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const defaultLabel = document.getElementById("indusind-logo-default");
   const saveButton = document.getElementById("save-indusind-logo");
   const resetButton = document.getElementById("reset-indusind-logo");
+  const removeButton = document.getElementById("remove-indusind-logo");
   const showLogo = url => {
     if (url) setImageSourceWithFallback(preview, url);
     else preview.removeAttribute("src");
@@ -56,18 +57,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  resetButton.addEventListener("click", async () => {
-    resetButton.disabled = true;
+  const removeLogo = async (button, message) => {
+    button.disabled = true;
     try {
       await deleteAppLogoFromDatabase("indusind");
       input.value = "";
       showLogo("");
-      showToast("Default IndusInd logo restored.", "success");
+      showToast(message, "success");
     } catch (error) {
       console.error(error);
       showToast(error.message || "Could not remove the saved logo.", "error");
     } finally {
-      resetButton.disabled = false;
+      button.disabled = false;
     }
-  });
+  };
+  resetButton.addEventListener("click", () => removeLogo(resetButton, "Default IndusInd logo restored."));
+  removeButton.addEventListener("click", () => removeLogo(removeButton, "IndusInd logo removed."));
 });

@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const defaultLabel = document.getElementById("rd-print-logo-default");
   const saveButton = document.getElementById("save-rd-print-logo");
   const resetButton = document.getElementById("reset-rd-print-logo");
+  const removeButton = document.getElementById("remove-rd-print-logo");
   const showLogo = url => {
     if (url) setImageSourceWithFallback(preview, url);
     else preview.removeAttribute("src");
@@ -56,18 +57,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  resetButton.addEventListener("click", async () => {
-    resetButton.disabled = true;
+  const removeLogo = async (button, message) => {
+    button.disabled = true;
     try {
       await deleteAppLogoFromDatabase("rd");
       input.value = "";
       showLogo("");
-      showToast("Default RD Print logo restored.", "success");
+      showToast(message, "success");
     } catch (error) {
       console.error(error);
       showToast(error.message || "Could not remove the saved logo.", "error");
     } finally {
-      resetButton.disabled = false;
+      button.disabled = false;
     }
-  });
+  };
+  resetButton.addEventListener("click", () => removeLogo(resetButton, "Default RD Print logo restored."));
+  removeButton.addEventListener("click", () => removeLogo(removeButton, "RD Print logo removed."));
 });

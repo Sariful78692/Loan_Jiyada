@@ -192,6 +192,8 @@
 .logo-settings-actions { display: flex; gap: 8px; margin-top: 12px; }
 .logo-reset-button { background: #64748b; }
 .logo-reset-button:hover { background: #475569; }
+.logo-remove-button { background: #dc2626; }
+.logo-remove-button:hover { background: #b91c1c; }
 @media (max-width: 600px) {
   .logo-settings-content { align-items: stretch; flex-direction: column; }
   .logo-settings-preview { width: 100%; }
