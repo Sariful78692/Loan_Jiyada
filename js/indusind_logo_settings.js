@@ -31,7 +31,10 @@ document.addEventListener("DOMContentLoaded", () => {
   saveButton.addEventListener("click", async () => {
     const file = input.files?.[0];
     if (!file) return showToast("Choose a logo image before saving.", "warning");
+    const originalLabel = saveButton.innerHTML;
     saveButton.disabled = true;
+    saveButton.setAttribute("aria-busy", "true");
+    saveButton.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> Saving...';
     try {
       const url = await saveAppLogoToDatabase("indusind", file);
       showLogo(url);
@@ -42,6 +45,8 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast(error.message || "Could not save the logo.", "error");
     } finally {
       saveButton.disabled = false;
+      saveButton.removeAttribute("aria-busy");
+      saveButton.innerHTML = originalLabel;
     }
   });
 
