@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
     <link rel="stylesheet" href="css/customer.css?v=20261026-edit-loader-1">
     <link rel="stylesheet" href="css/metal_rates.css?v=20261026-india-today-chart-1">
+    <link rel="stylesheet" href="css/gold-camera.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -76,10 +77,10 @@
                                 value="Baneswarpur"></div>
                     </div>
                     <div class="gold-upload-grid">
-                        <div class="form-group"><label>Customer Photo</label><input id="goldNomineeImage"
-                                type="file" accept="image/*"><div id="goldNomineePhotoCard" class="gold-entry-photo-card"><img id="goldNomineeImagePreview" class="hidden" alt="Customer photo preview"><div class="gold-entry-photo-placeholder"><i class="fa-regular fa-image"></i><span>Choose a photo to preview</span></div><div><strong>Customer photo</strong><small id="goldNomineePhotoCaption">No photo selected</small></div></div></div>
-                        <div class="form-group"><label>Pledged Gold Photo</label><input id="goldItemImage" type="file"
-                                accept="image/*"><div id="goldItemPhotoCard" class="gold-entry-photo-card"><img id="goldItemImagePreview" class="hidden" alt="Pledged gold photo preview"><div class="gold-entry-photo-placeholder"><i class="fa-regular fa-image"></i><span>Choose a photo to preview</span></div><div><strong>Pledged gold photo</strong><small id="goldItemPhotoCaption">No photo selected</small></div></div></div>
+                        <div class="form-group"><label>Customer Photo</label><div class="gold-photo-input-tools"><input id="goldNomineeImage"
+                                type="file" accept="image/*" capture="environment"><button type="button" class="gold-live-photo-btn" data-camera-target="goldNomineeImage"><i class="fa-solid fa-camera"></i> Live Photo</button></div><div id="goldNomineePhotoCard" class="gold-entry-photo-card"><img id="goldNomineeImagePreview" class="hidden" alt="Customer photo preview"><div class="gold-entry-photo-placeholder"><i class="fa-regular fa-image"></i><span>Choose a photo to preview</span></div><div><strong>Customer photo</strong><small id="goldNomineePhotoCaption">No photo selected</small></div></div></div>
+                        <div class="form-group"><label>Pledged Gold Photo</label><div class="gold-photo-input-tools"><input id="goldItemImage" type="file"
+                                accept="image/*" capture="environment"><button type="button" class="gold-live-photo-btn" data-camera-target="goldItemImage"><i class="fa-solid fa-camera"></i> Live Photo</button></div><div id="goldItemPhotoCard" class="gold-entry-photo-card"><img id="goldItemImagePreview" class="hidden" alt="Pledged gold photo preview"><div class="gold-entry-photo-placeholder"><i class="fa-regular fa-image"></i><span>Choose a photo to preview</span></div><div><strong>Pledged gold photo</strong><small id="goldItemPhotoCaption">No photo selected</small></div></div></div>
                     </div>
                     <h4 class="gold-section-title">PLEDGED GOLD ARTICLE VALUATION</h4>
                     <div class="table-responsive">
@@ -211,10 +212,18 @@
             </section>
         </main>
     </div>
+    <div class="gold-camera-modal" id="gold-camera-modal" role="dialog" aria-modal="true" aria-labelledby="gold-camera-title" hidden>
+        <div class="gold-camera-dialog">
+            <div class="gold-camera-heading"><h2 id="gold-camera-title">Take Live Photo</h2><button type="button" data-camera-close aria-label="Close camera"><i class="fa-solid fa-xmark"></i></button></div>
+            <video id="gold-camera-video" autoplay playsinline></video>
+            <div class="gold-camera-actions"><button type="button" class="btn-secondary" data-camera-close>Cancel</button><button type="button" class="btn-primary" id="gold-camera-capture"><i class="fa-solid fa-camera"></i> Capture Photo</button></div>
+        </div>
+    </div>
     <script src="js/common.js?v=20261026-apps-script-url-1"></script>
     <script src="js/gold_loan.js?v=20261026-edit-loader-1"></script>
     <script src="js/metal_rates.js?v=20261026-india-today-chart-1"></script>
     <script src="js/goldLoanEntry.js"></script>
+    <script src="js/gold_loan_camera.js"></script>
 </body>
 
 </html>

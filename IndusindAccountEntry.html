@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=indusind-1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Indusind Account Entry | Loan Management</title>
+  <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
+  <link rel="stylesheet" href="css/customer.css?v=20261026-gold-icons-2">
+  <link rel="stylesheet" href="css/indusind-account.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="brand"><h2>Loan Management</h2></div>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle" aria-expanded="false"><i class="fa-solid fa-users"></i> RD Customer <i class="fa-solid fa-chevron-down arrow"></i></a>
+          <ul class="submenu">
+            <li><a href="CustomerEntry.html">RD Customer Entry</a></li>
+            <li><a href="CustomerDetails.html?loan=RD%20Loan">RD Customer Details</a></li>
+            <li><a href="CollectionReport.html">Collection Report</a></li>
+          </ul>
+        </li>
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle" aria-expanded="false"><i class="fa-solid fa-coins"></i> Gold Loan <i class="fa-solid fa-chevron-down arrow"></i></a>
+          <ul class="submenu">
+            <li><a href="GoldLoanEntry.html">Gold Loan Customer Entry</a></li>
+            <li><a href="GoldLoanDetails.html">Gold Loan Customer Details</a></li>
+            <li><a href="GoldLoanEMI.html">Pay Gold Loan EMI</a></li>
+            <li><a href="GoldLoanReport.html">Gold Loan EMI Report</a></li>
+          </ul>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content indusind-main">
+      <section class="content-section">
+        <header class="indusind-header">
+          <span class="indusind-eyebrow">INDUSIND ACCOUNT SERVICES</span>
+          <h1>New Account Entry</h1>
+          <p>Enter customer and account information for the Indusind branch.</p>
+        </header>
+
+        <form id="indusind-account-form">
+          <input type="hidden" id="indusind-account-id" name="id" value="">
+          <input type="hidden" id="existing-photo-url" name="existingPhotoUrl" value="">
+          <section class="form-card indusind-card">
+            <h3><i class="fa-solid fa-building-columns"></i> Branch Details</h3>
+            <div class="form-grid">
+              <div class="form-group"><label for="branchName">Branch Name</label><input id="branchName" name="branchName" value="Amtala -0298" readonly></div>
+              <div class="form-group"><label for="branchIfsc">Branch IFSC Code</label><input id="branchIfsc" name="branchIfsc" value="INDB0000298" readonly></div>
+              <div class="form-group"><label for="branchAddress">Branch Address</label><input id="branchAddress" name="branchAddress" value="Amtala, South 24 Parganas, WB, 743398" readonly></div>
+            </div>
+          </section>
+
+          <section class="form-card indusind-card">
+            <h3><i class="fa-solid fa-address-card"></i> Account Details</h3>
+            <div class="form-grid">
+              <div class="form-group"><label for="accountType">Account Type</label><select id="accountType" name="accountType"><option value="Current">Current</option><option value="Saving" selected>Saving</option></select></div>
+              <div class="form-group"><label for="holderName">A/C Holder Name</label><input id="holderName" name="holderName" autocomplete="name" required></div>
+              <div class="form-group"><label for="dateOfBirth">Date of Birth</label><input type="date" id="dateOfBirth" name="dateOfBirth"></div>
+              <div class="form-group"><label for="guardianName">Guardian Name</label><input id="guardianName" name="guardianName"></div>
+              <div class="form-group"><label for="accountNumber">Account Number</label><input id="accountNumber" name="accountNumber" inputmode="numeric"></div>
+              <div class="form-group"><label for="customerId">Customer ID</label><input id="customerId" name="customerId"></div>
+              <div class="form-group"><label for="openedOn">Opened On</label><input type="date" id="openedOn" name="openedOn"></div>
+              <div class="form-group"><label for="issueDate">Issue Date</label><input type="date" id="issueDate" name="issueDate"></div>
+              <div class="form-group"><label for="aadhaarNumber">Aadhaar Number</label><input id="aadhaarNumber" name="aadhaarNumber" inputmode="numeric" maxlength="12" pattern="[0-9]{12}" placeholder="12 digits"></div>
+              <div class="form-group"><label for="panNumber">PAN Number</label><input id="panNumber" name="panNumber" maxlength="10" style="text-transform:uppercase" placeholder="ABCDE1234F"></div>
+              <div class="form-group"><label for="mobileNumber">Mobile Number</label><input type="tel" id="mobileNumber" name="mobileNumber" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="10 digits"></div>
+              <div class="form-group"><label for="emailId">E-mail ID</label><input type="email" id="emailId" name="emailId"></div>
+              <div class="form-group"><label for="operatedBy">Operated By</label><input id="operatedBy" name="operatedBy" value="Self" readonly></div>
+              <div class="form-group"><label for="village">Vill</label><input id="village" name="village"></div>
+              <div class="form-group"><label for="postOffice">PO</label><input id="postOffice" name="postOffice"></div>
+              <div class="form-group"><label for="policeStation">PS</label><input id="policeStation" name="policeStation"></div>
+              <div class="form-group"><label for="district">Dist</label><input id="district" name="district"></div>
+              <div class="form-group"><label for="state">State</label><input id="state" name="state"></div>
+              <div class="form-group"><label for="pinCode">PIN Code</label><input id="pinCode" name="pinCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}"></div>
+            </div>
+          </section>
+
+          <section class="form-card indusind-card">
+            <h3><i class="fa-solid fa-image"></i> Photo & CSP Sign</h3>
+            <div class="indusind-photo-row">
+              <div class="form-group indusind-photo-upload">
+                <label for="customerPhoto">Customer Photo</label>
+                <input type="file" id="customerPhoto" name="customerPhoto" accept="image/*" capture="environment">
+                <button type="button" class="indusind-camera-button" id="open-camera"><i class="fa-solid fa-camera"></i> Take Live Photo</button>
+                <div class="indusind-photo-preview"><img id="customerPhotoPreview" alt="Customer photo preview" hidden><span id="photoPlaceholder"><i class="fa-regular fa-image"></i> Photo preview</span></div>
+              </div>
+              <div class="csp-sign-box" aria-label="CSP sign and stamp area">
+                <span>CSP Sign &amp; Stamp</span>
+                <div class="csp-sign-space"></div>
+              </div>
+            </div>
+          </section>
+
+          <div class="form-actions indusind-actions">
+            <button type="button" class="btn-secondary" id="clear-account-form"><i class="fa-solid fa-rotate-left"></i> Clear Form</button>
+            <button type="submit" class="btn-primary" id="save-account-form"><i class="fa-solid fa-floppy-disk"></i> Save Account</button>
+            <button type="button" class="btn-primary" id="print-account-form" hidden><i class="fa-solid fa-print"></i> Print Form</button>
+          </div>
+        </form>
+
+        <article id="indusind-print-sheet" class="indusind-print-sheet" aria-hidden="true">
+          <header class="print-bank-header">
+            <div class="print-branch-details">
+              <div><b>BRANCH :</b> <span data-print-value="branchName"></span><b>, IFSC CODE :</b> <span data-print-value="branchIfsc"></span></div>
+              <div><b>Branch Address :</b> <span data-print-value="branchAddress"></span></div>
+            </div>
+            <div class="print-bank-wordmark"><strong>IndusInd</strong><span>Bank</span><i class="fa-solid fa-globe-asia"></i></div>
+          </header>
+          <div class="print-account-grid">
+            <div><b>ACCOUNT TYPE</b><span data-print-value="accountType"></span></div><div><b>ACCOUNT NO.</b><span data-print-value="accountNumber"></span></div>
+            <div><b>OPENED ON</b><span data-print-value="openedOn"></span></div><div><b>ISSUE DATE</b><span data-print-value="issueDate"></span></div>
+            <div><b>ACCOUNT HOLDER</b><span data-print-value="holderName"></span></div><div><b>CUSTOMER ID</b><span data-print-value="customerId"></span></div>
+            <div><b>GUARDIAN NAME</b><span data-print-value="guardianName"></span></div><div><b>DATE OF BIRTH</b><span data-print-value="dateOfBirth"></span></div>
+            <div><b>AADHAAR NO.</b><span data-print-value="aadhaarNumber"></span></div><div><b>PAN NO.</b><span data-print-value="panNumber"></span></div>
+            <div><b>MOBILE NO.</b><span data-print-value="mobileNumber"></span></div><div><b>E-MAIL ID</b><span data-print-value="emailId"></span></div>
+            <div><b>OPERATED BY</b><span data-print-value="operatedBy"></span></div>
+          </div>
+          <section class="print-customer-lower">
+            <div class="print-photo-frame"><img id="print-customer-photo" alt="Customer photo"><span id="print-photo-placeholder">RECENT<br>COLOUR<br>PHOTO</span></div>
+            <div class="print-address-block"><b>CUSTOMER ADDRESS</b><p>C/O <span data-print-value="guardianName"></span></p><p data-print-address="locality"></p><p data-print-address="region"></p><p data-print-address="statePin"></p></div>
+          </section>
+          <div class="print-csp-sign">CSP SIGN &amp; STAMP</div>
+        </article>
+      </section>
+    </main>
+  </div>
+  <div class="indusind-camera-modal" id="camera-modal" role="dialog" aria-modal="true" aria-labelledby="camera-title" hidden>
+    <div class="indusind-camera-dialog">
+      <div class="indusind-camera-heading"><h2 id="camera-title">Take Customer Photo</h2><button type="button" id="close-camera" aria-label="Close camera"><i class="fa-solid fa-xmark"></i></button></div>
+      <video id="camera-video" autoplay playsinline></video>
+      <div class="indusind-camera-actions"><button type="button" class="btn-secondary" id="cancel-camera">Cancel</button><button type="button" class="btn-primary" id="capture-photo"><i class="fa-solid fa-camera"></i> Capture Photo</button></div>
+    </div>
+  </div>
+  <script src="js/common.js?v=20261026-apps-script-url-1"></script>
+  <script src="js/indusind_account.js"></script>
+</body>
+</html>

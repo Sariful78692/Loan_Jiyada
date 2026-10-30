@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=indusind-1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Indusind Account Details | Loan Management</title>
+  <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
+  <link rel="stylesheet" href="css/customer.css?v=20261026-gold-icons-2">
+  <link rel="stylesheet" href="css/indusind-account.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="brand"><h2>Loan Management</h2></div>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle" aria-expanded="false"><i class="fa-solid fa-users"></i> RD Customer <i class="fa-solid fa-chevron-down arrow"></i></a>
+          <ul class="submenu">
+            <li><a href="CustomerEntry.html">RD Customer Entry</a></li>
+            <li><a href="CustomerDetails.html?loan=RD%20Loan">RD Customer Details</a></li>
+            <li><a href="CollectionReport.html">Collection Report</a></li>
+          </ul>
+        </li>
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link submenu-toggle" aria-expanded="false"><i class="fa-solid fa-coins"></i> Gold Loan <i class="fa-solid fa-chevron-down arrow"></i></a>
+          <ul class="submenu">
+            <li><a href="GoldLoanEntry.html">Gold Loan Customer Entry</a></li>
+            <li><a href="GoldLoanDetails.html">Gold Loan Customer Details</a></li>
+            <li><a href="GoldLoanEMI.html">Pay Gold Loan EMI</a></li>
+            <li><a href="GoldLoanReport.html">Gold Loan EMI Report</a></li>
+          </ul>
+        </li>
+      </ul>
+    </aside>
+    <main class="main-content indusind-main">
+      <section class="content-section">
+        <header class="indusind-header indusind-list-header">
+          <div><span class="indusind-eyebrow">INDUSIND ACCOUNT SERVICES</span><h1>Account Details</h1><p>Search and manage Indusind account entries.</p></div>
+          <a class="btn-primary indusind-add-link" href="IndusindAccountEntry.html"><i class="fa-solid fa-plus"></i> New Account Entry</a>
+        </header>
+        <section class="form-card indusind-card indusind-list-card">
+          <div class="indusind-list-tools">
+            <div class="indusind-search-tools"><label class="indusind-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="account-search" type="search" placeholder="Search by holder name or mobile number..." aria-label="Search by account holder name or mobile number"></label><button type="button" class="btn-primary" id="account-search-btn"><i class="fa-solid fa-magnifying-glass"></i> Search</button></div>
+            <label class="indusind-page-size">Rows per page <select id="account-page-size"><option value="10">10</option><option value="20">20</option><option value="50">50</option></select></label>
+          </div>
+          <div class="indusind-table-wrap">
+            <table class="indusind-table">
+              <thead><tr><th>A/C Holder Name</th><th>Account Type</th><th>Account Number</th><th>Customer ID</th><th>Mobile Number</th><th>Opened On</th><th>Actions</th></tr></thead>
+              <tbody id="indusind-account-rows"><tr><td colspan="7" class="indusind-empty">Loading accounts...</td></tr></tbody>
+            </table>
+          </div>
+          <div class="indusind-pagination"><span id="account-count">0 accounts</span><div><button type="button" id="account-prev" aria-label="Previous page"><i class="fa-solid fa-chevron-left"></i></button><span id="account-page-label">Page 1 of 1</span><button type="button" id="account-next" aria-label="Next page"><i class="fa-solid fa-chevron-right"></i></button></div></div>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script src="js/common.js?v=20261026-apps-script-url-1"></script>
+  <script src="js/indusind_account_details.js"></script>
+</body>
+</html>

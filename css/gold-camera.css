@@ -1,0 +1,17 @@
+.gold-photo-input-tools { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.gold-photo-input-tools input[type="file"] { flex: 1 1 0; width: 0; min-width: 0; }
+.gold-live-photo-btn { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 8px 11px; border: 1px solid #e2c66d; border-radius: 7px; background: #fff8e6; color: #72520a; font: 600 12px 'Plus Jakarta Sans', 'Segoe UI', sans-serif; cursor: pointer; white-space: nowrap; }
+.gold-live-photo-btn:hover { background: #f5e7bd; }
+.gold-camera-modal { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; padding: 18px; background: #0f172acc; }
+.gold-camera-modal[hidden] { display: none !important; }
+.gold-camera-dialog { width: min(620px, 100%); overflow: hidden; border: 1px solid #dbe3ee; border-radius: 14px; background: #fff; box-shadow: 0 24px 60px #02061766; }
+.gold-camera-heading { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; }
+.gold-camera-heading h2 { margin: 0; color: #1e293b; font-size: 16px; }
+.gold-camera-heading button { width: 34px; height: 34px; border: 0; border-radius: 7px; background: #f1f5f9; color: #475569; cursor: pointer; }
+.gold-camera-dialog video { display: block; width: 100%; max-height: min(65vh, 520px); background: #020617; object-fit: contain; }
+.gold-camera-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 18px; }
+.gold-camera-actions button { min-height: 40px; cursor: pointer; }
+@media (max-width: 520px) {
+  .gold-photo-input-tools { align-items: stretch; flex-direction: column; }
+  .gold-photo-input-tools input[type="file"] { width: 100%; }
+}

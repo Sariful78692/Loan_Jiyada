@@ -1,7 +1,7 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwd3HBVKL6rnjiKw_7qPpMW8klPl4BcMM0Hwp-hA31dLdZKaO9R6lazo9f6wh_uYV9Ifg/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxZYwgmI-4vRdttrkoJlG0gw2hrVhGqp6_pXLUik4_BMV3Y2B9wEraqisKcIsljBRnyg/exec";
 const APPS_SCRIPT_READ_URLS = [
   APPS_SCRIPT_URL,
   "https://script.google.com/macros/s/AKfycbya3O_mtwT630kTZEugyV_fafyTqTZXQwnyXRIaJPC9PZrbno7OoCZUItHQ8Uf8hhmeXw/exec",
@@ -82,6 +82,7 @@ function invalidateAppDataCache() {
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_rd_customer_details`);
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_collection_report`);
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_gold_emi_report`);
+    sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_indusind_accounts`);
   } catch (_) {
     // Continue with the API write even when browser storage is unavailable.
   }
@@ -212,6 +213,7 @@ document.addEventListener("DOMContentLoaded", function () {
   addAccountMenu();
   addMobileMenuToggle();
   addGroupLoanMenu();
+  addIndusindAccountMenu();
   setGroupPageContext();
   loadCustomLoanTypes();
 
@@ -287,6 +289,34 @@ function addGroupLoanMenu() {
   const goldLoanItem = Array.from(navMenu.children).find(child => child.querySelector('a[href="GoldLoanEntry.html"]'));
   const reportItem = navMenu.querySelector('a[href="Report.html"]')?.closest("li");
   navMenu.insertBefore(item, goldLoanItem || reportItem || null);
+}
+
+function addIndusindAccountMenu() {
+  const navMenu = document.querySelector(".sidebar .nav-menu");
+  if (!navMenu || navMenu.querySelector('[data-indusind-account-menu="true"]')) return;
+
+  const item = document.createElement("li");
+  item.className = "nav-item has-submenu";
+  item.dataset.indusindAccountMenu = "true";
+  item.innerHTML = `
+    <a href="#" class="nav-link submenu-toggle" aria-expanded="false">
+      <i class="fa-solid fa-building-columns"></i> Indusind Account <i class="fa-solid fa-chevron-down arrow"></i>
+    </a>
+    <ul class="submenu"><li><a href="IndusindAccountEntry.html">New Account Entry</a></li><li><a href="IndusindAccountDetails.html">Account Detail</a></li></ul>`;
+
+  const accountEntryLink = item.querySelector('a[href="IndusindAccountEntry.html"]');
+  const accountDetailsLink = item.querySelector('a[href="IndusindAccountDetails.html"]');
+  const currentPath = window.location.pathname.toLowerCase();
+  if (currentPath.endsWith("indusindaccountentry.html")) {
+    accountEntryLink.classList.add("active");
+    item.classList.add("open");
+    item.querySelector(":scope > .nav-link")?.setAttribute("aria-expanded", "true");
+  } else if (currentPath.endsWith("indusindaccountdetails.html")) {
+    accountDetailsLink.classList.add("active");
+    item.classList.add("open");
+    item.querySelector(":scope > .nav-link")?.setAttribute("aria-expanded", "true");
+  }
+  navMenu.appendChild(item);
 }
 
 function setGroupPageContext() {

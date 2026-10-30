@@ -11,6 +11,10 @@ function doGet(e) {
   if (e && e.parameter && e.parameter.view === "gold_emi_report") {
     return doGetGoldEmiReportData();
   }
+  if (e && e.parameter && e.parameter.view === "indusind_accounts") {
+    var accountsSheet = getOrCreateIndusindAccountsSheet(SpreadsheetApp.getActiveSpreadsheet());
+    return jsonResponse({ indusind_accounts: readIndusindAccountsForClient_(accountsSheet, Session.getScriptTimeZone()) });
+  }
   if (e && e.parameter && e.parameter.view === "customer_report") {
     return doGetCustomerReportData();
   }
@@ -528,6 +532,12 @@ function doPost(e) {
 
     
     var folderId = "1tYYWYu7dyg4NCVD_mePsmvyX0fOdYDKa";
+
+    if (["create_indusind_account", "update_indusind_account", "delete_indusind_account"].indexOf(data.action) !== -1) {
+      var indusindResult = handleIndusindAccountAction(ss, data, folderId);
+      if (indusindResult.status === "success") clearDashboardCache();
+      return jsonResponse(indusindResult);
+    }
 
     if (data.action === "collectInstallments") {
       return jsonResponse(saveCollectionInstallments(ss, data));
@@ -1080,6 +1090,119 @@ function doPost(e) {
 // =====================================
 // Helper Functions
 // =====================================
+
+function getOrCreateIndusindAccountsSheet(ss) {
+  var sheet = ss.getSheetByName("Indusind_Accounts");
+  var headers = ["ID", "Timestamp", "Branch Name", "Branch IFSC Code", "Branch Address", "Account Type", "A/C Holder Name", "Date of Birth", "Guardian Name", "Account Number", "Customer ID", "Opened On", "Issue Date", "Aadhaar Number", "PAN Number", "Mobile Number", "E-mail ID", "Operated By", "Vill", "PO", "PS", "Dist", "State", "PIN Code", "Photo URL"];
+  if (!sheet) {
+    sheet = ss.insertSheet("Indusind_Accounts");
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+  }
+  return sheet;
+}
+
+function readIndusindAccountsForClient_(sheet, timezone) {
+  return readReportSheet_(sheet, timezone).map(function(record) {
+    return {
+      ID: record.ID,
+      branchName: record["Branch Name"],
+      branchIfsc: record["Branch IFSC Code"],
+      branchAddress: record["Branch Address"],
+      accountType: record["Account Type"],
+      holderName: record["A/C Holder Name"],
+      dateOfBirth: record["Date of Birth"],
+      guardianName: record["Guardian Name"],
+      accountNumber: record["Account Number"],
+      customerId: record["Customer ID"],
+      openedOn: record["Opened On"],
+      issueDate: record["Issue Date"],
+      aadhaarNumber: record["Aadhaar Number"],
+      panNumber: record["PAN Number"],
+      mobileNumber: record["Mobile Number"],
+      emailId: record["E-mail ID"],
+      operatedBy: record["Operated By"],
+      village: record["Vill"],
+      postOffice: record["PO"],
+      policeStation: record["PS"],
+      district: record["Dist"],
+      state: record["State"],
+      pinCode: record["PIN Code"],
+      "Photo URL": record["Photo URL"]
+    };
+  });
+}
+
+function handleIndusindAccountAction(ss, data, folderId) {
+  var sheet = getOrCreateIndusindAccountsSheet(ss);
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function(header) { return String(header).trim(); });
+  var idColumn = headers.indexOf("ID");
+
+  if (data.action === "delete_indusind_account") {
+    for (var row = 1; row < values.length; row++) {
+      if (String(values[row][idColumn]) === String(data.id)) {
+        sheet.deleteRow(row + 1);
+        return { status: "success" };
+      }
+    }
+    return { status: "error", message: "Account entry not found." };
+  }
+
+  var account = data.account || {};
+  if (!String(account.holderName || "").trim()) return { status: "error", message: "A/C Holder Name is required." };
+  if (account.aadhaarNumber && !/^\d{12}$/.test(String(account.aadhaarNumber))) return { status: "error", message: "Aadhaar Number must contain 12 digits." };
+  if (account.mobileNumber && !/^\d{10}$/.test(String(account.mobileNumber))) return { status: "error", message: "Mobile Number must contain 10 digits." };
+  if (account.pinCode && !/^\d{6}$/.test(String(account.pinCode))) return { status: "error", message: "PIN Code must contain 6 digits." };
+
+  var accountId = data.action === "update_indusind_account" ? String(data.id || "") : "IA-" + new Date().getTime();
+  if (!accountId) return { status: "error", message: "Account entry ID is missing." };
+  var photoUrl = data.existingPhotoUrl || "";
+  if (data.photoBase64 && data.photoName) {
+    photoUrl = uploadImageToDrive(data.photoBase64, data.photoMimeType || "image/jpeg", "Indusind-" + accountId + "-" + data.photoName, folderId) || photoUrl;
+  }
+  var valuesByHeader = {
+    "ID": accountId,
+    "Timestamp": new Date(),
+    "Branch Name": account.branchName || "Amtala -0298",
+    "Branch IFSC Code": account.branchIfsc || "INDB0000298",
+    "Branch Address": account.branchAddress || "Amtala, South 24 Parganas, WB, 743398",
+    "Account Type": account.accountType || "Saving",
+    "A/C Holder Name": account.holderName || "",
+    "Date of Birth": account.dateOfBirth || "",
+    "Guardian Name": account.guardianName || "",
+    "Account Number": account.accountNumber || "",
+    "Customer ID": account.customerId || "",
+    "Opened On": account.openedOn || "",
+    "Issue Date": account.issueDate || "",
+    "Aadhaar Number": account.aadhaarNumber || "",
+    "PAN Number": String(account.panNumber || "").toUpperCase(),
+    "Mobile Number": account.mobileNumber || "",
+    "E-mail ID": account.emailId || "",
+    "Operated By": account.operatedBy || "Self",
+    "Vill": account.village || "",
+    "PO": account.postOffice || "",
+    "PS": account.policeStation || "",
+    "Dist": account.district || "",
+    "State": account.state || "",
+    "PIN Code": account.pinCode || "",
+    "Photo URL": photoUrl
+  };
+  var rowValues = headers.map(function(header) { return valuesByHeader[header] === undefined ? "" : valuesByHeader[header]; });
+
+  if (data.action === "update_indusind_account") {
+    for (var updateRow = 1; updateRow < values.length; updateRow++) {
+      if (String(values[updateRow][idColumn]) === accountId) {
+        sheet.getRange(updateRow + 1, 1, 1, headers.length).setValues([rowValues]);
+        return { status: "success", id: accountId, photoUrl: photoUrl };
+      }
+    }
+    return { status: "error", message: "Account entry not found." };
+  }
+
+  sheet.appendRow(rowValues);
+  return { status: "success", id: accountId, photoUrl: photoUrl };
+}
 
 function uploadImageToDrive(base64Data, mimeType, fileName, folderId) {
   if (!base64Data || !fileName) return "";
