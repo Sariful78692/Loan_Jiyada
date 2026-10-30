@@ -15,6 +15,9 @@ function doGet(e) {
     var accountsSheet = getOrCreateIndusindAccountsSheet(SpreadsheetApp.getActiveSpreadsheet());
     return jsonResponse({ indusind_accounts: readIndusindAccountsForClient_(accountsSheet, Session.getScriptTimeZone()) });
   }
+  if (e && e.parameter && e.parameter.view === "app_settings") {
+    return jsonResponse(readAppLogoSettings_(SpreadsheetApp.getActiveSpreadsheet()));
+  }
   if (e && e.parameter && e.parameter.view === "customer_report") {
     return doGetCustomerReportData();
   }
@@ -532,6 +535,10 @@ function doPost(e) {
 
     
     var folderId = "1tYYWYu7dyg4NCVD_mePsmvyX0fOdYDKa";
+
+    if (data.action === "save_app_logo" || data.action === "delete_app_logo") {
+      return jsonResponse(saveAppLogoSetting_(ss, data, folderId));
+    }
 
     if (["create_indusind_account", "update_indusind_account", "delete_indusind_account"].indexOf(data.action) !== -1) {
       var indusindResult = handleIndusindAccountAction(ss, data, folderId);
@@ -1100,6 +1107,63 @@ function getOrCreateIndusindAccountsSheet(ss) {
     sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
   }
   return sheet;
+}
+
+function getOrCreateAppSettingsSheet_(ss) {
+  var sheet = ss.getSheetByName("App_Settings");
+  if (!sheet) {
+    sheet = ss.insertSheet("App_Settings");
+    sheet.appendRow(["Setting Key", "Setting Value", "Updated At"]);
+    sheet.getRange(1, 1, 1, 3).setFontWeight("bold");
+  }
+  return sheet;
+}
+
+function readAppLogoSettings_(ss) {
+  var logos = { indusind: "", gold: "", rd: "" };
+  var sheet = ss.getSheetByName("App_Settings");
+  if (sheet && sheet.getLastRow() > 1) {
+    var rows = sheet.getDataRange().getValues();
+    for (var row = 1; row < rows.length; row++) {
+      var key = String(rows[row][0] || "").trim();
+      if (Object.prototype.hasOwnProperty.call(logos, key)) logos[key] = String(rows[row][1] || "");
+    }
+  }
+  return { storage: "database", logos: logos };
+}
+
+function saveAppLogoSetting_(ss, data, folderId) {
+  var key = String(data.logoKey || "").trim();
+  if (["indusind", "gold", "rd"].indexOf(key) === -1) return { status: "error", message: "Unknown logo setting." };
+  var sheet = getOrCreateAppSettingsSheet_(ss);
+  var values = sheet.getDataRange().getValues();
+  var settingRow = -1;
+
+  if (data.action === "delete_app_logo") {
+    for (var clearIndex = 1; clearIndex < values.length; clearIndex++) {
+      if (String(values[clearIndex][0]).trim() === key) {
+        settingRow = clearIndex + 1;
+        break;
+      }
+    }
+    if (settingRow > 0) sheet.getRange(settingRow, 2, 1, 2).setValues([["", new Date()]]);
+    return { status: "success", logoKey: key, logoUrl: "" };
+  }
+
+  if (!data.logoBase64 || !String(data.logoMimeType || "").match(/^image\//i)) return { status: "error", message: "Choose a valid image logo." };
+  var fileName = "App-Logo-" + key + "-" + new Date().getTime() + "." + (String(data.logoMimeType).split("/")[1] || "img").replace(/[^a-z0-9]/gi, "");
+  var logoUrl = uploadImageToDrive(data.logoBase64, data.logoMimeType, fileName, folderId);
+  if (!logoUrl) return { status: "error", message: "Could not upload the logo to Drive." };
+
+  for (var rowIndex = 1; rowIndex < values.length; rowIndex++) {
+    if (String(values[rowIndex][0]).trim() === key) {
+      settingRow = rowIndex + 1;
+      break;
+    }
+  }
+  if (settingRow > 0) sheet.getRange(settingRow, 2, 1, 2).setValues([[logoUrl, new Date()]]);
+  else sheet.appendRow([key, logoUrl, new Date()]);
+  return { status: "success", logoKey: key, logoUrl: logoUrl };
 }
 
 function readIndusindAccountsForClient_(sheet, timezone) {

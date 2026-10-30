@@ -1,37 +1,26 @@
-const INDUSIND_LOGO_STORAGE_KEY = "indusindBankLogoDataUrl";
-
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("indusind-logo-file");
   const preview = document.getElementById("indusind-logo-preview");
   const defaultLabel = document.getElementById("indusind-logo-default");
   const saveButton = document.getElementById("save-indusind-logo");
   const resetButton = document.getElementById("reset-indusind-logo");
-
-  const showLogo = dataUrl => {
-    if (dataUrl) {
-      preview.src = dataUrl;
-      preview.hidden = false;
-      defaultLabel.hidden = true;
-    } else {
-      preview.removeAttribute("src");
-      preview.hidden = true;
-      defaultLabel.hidden = false;
-    }
+  const showLogo = url => {
+    preview.src = url || "";
+    preview.hidden = !url;
+    defaultLabel.hidden = Boolean(url);
   };
 
-  showLogo(localStorage.getItem(INDUSIND_LOGO_STORAGE_KEY));
+  showLogo(localStorage.getItem("indusindBankLogoDataUrl"));
+  fetchAppData("app_settings").then(data => {
+    if (data.storage === "database") showLogo(data.logos?.indusind || "");
+  }).catch(error => console.warn("Could not load the saved IndusInd logo.", error));
 
   input.addEventListener("change", () => {
     const file = input.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    if (!file.type.startsWith("image/") || file.size > 1024 * 1024) {
       input.value = "";
-      showToast("Choose an image file for the logo.", "error");
-      return;
-    }
-    if (file.size > 1024 * 1024) {
-      input.value = "";
-      showToast("Logo image must be 1 MB or smaller.", "error");
+      showToast(file.type.startsWith("image/") ? "Logo image must be 1 MB or smaller." : "Choose an image file for the logo.", "error");
       return;
     }
     preview.src = URL.createObjectURL(file);
@@ -39,32 +28,35 @@ document.addEventListener("DOMContentLoaded", () => {
     defaultLabel.hidden = true;
   });
 
-  saveButton.addEventListener("click", () => {
+  saveButton.addEventListener("click", async () => {
     const file = input.files?.[0];
-    if (!file) {
-      showToast("Choose a logo image before saving.", "warning");
-      return;
+    if (!file) return showToast("Choose a logo image before saving.", "warning");
+    saveButton.disabled = true;
+    try {
+      const url = await saveAppLogoToDatabase("indusind", file);
+      showLogo(url);
+      input.value = "";
+      showToast("IndusInd logo saved to the database.", "success");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "Could not save the logo.", "error");
+    } finally {
+      saveButton.disabled = false;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        localStorage.setItem(INDUSIND_LOGO_STORAGE_KEY, String(reader.result));
-        showLogo(String(reader.result));
-        input.value = "";
-        showToast("IndusInd logo saved. It will appear on the account print form.", "success");
-      } catch (error) {
-        console.error(error);
-        showToast("Could not save the logo. Choose a smaller image.", "error");
-      }
-    };
-    reader.onerror = () => showToast("Could not read the selected logo image.", "error");
-    reader.readAsDataURL(file);
   });
 
-  resetButton.addEventListener("click", () => {
-    localStorage.removeItem(INDUSIND_LOGO_STORAGE_KEY);
-    input.value = "";
-    showLogo("");
-    showToast("Default IndusInd logo restored.", "success");
+  resetButton.addEventListener("click", async () => {
+    resetButton.disabled = true;
+    try {
+      await deleteAppLogoFromDatabase("indusind");
+      input.value = "";
+      showLogo("");
+      showToast("Default IndusInd logo restored.", "success");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "Could not remove the saved logo.", "error");
+    } finally {
+      resetButton.disabled = false;
+    }
   });
 });

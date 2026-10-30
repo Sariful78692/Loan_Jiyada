@@ -1,7 +1,7 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxZYwgmI-4vRdttrkoJlG0gw2hrVhGqp6_pXLUik4_BMV3Y2B9wEraqisKcIsljBRnyg/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkG2Hz9YytVP3baXGyK0suF4W85utBaWr-a3hI4thy0fN5ZHgLx37SAUZ8YvlOazWAIg/exec";
 const APPS_SCRIPT_READ_URLS = [
   APPS_SCRIPT_URL,
   "https://script.google.com/macros/s/AKfycbya3O_mtwT630kTZEugyV_fafyTqTZXQwnyXRIaJPC9PZrbno7OoCZUItHQ8Uf8hhmeXw/exec",
@@ -83,6 +83,7 @@ function invalidateAppDataCache() {
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_collection_report`);
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_gold_emi_report`);
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_indusind_accounts`);
+    sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_app_settings`);
   } catch (_) {
     // Continue with the API write even when browser storage is unavailable.
   }
@@ -91,6 +92,52 @@ function invalidateAppDataCache() {
 async function postAppData(payload) {
   invalidateAppDataCache();
   return fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+}
+
+async function syncPrintLogoSettings() {
+  try {
+    const settings = await fetchAppData("app_settings");
+    if (settings.storage !== "database" || !settings.logos) return;
+    const logoKeys = { indusind: "indusindBankLogoDataUrl", gold: "goldPrintLogoDataUrl", rd: "rdPrintLogoDataUrl" };
+    Object.entries(logoKeys).forEach(([key, storageKey]) => {
+      const logoUrl = settings.logos[key];
+      if (logoUrl) localStorage.setItem(storageKey, logoUrl);
+      else localStorage.removeItem(storageKey);
+    });
+  } catch (error) {
+    console.warn("Could not load saved print logo settings.", error);
+  }
+}
+
+async function saveAppLogoToDatabase(logoKey, file) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read the selected logo image."));
+    reader.readAsDataURL(file);
+  });
+  const response = await postAppData({
+    action: "save_app_logo",
+    logoKey,
+    logoBase64: dataUrl.split(",")[1] || "",
+    logoMimeType: file.type,
+    logoName: file.name
+  });
+  const result = await response.json();
+  if (!response.ok || result.status !== "success" || !result.logoUrl) throw new Error(result.message || "Could not save the logo.");
+  const storageKey = { indusind: "indusindBankLogoDataUrl", gold: "goldPrintLogoDataUrl", rd: "rdPrintLogoDataUrl" }[logoKey];
+  if (storageKey) localStorage.setItem(storageKey, result.logoUrl);
+  sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_app_settings`);
+  return result.logoUrl;
+}
+
+async function deleteAppLogoFromDatabase(logoKey) {
+  const response = await postAppData({ action: "delete_app_logo", logoKey });
+  const result = await response.json();
+  if (!response.ok || result.status !== "success") throw new Error(result.message || "Could not remove the logo.");
+  const storageKey = { indusind: "indusindBankLogoDataUrl", gold: "goldPrintLogoDataUrl", rd: "rdPrintLogoDataUrl" }[logoKey];
+  if (storageKey) localStorage.removeItem(storageKey);
+  sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_app_settings`);
 }
 
 // App-wide floating notifications. Existing alert() calls are redirected here so
@@ -216,6 +263,7 @@ document.addEventListener("DOMContentLoaded", function () {
   addIndusindAccountMenu();
   setGroupPageContext();
   loadCustomLoanTypes();
+  syncPrintLogoSettings();
 
   // সাইডবার সাবমেনু খোলা/বন্ধ
   const submenuToggles = document.querySelectorAll(".submenu-toggle");

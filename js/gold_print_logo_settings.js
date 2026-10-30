@@ -1,16 +1,20 @@
-const GOLD_PRINT_LOGO_KEY = "goldPrintLogoDataUrl";
-
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("gold-print-logo-file");
   const preview = document.getElementById("gold-print-logo-preview");
   const defaultLabel = document.getElementById("gold-print-logo-default");
-  const showLogo = dataUrl => {
-    preview.src = dataUrl || "";
-    preview.hidden = !dataUrl;
-    defaultLabel.hidden = Boolean(dataUrl);
+  const saveButton = document.getElementById("save-gold-print-logo");
+  const resetButton = document.getElementById("reset-gold-print-logo");
+  const showLogo = url => {
+    preview.src = url || "";
+    preview.hidden = !url;
+    defaultLabel.hidden = Boolean(url);
   };
 
-  showLogo(localStorage.getItem(GOLD_PRINT_LOGO_KEY));
+  showLogo(localStorage.getItem("goldPrintLogoDataUrl"));
+  fetchAppData("app_settings").then(data => {
+    if (data.storage === "database") showLogo(data.logos?.gold || "");
+  }).catch(error => console.warn("Could not load the saved Gold Print logo.", error));
+
   input.addEventListener("change", () => {
     const file = input.files?.[0];
     if (!file) return;
@@ -24,29 +28,35 @@ document.addEventListener("DOMContentLoaded", () => {
     defaultLabel.hidden = true;
   });
 
-  document.getElementById("save-gold-print-logo").addEventListener("click", () => {
+  saveButton.addEventListener("click", async () => {
     const file = input.files?.[0];
     if (!file) return showToast("Choose a logo image before saving.", "warning");
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        localStorage.setItem(GOLD_PRINT_LOGO_KEY, String(reader.result));
-        showLogo(String(reader.result));
-        input.value = "";
-        showToast("Gold print logo saved.", "success");
-      } catch (error) {
-        console.error(error);
-        showToast("Could not save the logo. Choose a smaller image.", "error");
-      }
-    };
-    reader.onerror = () => showToast("Could not read the selected logo image.", "error");
-    reader.readAsDataURL(file);
+    saveButton.disabled = true;
+    try {
+      const url = await saveAppLogoToDatabase("gold", file);
+      showLogo(url);
+      input.value = "";
+      showToast("Gold Print logo saved to the database.", "success");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "Could not save the logo.", "error");
+    } finally {
+      saveButton.disabled = false;
+    }
   });
 
-  document.getElementById("reset-gold-print-logo").addEventListener("click", () => {
-    localStorage.removeItem(GOLD_PRINT_LOGO_KEY);
-    input.value = "";
-    showLogo("");
-    showToast("Gold print logo removed.", "success");
+  resetButton.addEventListener("click", async () => {
+    resetButton.disabled = true;
+    try {
+      await deleteAppLogoFromDatabase("gold");
+      input.value = "";
+      showLogo("");
+      showToast("Gold Print logo removed.", "success");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "Could not remove the saved logo.", "error");
+    } finally {
+      resetButton.disabled = false;
+    }
   });
 });

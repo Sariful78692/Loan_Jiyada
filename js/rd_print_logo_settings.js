@@ -1,16 +1,20 @@
-const RD_PRINT_LOGO_KEY = "rdPrintLogoDataUrl";
-
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("rd-print-logo-file");
   const preview = document.getElementById("rd-print-logo-preview");
   const defaultLabel = document.getElementById("rd-print-logo-default");
-  const showLogo = dataUrl => {
-    preview.src = dataUrl || "";
-    preview.hidden = !dataUrl;
-    defaultLabel.hidden = Boolean(dataUrl);
+  const saveButton = document.getElementById("save-rd-print-logo");
+  const resetButton = document.getElementById("reset-rd-print-logo");
+  const showLogo = url => {
+    preview.src = url || "";
+    preview.hidden = !url;
+    defaultLabel.hidden = Boolean(url);
   };
 
-  showLogo(localStorage.getItem(RD_PRINT_LOGO_KEY));
+  showLogo(localStorage.getItem("rdPrintLogoDataUrl"));
+  fetchAppData("app_settings").then(data => {
+    if (data.storage === "database") showLogo(data.logos?.rd || "");
+  }).catch(error => console.warn("Could not load the saved RD Print logo.", error));
+
   input.addEventListener("change", () => {
     const file = input.files?.[0];
     if (!file) return;
@@ -24,29 +28,35 @@ document.addEventListener("DOMContentLoaded", () => {
     defaultLabel.hidden = true;
   });
 
-  document.getElementById("save-rd-print-logo").addEventListener("click", () => {
+  saveButton.addEventListener("click", async () => {
     const file = input.files?.[0];
     if (!file) return showToast("Choose a logo image before saving.", "warning");
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        localStorage.setItem(RD_PRINT_LOGO_KEY, String(reader.result));
-        showLogo(String(reader.result));
-        input.value = "";
-        showToast("RD print logo saved.", "success");
-      } catch (error) {
-        console.error(error);
-        showToast("Could not save the logo. Choose a smaller image.", "error");
-      }
-    };
-    reader.onerror = () => showToast("Could not read the selected logo image.", "error");
-    reader.readAsDataURL(file);
+    saveButton.disabled = true;
+    try {
+      const url = await saveAppLogoToDatabase("rd", file);
+      showLogo(url);
+      input.value = "";
+      showToast("RD Print logo saved to the database.", "success");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "Could not save the logo.", "error");
+    } finally {
+      saveButton.disabled = false;
+    }
   });
 
-  document.getElementById("reset-rd-print-logo").addEventListener("click", () => {
-    localStorage.removeItem(RD_PRINT_LOGO_KEY);
-    input.value = "";
-    showLogo("");
-    showToast("Default RD print logo restored.", "success");
+  resetButton.addEventListener("click", async () => {
+    resetButton.disabled = true;
+    try {
+      await deleteAppLogoFromDatabase("rd");
+      input.value = "";
+      showLogo("");
+      showToast("Default RD Print logo restored.", "success");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "Could not remove the saved logo.", "error");
+    } finally {
+      resetButton.disabled = false;
+    }
   });
 });
