@@ -209,11 +209,12 @@ function printGoldLoanDetails(loan) {
   const sideDetails = detailRows.slice(0, 7).join("");
   const remainingDetails = detailRows.slice(7).join("");
   const customGoldLogo = localStorage.getItem("goldPrintLogoDataUrl") || "";
+  const customGoldLogoUrls = goldPhotoUrls(customGoldLogo);
   const originalDocumentWrite = popup.document.write.bind(popup.document);
   popup.document.write = html => {
     let printHtml = html.replace("<script>window.onload=()=>window.print();</script>", "");
     if (customGoldLogo) {
-      const brandedHeading = `<div style="display:flex;align-items:center;justify-content:space-between;gap:20px"><h1 style="flex:1">Gold Loan Application</h1><img src="${goldHtml(customGoldLogo)}" alt="Gold Print Logo" style="display:block;max-width:180px;max-height:64px;object-fit:contain"></div>`;
+      const brandedHeading = `<div style="display:flex;align-items:center;justify-content:space-between;gap:20px"><h1 style="flex:1">Gold Loan Application</h1><img src="${goldHtml(customGoldLogoUrls[0] || customGoldLogo)}" data-photo-candidates="${goldHtml(customGoldLogoUrls.join("|"))}" alt="Gold Print Logo" style="display:block;max-width:180px;max-height:64px;object-fit:contain"></div>`;
       printHtml = printHtml.replace("<h1>Gold Loan Application</h1>", brandedHeading);
     }
     originalDocumentWrite(printHtml);

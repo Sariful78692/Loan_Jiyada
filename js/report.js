@@ -442,8 +442,8 @@ function viewClosedCustomerDetails(customerId) {
   const savedRdLogo = localStorage.getItem("rdPrintLogoDataUrl") || "";
   if (savedRdLogo) {
     const customLogoImage = document.createElement("img");
-    customLogoImage.src = savedRdLogo;
     customLogoImage.alt = "RD Print Logo";
+    setImageSourceWithFallback(customLogoImage, savedRdLogo);
     Object.assign(customLogoImage.style, { display: "block", width: "100%", height: "48px", objectFit: "contain" });
     printLogo.replaceChildren(customLogoImage);
   }
@@ -454,8 +454,8 @@ function viewClosedCustomerDetails(customerId) {
   printWatermark.style.display = "none";
   if (savedRdLogo) {
     const watermarkImage = document.createElement("img");
-    watermarkImage.src = savedRdLogo;
     watermarkImage.alt = "";
+    setImageSourceWithFallback(watermarkImage, savedRdLogo);
     printWatermark.appendChild(watermarkImage);
   } else {
     printWatermark.textContent = "IndusInd Bank";

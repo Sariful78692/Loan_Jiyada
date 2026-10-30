@@ -126,9 +126,12 @@ async function saveAppLogoToDatabase(logoKey, file) {
   const result = await response.json();
   if (!response.ok || result.status !== "success" || !result.logoUrl) throw new Error(result.message || "Could not save the logo.");
   const storageKey = { indusind: "indusindBankLogoDataUrl", gold: "goldPrintLogoDataUrl", rd: "rdPrintLogoDataUrl" }[logoKey];
-  if (storageKey) localStorage.setItem(storageKey, result.logoUrl);
   sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_app_settings`);
-  return result.logoUrl;
+  const savedSettings = await fetchAppData("app_settings", true);
+  const savedUrl = savedSettings.logos?.[logoKey];
+  if (!savedUrl) throw new Error("The image uploaded, but its logo setting was not found in the database.");
+  if (storageKey) localStorage.setItem(storageKey, savedUrl);
+  return savedUrl;
 }
 
 async function deleteAppLogoFromDatabase(logoKey) {
@@ -136,8 +139,35 @@ async function deleteAppLogoFromDatabase(logoKey) {
   const result = await response.json();
   if (!response.ok || result.status !== "success") throw new Error(result.message || "Could not remove the logo.");
   const storageKey = { indusind: "indusindBankLogoDataUrl", gold: "goldPrintLogoDataUrl", rd: "rdPrintLogoDataUrl" }[logoKey];
-  if (storageKey) localStorage.removeItem(storageKey);
   sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_app_settings`);
+  const savedSettings = await fetchAppData("app_settings", true);
+  if (savedSettings.logos?.[logoKey]) throw new Error("The logo setting is still present in the database.");
+  if (storageKey) localStorage.removeItem(storageKey);
+}
+
+function setImageSourceWithFallback(image, source) {
+  if (!image || !source) return;
+  const url = String(source);
+  const match = url.match(/[?&]id=([^&]+)/i) || url.match(/\/d\/([^/?]+)/i);
+  let candidates = [url];
+  if (match) {
+    let fileId = match[1];
+    try { fileId = decodeURIComponent(fileId); } catch (_) {}
+    const encodedId = encodeURIComponent(fileId);
+    candidates = [
+      `https://drive.google.com/thumbnail?id=${encodedId}&sz=w1000`,
+      `https://lh3.googleusercontent.com/d/${encodedId}=w1000`,
+      `https://drive.google.com/uc?export=view&id=${encodedId}`,
+      url
+    ];
+  }
+  let index = 0;
+  image.onerror = () => {
+    index++;
+    if (index < candidates.length) image.src = candidates[index];
+    else image.dispatchEvent(new Event("appimagesourceerror"));
+  };
+  image.src = candidates[0];
 }
 
 // App-wide floating notifications. Existing alert() calls are redirected here so

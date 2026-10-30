@@ -212,7 +212,7 @@ function applyCustomIndusindLogo() {
   if (!customLogo || !defaultLogo) return;
   const savedLogo = localStorage.getItem("indusindBankLogoDataUrl");
   if (savedLogo) {
-    customLogo.src = savedLogo;
+    setImageSourceWithFallback(customLogo, savedLogo);
     customLogo.hidden = false;
     defaultLogo.hidden = true;
   } else {

@@ -5,10 +5,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveButton = document.getElementById("save-rd-print-logo");
   const resetButton = document.getElementById("reset-rd-print-logo");
   const showLogo = url => {
-    preview.src = url || "";
+    if (url) setImageSourceWithFallback(preview, url);
+    else preview.removeAttribute("src");
     preview.hidden = !url;
     defaultLabel.hidden = Boolean(url);
   };
+  preview.addEventListener("appimagesourceerror", () => {
+    preview.hidden = true;
+    defaultLabel.hidden = false;
+    showToast("Logo is saved, but Drive did not return a viewable image. Check the Drive sharing permission.", "error");
+  });
 
   showLogo(localStorage.getItem("rdPrintLogoDataUrl"));
   fetchAppData("app_settings").then(data => {
