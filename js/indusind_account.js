@@ -12,6 +12,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let cameraStream = null;
   const editId = new URLSearchParams(window.location.search).get("id");
 
+  applyCustomIndusindLogo();
+  window.addEventListener("storage", event => {
+    if (event.key === "indusindBankLogoDataUrl") applyCustomIndusindLogo();
+  });
+
   if (editId) loadIndusindAccountForEdit(editId);
 
   photoInput.addEventListener("change", () => {
@@ -167,6 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
 window.addEventListener("beforeprint", renderIndusindPrintSheet);
 
 function renderIndusindPrintSheet() {
+  applyCustomIndusindLogo();
   const ids = ["branchName", "branchIfsc", "branchAddress", "accountType", "accountNumber", "openedOn", "issueDate", "holderName", "customerId", "guardianName", "dateOfBirth", "aadhaarNumber", "panNumber", "mobileNumber", "emailId", "operatedBy"];
   ids.forEach(id => {
     const field = document.getElementById(id);
@@ -197,6 +203,22 @@ function renderIndusindPrintSheet() {
   } else {
     printPhoto.removeAttribute("src");
     placeholder.hidden = false;
+  }
+}
+
+function applyCustomIndusindLogo() {
+  const customLogo = document.getElementById("print-bank-custom-logo");
+  const defaultLogo = document.querySelector(".print-bank-wordmark");
+  if (!customLogo || !defaultLogo) return;
+  const savedLogo = localStorage.getItem("indusindBankLogoDataUrl");
+  if (savedLogo) {
+    customLogo.src = savedLogo;
+    customLogo.hidden = false;
+    defaultLogo.hidden = true;
+  } else {
+    customLogo.removeAttribute("src");
+    customLogo.hidden = true;
+    defaultLogo.hidden = false;
   }
 }
 

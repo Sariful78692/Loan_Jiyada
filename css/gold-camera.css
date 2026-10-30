@@ -2,6 +2,8 @@
 .gold-photo-input-tools input[type="file"] { flex: 1 1 0; width: 0; min-width: 0; }
 .gold-live-photo-btn { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 8px 11px; border: 1px solid #e2c66d; border-radius: 7px; background: #fff8e6; color: #72520a; font: 600 12px 'Plus Jakarta Sans', 'Segoe UI', sans-serif; cursor: pointer; white-space: nowrap; }
 .gold-live-photo-btn:hover { background: #f5e7bd; }
+.customer-live-photo-btn { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 8px 11px; border: 1px solid #bfdbfe; border-radius: 7px; background: #eff6ff; color: #1d4ed8; font: 600 12px 'Plus Jakarta Sans', 'Segoe UI', sans-serif; cursor: pointer; white-space: nowrap; }
+.customer-live-photo-btn:hover { background: #dbeafe; }
 .gold-camera-modal { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; padding: 18px; background: #0f172acc; }
 .gold-camera-modal[hidden] { display: none !important; }
 .gold-camera-dialog { width: min(620px, 100%); overflow: hidden; border: 1px solid #dbe3ee; border-radius: 14px; background: #fff; box-shadow: 0 24px 60px #02061766; }

@@ -129,12 +129,72 @@
           </form>
         </div>
 
+        <div class="settings-card animated-item indusind-logo-settings" style="animation-delay: 0.4s;">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-image"></i> IndusInd Bank Logo</h3>
+            <span class="info-text">Used on the Indusind account print form.</span>
+          </div>
+          <div class="logo-settings-content">
+            <div class="logo-settings-preview"><img id="indusind-logo-preview" alt="IndusInd logo preview" hidden><span id="indusind-logo-default">Default IndusInd Bank logo</span></div>
+            <div class="logo-settings-controls">
+              <label for="indusind-logo-file">Choose a logo image</label>
+              <input type="file" id="indusind-logo-file" accept="image/*">
+              <small>Image file, maximum 1 MB.</small>
+              <div class="logo-settings-actions">
+                <button type="button" class="btn-save" id="save-indusind-logo">Save Logo</button>
+                <button type="button" class="btn-save logo-reset-button" id="reset-indusind-logo">Use Default</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card animated-item indusind-logo-settings" style="animation-delay: 0.5s;">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-print"></i> Gold Print Logo</h3>
+            <span class="info-text">Used on printed Gold Loan applications.</span>
+          </div>
+          <div class="logo-settings-content">
+            <div class="logo-settings-preview"><img id="gold-print-logo-preview" alt="Gold print logo preview" hidden><span id="gold-print-logo-default">No custom Gold Loan logo</span></div>
+            <div class="logo-settings-controls">
+              <label for="gold-print-logo-file">Choose a logo image</label>
+              <input type="file" id="gold-print-logo-file" accept="image/*">
+              <small>Image file, maximum 1 MB.</small>
+              <div class="logo-settings-actions">
+                <button type="button" class="btn-save" id="save-gold-print-logo">Save Logo</button>
+                <button type="button" class="btn-save logo-reset-button" id="reset-gold-print-logo">Remove Logo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card animated-item indusind-logo-settings" style="animation-delay: 0.6s;">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-stamp"></i> RD Print Logo</h3>
+            <span class="info-text">Used in the RD customer print header and watermark.</span>
+          </div>
+          <div class="logo-settings-content">
+            <div class="logo-settings-preview"><img id="rd-print-logo-preview" alt="RD print logo preview" hidden><span id="rd-print-logo-default">Default IndusInd Bank logo</span></div>
+            <div class="logo-settings-controls">
+              <label for="rd-print-logo-file">Choose a logo image</label>
+              <input type="file" id="rd-print-logo-file" accept="image/*">
+              <small>Image file, maximum 1 MB.</small>
+              <div class="logo-settings-actions">
+                <button type="button" class="btn-save" id="save-rd-print-logo">Save Logo</button>
+                <button type="button" class="btn-save logo-reset-button" id="reset-rd-print-logo">Use Default</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
 
   <script src="js/common.js?v=20261026-apps-script-url-1"></script>
   <script src="js/settings.js"></script>
+  <script src="js/indusind_logo_settings.js"></script>
+  <script src="js/gold_print_logo_settings.js"></script>
+  <script src="js/rd_print_logo_settings.js"></script>
 </body>
 
 </html>

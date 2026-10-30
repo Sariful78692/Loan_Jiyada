@@ -153,16 +153,7 @@ async function handleGoldTableAction(event) {
   const loan = goldLoans.find(item => String(item.ID) === button.dataset.id);
   if (!loan) return;
   if (button.dataset.action === "print") {
-    const popup = window.open("", "_blank", "width=900,height=800");
-    if (!popup) return alert("Please allow pop-ups to print the Gold Loan application.");
-    try {
-      const data = await fetchAppData("", true);
-      const freshLoan = (data.gold_loans || []).find(item => String(item.ID) === button.dataset.id);
-      printGoldLoanDetails(freshLoan || loan, popup);
-    } catch (error) {
-      console.warn("Could not refresh the Gold Loan record before printing; using the loaded record.", error);
-      printGoldLoanDetails(loan, popup);
-    }
+    printGoldLoanDetails(loan);
     return;
   }
   if (button.dataset.action === "pay") openGoldEmiModal(loan);
@@ -196,12 +187,16 @@ function hideGoldPhotoPreview(event) {
   }
 }
 
-function printGoldLoanDetails(loan, popup = window.open("", "_blank", "width=900,height=800")) {
-  if (!popup) return alert("Please allow pop-ups to print the Gold Loan application.");
+function printGoldLoanDetails(loan) {
+  const printFrame = document.createElement("iframe");
+  printFrame.setAttribute("aria-hidden", "true");
+  Object.assign(printFrame.style, { position: "absolute", top: "-10000px", left: "-10000px", width: "900px", height: "800px", border: "0" });
+  document.body.appendChild(printFrame);
+  const popup = printFrame.contentWindow;
   const articleData = (() => { try { return JSON.parse(loan["Gold Articles Details"] || "[]"); } catch (_) { return []; } })();
   const articleRows = articleData.map(article => `<tr><td>${goldHtml(article.description || "—")}</td><td>${goldHtml(article.purity || "—")}</td><td>${Number(article.grossWeight || 0).toFixed(3)} g</td><td>${Number(article.stoneWeight || 0).toFixed(3)} g</td><td>${Number(article.netWeight || 0).toFixed(3)} g</td><td>${goldMoney(article.ratePerGram)}</td><td>${goldMoney(article.assessedValue)}</td></tr>`).join("");
-  const photo = (label, url) => url ? `<figure><figcaption>${label}</figcaption><img src="${goldHtml(url)}" alt="${label}"></figure>` : "";
-  const photos = photo("Customer Photo", goldPhotoUrls(loan["Nominee Photo URL"])[0]) + photo("Pledged Gold Photo", goldPhotoUrls(loan["Gold Item Photo URL"])[0]);
+  const photo = (label, urls) => urls.length ? `<figure><figcaption>${label}</figcaption><img src="${goldHtml(urls[0])}" data-photo-candidates="${goldHtml(urls.join("|"))}" alt="${label}"></figure>` : "";
+  const photos = photo("Customer Photo", goldPhotoUrls(loan["Nominee Photo URL"])) + photo("Pledged Gold Photo", goldPhotoUrls(loan["Gold Item Photo URL"]));
   const excluded = new Set(["ID", "Timestamp", "Nominee Photo URL", "Gold Item Photo URL", "Gold Articles Details"]);
   const amountFields = new Set(["Monthly Income", "Total Assessed Value", "Eligible Amount", "Loan Amount Requested", "Processing Charge", "Document Charge", "Net Disbursement Amount", "Installment Amount", "EMI Amount", "Total Interest", "Total Payable", "Outstanding Principal", "Accrued Interest Balance"]);
   const detailFields = Object.entries(loan).filter(([label]) => !excluded.has(label));
@@ -213,8 +208,51 @@ function printGoldLoanDetails(loan, popup = window.open("", "_blank", "width=900
   const details = detailRows.join("");
   const sideDetails = detailRows.slice(0, 7).join("");
   const remainingDetails = detailRows.slice(7).join("");
+  const customGoldLogo = localStorage.getItem("goldPrintLogoDataUrl") || "";
+  const originalDocumentWrite = popup.document.write.bind(popup.document);
+  popup.document.write = html => {
+    let printHtml = html.replace("<script>window.onload=()=>window.print();</script>", "");
+    if (customGoldLogo) {
+      const brandedHeading = `<div style="display:flex;align-items:center;justify-content:space-between;gap:20px"><h1 style="flex:1">Gold Loan Application</h1><img src="${goldHtml(customGoldLogo)}" alt="Gold Print Logo" style="display:block;max-width:180px;max-height:64px;object-fit:contain"></div>`;
+      printHtml = printHtml.replace("<h1>Gold Loan Application</h1>", brandedHeading);
+    }
+    originalDocumentWrite(printHtml);
+  };
   popup.document.write(`<!doctype html><html><head><title>Gold Loan Application</title><style>body{font:14px Arial,sans-serif;color:#1f2937;max-width:900px;margin:28px auto}h1{color:#805b08;border-bottom:3px solid #b8860b;padding-bottom:10px}table{width:100%;border-collapse:collapse;margin:16px 0;page-break-inside:auto}tr{page-break-inside:avoid}td,th{padding:8px;border:1px solid #d8d1c0;text-align:left}th{background:#fff4d2}@page{size:A4 landscape;margin:10mm}.print-top-grid{display:grid;grid-template-columns:235px minmax(0,1fr);gap:12px;align-items:start}.print-top-grid h3{margin:8px 0}.details{table-layout:fixed}.details th{width:22%;font-size:11px}.details td{width:28%;font-size:11px}.photos{display:flex;gap:8px;flex-wrap:wrap}.photos figure{margin:0 0 14px;text-align:center}.photos img{display:block;width:108px;height:120px;object-fit:contain;border:1px solid #d8d1c0;margin-top:6px}@media print{body{margin:10mm auto}}</style></head><body><h1>Gold Loan Application</h1><p>Application No: ${goldHtml(loan["Application No"] || loan.ID)} | Date: ${goldHtml(loan["Application Date"] || "—")}</p>${photos ? `<div class="print-top-grid"><section><h3>Photographs</h3><div class="photos">${photos}</div></section><section><h3>Application Details</h3><table class="details">${sideDetails}</table></section></div><table class="details">${remainingDetails}</table>` : `<h3>Application Details</h3><table class="details">${details}</table>`}<h3>Pledged Gold Articles</h3><table><thead><tr><th>Article</th><th>Purity</th><th>Gross Wt.</th><th>Less Stone</th><th>Net Wt.</th><th>Rate / g</th><th>Assessed Value</th></tr></thead><tbody>${articleRows || '<tr><td colspan="7">No article details found.</td></tr>'}</tbody></table><script>window.onload=()=>window.print();</script></body></html>`);
   popup.document.close();
+  const cleanupPrintFrame = () => printFrame.remove();
+  popup.addEventListener("afterprint", cleanupPrintFrame, { once: true });
+  waitForGoldPrintImages(popup).then(() => {
+    popup.focus();
+    popup.print();
+  });
+  setTimeout(cleanupPrintFrame, 60000);
+}
+
+function waitForGoldPrintImages(printWindow) {
+  const images = Array.from(printWindow.document.images);
+  return Promise.all(images.map(image => new Promise(resolve => {
+    let candidates = (image.dataset.photoCandidates || image.src || "").split("|").filter(Boolean);
+    let candidateIndex = 0;
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeoutId);
+      resolve();
+    };
+    const timeoutId = setTimeout(finish, 12000);
+    image.onload = finish;
+    image.onerror = () => {
+      candidateIndex++;
+      if (candidateIndex < candidates.length) image.src = candidates[candidateIndex];
+      else finish();
+    };
+    if (image.complete) {
+      if (image.naturalWidth) finish();
+      else image.onerror();
+    }
+  })));
 }
 
 function openGoldEmiModal(loan) {

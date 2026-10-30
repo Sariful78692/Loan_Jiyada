@@ -7,6 +7,7 @@
   <title>RD Customer Entry - Loan Management</title>
   <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
   <link rel="stylesheet" href="css/customer.css?v=20261026-gold-icons-2">
+  <link rel="stylesheet" href="css/gold-camera.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -110,7 +111,7 @@
               <!-- 🟢 Photo Upload with 1 MB validation -->
               <div class="form-group">
                 <label>Photo (Max 1 MB)</label>
-                <input type="file" id="photoInput" accept="image/*" onchange="validatePhotoSize(this)">
+                <div class="gold-photo-input-tools customer-photo-input-tools"><input type="file" id="photoInput" accept="image/*" capture="environment" onchange="validatePhotoSize(this)"><button type="button" class="customer-live-photo-btn" id="customer-live-photo"><i class="fa-solid fa-camera"></i> Live Photo</button></div>
                 <small id="photo-error" style="color: #ef4444; font-size: 12px; font-weight: bold; display: none; margin-top: 5px;">File size must be less than 1 MB!</small>
                 <div class="preview-box">
                   <img id="photoPreview" src="" alt="Photo Preview" class="hidden-preview">
@@ -305,9 +306,16 @@
     </main>
   </div>
 
-  
+  <div class="gold-camera-modal" id="customer-camera-modal" role="dialog" aria-modal="true" aria-labelledby="customer-camera-title" hidden>
+    <div class="gold-camera-dialog">
+      <div class="gold-camera-heading"><h2 id="customer-camera-title">Take Customer Photo</h2><button type="button" id="close-customer-camera" aria-label="Close camera"><i class="fa-solid fa-xmark"></i></button></div>
+      <video id="customer-camera-video" autoplay playsinline></video>
+      <div class="gold-camera-actions"><button type="button" class="btn-secondary" id="cancel-customer-camera">Cancel</button><button type="button" class="btn-primary" id="capture-customer-photo"><i class="fa-solid fa-camera"></i> Capture Photo</button></div>
+    </div>
+  </div>
 
   <script src="js/common.js?v=20261026-apps-script-url-1"></script>
   <script src="js/customer_entry.js?v=20261012-visible-loan-type-1"></script>
+  <script src="js/customer_entry_camera.js"></script>
 </body>
 </html>

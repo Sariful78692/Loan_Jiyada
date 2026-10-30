@@ -402,7 +402,7 @@ function viewClosedCustomerDetails(customerId) {
   Object.assign(overlay.style, { position: "fixed", inset: "0", zIndex: "10000", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", background: "rgba(15,23,42,.65)" });
 
   const panel = document.createElement("section");
-  Object.assign(panel.style, { width: "min(900px, 100%)", maxHeight: "90vh", overflow: "auto", background: "#fff", borderRadius: "12px", padding: "22px", boxShadow: "0 20px 60px rgba(0,0,0,.25)" });
+  Object.assign(panel.style, { position: "relative", width: "min(900px, 100%)", maxHeight: "90vh", overflow: "auto", background: "#fff", borderRadius: "12px", padding: "22px", boxShadow: "0 20px 60px rgba(0,0,0,.25)" });
   const heading = document.createElement("div");
   Object.assign(heading.style, { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "16px" });
   const title = document.createElement("h2");
@@ -423,6 +423,44 @@ function viewClosedCustomerDetails(customerId) {
   actions.append(printButton, close);
   heading.append(title, actions);
   panel.appendChild(heading);
+
+  const printLogo = document.createElement("div");
+  printLogo.className = "indusind-report-logo";
+  Object.assign(printLogo.style, { display: "flex", flex: "0 0 145px", flexDirection: "column", alignItems: "center", gap: "2px", width: "145px" });
+  printLogo.setAttribute("role", "img");
+  printLogo.setAttribute("aria-label", "IndusInd Bank");
+  printLogo.innerHTML = `<svg viewBox="0 0 220 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <text x="2" y="31" fill="#a52b31" font-family="Arial,sans-serif" font-size="29" font-style="italic" font-weight="700">IndusInd</text>
+    <text x="65" y="59" fill="#e88727" font-family="Arial,sans-serif" font-size="22" font-style="italic" font-weight="700">Bank</text>
+    <circle cx="184" cy="36" r="30" fill="#0784a6"/>
+    <circle cx="184" cy="36" r="24" fill="none" stroke="#fff" stroke-width="2"/>
+    <ellipse cx="184" cy="36" rx="11" ry="24" fill="none" stroke="#fff" stroke-width="1.5"/>
+    <path d="M161 36h46M164 25h40M164 47h40" fill="none" stroke="#fff" stroke-width="1.5"/>
+    <path d="M177 30c4-5 11-3 12 1l-3 2 5 2-4 2 3 3-6 1-3 5-3-4-5-1 3-4-4-3 5-1z" fill="#ed4548" stroke="#fff" stroke-width="1"/>
+  </svg>`;
+  Object.assign(printLogo.querySelector("svg").style, { display: "block", width: "100%", height: "48px" });
+  const savedRdLogo = localStorage.getItem("rdPrintLogoDataUrl") || "";
+  if (savedRdLogo) {
+    const customLogoImage = document.createElement("img");
+    customLogoImage.src = savedRdLogo;
+    customLogoImage.alt = "RD Print Logo";
+    Object.assign(customLogoImage.style, { display: "block", width: "100%", height: "48px", objectFit: "contain" });
+    printLogo.replaceChildren(customLogoImage);
+  }
+  heading.insertBefore(printLogo, actions);
+
+  const printWatermark = document.createElement("div");
+  printWatermark.className = "rd-print-watermark";
+  printWatermark.style.display = "none";
+  if (savedRdLogo) {
+    const watermarkImage = document.createElement("img");
+    watermarkImage.src = savedRdLogo;
+    watermarkImage.alt = "";
+    printWatermark.appendChild(watermarkImage);
+  } else {
+    printWatermark.textContent = "IndusInd Bank";
+  }
+  panel.appendChild(printWatermark);
 
   const loanSummary = getCustomerLoanSummary(customer);
   const history = allClosedCollectionsData.filter(item => String(item["Customer ID"] || "").trim() === String(customerId).trim());
@@ -563,11 +601,20 @@ function printClosedCustomerDetails(overlay) {
   printStyle.dataset.closedCustomerPrint = "true";
   printStyle.textContent = `@media print {
     @page { margin: 12mm; }
+    body { margin: 0 !important; }
     body * { visibility: hidden !important; }
     [data-closed-customer-dialog], [data-closed-customer-dialog] * { visibility: visible !important; }
-    [data-closed-customer-dialog] { position: absolute !important; inset: 0 !important; display: block !important; padding: 0 !important; background: #fff !important; overflow: visible !important; }
-    [data-closed-customer-dialog] section { width: 100% !important; max-width: 100% !important; max-height: none !important; overflow: visible !important; box-shadow: none !important; }
+    body > :not([data-closed-customer-dialog]) { display: none !important; }
+    [data-closed-customer-dialog] { position: static !important; inset: auto !important; display: block !important; width: 100% !important; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: visible !important; }
+    [data-closed-customer-dialog] section { box-sizing: border-box !important; width: 100% !important; max-width: 100% !important; height: auto !important; max-height: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; box-shadow: none !important; }
     [data-closed-customer-dialog] button { display: none !important; }
+    [data-closed-customer-dialog] .indusind-report-logo { position: absolute !important; top: 0 !important; right: 0 !important; display: flex !important; flex-direction: column; align-items: center; gap: 2px; width: 145px !important; height: 48px !important; }
+    [data-closed-customer-dialog] .indusind-report-logo svg { display: block; width: 100%; height: 48px; }
+    [data-closed-customer-dialog] .indusind-report-logo img { display: block; width: 100%; height: 48px; object-fit: contain; }
+    [data-closed-customer-dialog] h2 { max-width: calc(100% - 165px) !important; }
+    [data-closed-customer-dialog] section > * { position: relative; z-index: 1; }
+    [data-closed-customer-dialog] .rd-print-watermark { position: fixed !important; z-index: 0 !important; top: 50% !important; left: 50% !important; display: block !important; width: 420px !important; height: 220px !important; transform: translate(-50%, -50%) rotate(-22deg) !important; color: rgba(15, 91, 125, .09) !important; font: italic 800 58px Arial, sans-serif !important; text-align: center !important; pointer-events: none !important; }
+    [data-closed-customer-dialog] .rd-print-watermark img { display: block; width: 100%; height: 100%; object-fit: contain; opacity: .09; }
     [data-closed-customer-dialog] img { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   }`;
   document.head.appendChild(printStyle);
