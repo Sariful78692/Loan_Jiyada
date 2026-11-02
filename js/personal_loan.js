@@ -8,6 +8,8 @@
     { input: "personal-nominee-photo", image: "personal-nominee-photo-preview", placeholder: "personal-nominee-photo-placeholder", caption: "personal-nominee-photo-caption", urlKey: "Nominee Photo URL", prefix: "nomineePhoto" }
   ];
   const savedPhotoUrls = {};
+  let lastPrintData = null;
+  const printButton = document.getElementById("print-personal-loan");
   const byId = id => document.getElementById(id);
   function toProperCase(value) {
     return value.toLocaleLowerCase().replace(/(^|[\s'-])([\p{L}])/gu, (_, separator, letter) => separator + letter.toLocaleUpperCase());
@@ -43,6 +45,7 @@
     const period = byId("installment-period").value;
     const count = counts[period] || "";
     byId("installments").value = String(count);
+    byId("installment-unit-label").textContent = period || "";
     const startValue = byId("starting-date").value;
     if (!startValue || !count) { byId("end-date").value = ""; return; }
     const start = new Date(`${startValue}T00:00:00Z`);
@@ -134,9 +137,15 @@
     form.querySelectorAll("[data-proper-case]").forEach(input => { input.value = toProperCase(input.value); });
     const record = Object.fromEntries(fields.map(field => [field.id, field.value]));
     const id = byId("entry-id").value || new URLSearchParams(location.search).get("edit") || "";
-    const printWindow = window.open("", "_blank");
+    const isUpdateRequest = Boolean(id);
+    const printWindow = isUpdateRequest ? null : window.open("", "_blank");
     const submitButton = form.querySelector('button[type="submit"]');
+    const submitIcon = submitButton.querySelector("i");
     submitButton.disabled = true;
+    if (isUpdateRequest) {
+      byId("submit-label").textContent = "Updating…";
+      submitIcon.className = "fa-solid fa-spinner fa-spin";
+    }
     setMessage("Saving entry to database…");
     try {
       const payload = { action: "save_personal_loan", id, entry: record };
@@ -154,20 +163,37 @@
       const result = await response.json();
       if (!response.ok || result.status !== "success") throw new Error(result.message || "Database did not save the entry.");
       const message = result.updated ? "Entry updated in the database." : "Entry saved to the database.";
-      printPersonalLoanForm(record, photoSources, printWindow);
-      form.reset();
-      byId("entry-id").value = "";
-      history.replaceState(null, "", location.pathname);
-      setMessage(message);
+      if (result.updated) {
+        byId("entry-id").value = result.id;
+        lastPrintData = { record, photoSources };
+        printButton.hidden = false;
+        setMessage("Update complete. Click Print to print this form.");
+      } else {
+        printPersonalLoanForm(record, photoSources, printWindow);
+        form.reset();
+        byId("entry-id").value = "";
+        byId("submit-label").textContent = "Save";
+        printButton.hidden = true;
+        lastPrintData = null;
+        history.replaceState(null, "", location.pathname);
+        setMessage(message);
+      }
     } catch (error) {
       if (printWindow && !printWindow.closed) printWindow.close();
       setMessage(`Could not save entry: ${error.message || "Database connection failed."}`);
     } finally {
       submitButton.disabled = false;
+      if (isUpdateRequest) {
+        byId("submit-label").textContent = "Update";
+        submitIcon.className = "fa-solid fa-floppy-disk";
+      }
     }
   }
   form.addEventListener("submit", event => { event.preventDefault(); saveEntry(); });
-  form.addEventListener("reset", () => setTimeout(() => { byId("entry-id").value = ""; updateTotalPayment(); updateProcessingAmount(); updateInstallments(); photoFields.forEach(photo => { clearPhotoPreview(photo); delete savedPhotoUrls[photo.input]; }); setMessage(""); }, 0));
+  form.addEventListener("reset", () => setTimeout(() => { byId("entry-id").value = ""; byId("submit-label").textContent = "Save"; printButton.hidden = true; lastPrintData = null; updateTotalPayment(); updateProcessingAmount(); updateInstallments(); photoFields.forEach(photo => { clearPhotoPreview(photo); delete savedPhotoUrls[photo.input]; }); setMessage(""); }, 0));
+  printButton.addEventListener("click", () => {
+    if (lastPrintData) printPersonalLoanForm(lastPrintData.record, lastPrintData.photoSources, null);
+  });
   ["disbursement-amount", "rate-interest"].forEach(id => byId(id).addEventListener("input", updateTotalPayment));
   byId("processing-percentage").addEventListener("input", updateProcessingAmount);
   byId("document-charges").addEventListener("input", updateCashInHand);
@@ -218,7 +244,8 @@
       updateCashInHand();
       updateInstallments();
       byId("entry-id").value = editId;
-      setMessage("Editing database entry. Save to apply your changes.");
+      byId("submit-label").textContent = "Update";
+      setMessage("Editing database entry. Select Update to save your changes.");
     } catch (error) { setMessage(`Could not load entry: ${error.message || "Database connection failed."}`); }
   }
   const editId = new URLSearchParams(location.search).get("edit");
