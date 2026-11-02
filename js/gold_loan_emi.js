@@ -178,10 +178,10 @@ function renderGoldEmiLoans() {
       : `${goldEmiEscape(displayGoldEmiDate(firstDate))}<small class="gold-emi-count">Next EMI: ${goldEmiEscape(displayGoldEmiDate(nextDate))} (${paid}/${tenure} paid)</small>`;
     const action = isDailyInterest
       ? Number(loan["Outstanding Principal"] ?? loan["Loan Amount Requested"] ?? 0) <= 0
-        ? '<span class="gold-status">Paid in full</span>'
+        ? '<span class="gold-status">Close Loan</span>'
         : `<button type="button" class="gold-action gold-pay" data-loan-id="${goldEmiEscape(loan.ID)}" title="Collect interest for ${dailyInterestDaysDue} unpaid days"><i class="fa-solid fa-money-bill-wave" aria-hidden="true"></i> Collect</button>`
       : paid >= tenure
-      ? '<span class="gold-status">Paid in full</span>'
+      ? '<span class="gold-status">Close Loan</span>'
       : hasGoldEmiPaidThisMonth(loan.ID)
         ? '<span class="gold-status">EMI paid this month</span>'
       : `<button type="button" class="gold-action gold-pay" data-loan-id="${goldEmiEscape(loan.ID)}"><i class="fa-solid fa-money-bill-wave"></i> Collect</button>`;
