@@ -15,6 +15,10 @@ function doGet(e) {
     var accountsSheet = getOrCreateIndusindAccountsSheet(SpreadsheetApp.getActiveSpreadsheet());
     return jsonResponse({ indusind_accounts: readIndusindAccountsForClient_(accountsSheet, Session.getScriptTimeZone()) });
   }
+  if (e && e.parameter && e.parameter.view === "personal_loan_entries") {
+    var personalLoanSheet = getOrCreatePersonalLoanSheet_(SpreadsheetApp.getActiveSpreadsheet());
+    return jsonResponse({ personal_loan_entries: readReportSheet_(personalLoanSheet, Session.getScriptTimeZone()) });
+  }
   if (e && e.parameter && e.parameter.view === "app_settings") {
     return jsonResponse(readAppLogoSettings_(SpreadsheetApp.getActiveSpreadsheet()));
   }
@@ -532,6 +536,10 @@ function doPost(e) {
 
     var custSheet = ss.getSheets()[0];
     var goldSheet = getOrCreateGoldSheet(ss);
+
+    if (["save_personal_loan", "delete_personal_loan"].indexOf(data.action) !== -1) {
+      return jsonResponse(handlePersonalLoanAction_(ss, data));
+    }
 
     
     var folderId = "1tYYWYu7dyg4NCVD_mePsmvyX0fOdYDKa";
@@ -1097,6 +1105,103 @@ function doPost(e) {
 // =====================================
 // Helper Functions
 // =====================================
+
+function getOrCreatePersonalLoanSheet_(ss) {
+  var sheet = ss.getSheetByName("Personal_Loans");
+  var headers = ["ID", "Timestamp", "Branch ID", "Branch Name", "Branch Code", "Customer Name", "Guardian Name", "Aadhaar Number", "Mobile Number", "Customer Occupation", "Loan Account", "Rate of Interest", "Loan Type", "Disbursement Date", "Disbursement Amount", "Total Payment", "Interest Amount", "Processing Percentage", "No. of Instalments", "Instalment Period", "Processing Amount", "Document Charges", "Purpose", "Nominee Name", "Nominee Father's Name", "Nominee Occupation", "Relation with Applicant", "Starting Date", "End Date", "Cash in Hand"];
+  if (!sheet) {
+    sheet = ss.insertSheet("Personal_Loans");
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+  } else {
+    var currentHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0].map(function(header) { return String(header).trim(); });
+    if (currentHeaders.indexOf("Total Payment") === -1) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue("Total Payment").setFontWeight("bold");
+    }
+    currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+    if (currentHeaders.indexOf("Instalment Period") === -1) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue("Instalment Period").setFontWeight("bold");
+    }
+    currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+    if (currentHeaders.indexOf("End Date") === -1) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue("End Date").setFontWeight("bold");
+    }
+  }
+  return sheet;
+}
+
+function handlePersonalLoanAction_(ss, data) {
+  var sheet = getOrCreatePersonalLoanSheet_(ss);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var values = sheet.getDataRange().getValues();
+    var headers = values[0].map(function(header) { return String(header).trim(); });
+    var idColumn = headers.indexOf("ID");
+    if (data.action === "delete_personal_loan") {
+      for (var row = 1; row < values.length; row++) {
+        if (String(values[row][idColumn]) === String(data.id || "")) {
+          sheet.deleteRow(row + 1);
+          clearDashboardCache();
+          return { status: "success" };
+        }
+      }
+      return { status: "error", message: "Personal Loan entry not found." };
+    }
+    var entry = data.entry || {};
+    if (!String(entry["customer-name"] || "").trim()) return { status: "error", message: "Customer Name is required." };
+    if (!/^\d{12}$/.test(String(entry["aadhaar-number"] || ""))) return { status: "error", message: "Aadhaar Number must contain 12 digits." };
+    if (!/^\d{10}$/.test(String(entry["mobile-number"] || ""))) return { status: "error", message: "Mobile Number must contain 10 digits." };
+    var entryId = String(data.id || entry.id || "").trim() || "PL-" + new Date().getTime();
+    var amount = Number(entry["disbursement-amount"]) || 0;
+    var rate = Number(entry["rate-interest"]) || 0;
+    var interest = amount * rate / 100;
+    var processingPercentage = Number(entry["processing-percentage"]) || 0;
+    var processingAmount = amount * processingPercentage;
+    var documentCharges = Number(entry["document-charges"]) || 0;
+    var cashInHand = amount - processingAmount - documentCharges;
+    var startDate = String(entry["starting-date"] || "");
+    var installmentPeriod = String(entry["installment-period"] || "Days");
+    if (["Days", "Weeks", "Months"].indexOf(installmentPeriod) === -1) return { status: "error", message: "Choose Days, Weeks, or Months for instalment period." };
+    var installmentCounts = { Days: 365, Months: 12, Weeks: 52 };
+    var installmentCount = installmentCounts[installmentPeriod];
+    var endDate = "";
+    if (startDate) {
+      var startParts = startDate.split("-").map(Number);
+      if (startParts.length !== 3 || !startParts[0] || !startParts[1] || !startParts[2]) return { status: "error", message: "Starting Date is invalid." };
+      var endDateObj = new Date(Date.UTC(startParts[0], startParts[1] - 1, startParts[2]));
+      if (installmentPeriod === "Days") endDateObj.setUTCDate(endDateObj.getUTCDate() + installmentCount - 1);
+      else if (installmentPeriod === "Weeks") endDateObj.setUTCDate(endDateObj.getUTCDate() + (installmentCount - 1) * 7);
+      else {
+        var startingDay = endDateObj.getUTCDate();
+        endDateObj.setUTCDate(1);
+        endDateObj.setUTCMonth(endDateObj.getUTCMonth() + installmentCount - 1);
+        var monthLastDay = new Date(Date.UTC(endDateObj.getUTCFullYear(), endDateObj.getUTCMonth() + 1, 0)).getUTCDate();
+        endDateObj.setUTCDate(Math.min(startingDay, monthLastDay));
+      }
+      endDate = Utilities.formatDate(endDateObj, "UTC", "yyyy-MM-dd");
+    }
+    var fieldByHeader = {
+      "ID": entryId, "Timestamp": new Date(), "Branch ID": "I00F6349", "Branch Name": "Begumpet_SP", "Branch Code": "I00F6349",
+      "Customer Name": entry["customer-name"] || "", "Guardian Name": entry["guardian-name"] || "", "Aadhaar Number": entry["aadhaar-number"] || "", "Mobile Number": entry["mobile-number"] || "", "Customer Occupation": entry["customer-occupation"] || "", "Loan Account": "Loan",
+      "Rate of Interest": entry["rate-interest"] || "", "Loan Type": entry["loan-type"] || "", "Disbursement Date": entry["disbursement-date"] || "", "Disbursement Amount": amount, "Total Payment": amount + interest, "Interest Amount": interest, "Processing Percentage": processingPercentage, "No. of Instalments": installmentCount, "Instalment Period": installmentPeriod, "Processing Amount": processingAmount, "Document Charges": entry["document-charges"] || "", "Purpose": entry["loan-purpose"] || "",
+      "Nominee Name": entry["nominee-name"] || "", "Nominee Father's Name": entry["nominee-father"] || "", "Nominee Occupation": entry["nominee-occupation"] || "", "Relation with Applicant": entry["nominee-relation"] || "", "Starting Date": startDate, "End Date": endDate, "Cash in Hand": cashInHand
+    };
+    var rowValues = headers.map(function(header) { return fieldByHeader[header] === undefined ? "" : fieldByHeader[header]; });
+    for (var updateRow = 1; updateRow < values.length; updateRow++) {
+      if (String(values[updateRow][idColumn]) === entryId) {
+        sheet.getRange(updateRow + 1, 1, 1, headers.length).setValues([rowValues]);
+        clearDashboardCache();
+        return { status: "success", id: entryId, updated: true };
+      }
+    }
+    sheet.appendRow(rowValues);
+    clearDashboardCache();
+    return { status: "success", id: entryId, updated: false };
+  } finally {
+    lock.releaseLock();
+  }
+}
 
 function getOrCreateIndusindAccountsSheet(ss) {
   var sheet = ss.getSheetByName("Indusind_Accounts");

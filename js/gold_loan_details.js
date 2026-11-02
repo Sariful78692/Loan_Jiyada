@@ -1,6 +1,7 @@
 let goldLoans = [];
 let goldEmiPayments = [];
 let selectedGoldLoan = null;
+let goldLoanCurrentPage = 1;
 
 const goldMoney = value => `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const goldHtml = value => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
@@ -17,10 +18,19 @@ const goldPhotoUrls = value => {
 
 document.addEventListener("DOMContentLoaded", () => {
   loadGoldLoanCustomers();
-  document.getElementById("gold-filter-apply").addEventListener("click", renderGoldLoanCustomers);
-  document.getElementById("gold-filter-clear").addEventListener("click", () => {
-    document.getElementById("gold-filter-start").value = "";
-    document.getElementById("gold-filter-end").value = "";
+  document.getElementById("gold-loan-search").addEventListener("input", () => {
+    goldLoanCurrentPage = 1;
+    renderGoldLoanCustomers();
+  });
+  document.getElementById("gold-loan-page-size").addEventListener("change", () => {
+    goldLoanCurrentPage = 1;
+    renderGoldLoanCustomers();
+  });
+  document.getElementById("gold-loan-prev").addEventListener("click", () => {
+    if (goldLoanCurrentPage > 1) { goldLoanCurrentPage--; renderGoldLoanCustomers(); }
+  });
+  document.getElementById("gold-loan-next").addEventListener("click", () => {
+    goldLoanCurrentPage++;
     renderGoldLoanCustomers();
   });
   document.getElementById("gold-loan-details-body").addEventListener("click", handleGoldTableAction);
@@ -73,21 +83,22 @@ function normalizeGoldLoanPayments(savedPayments, collections) {
 
 function renderGoldLoanCustomers() {
   const body = document.getElementById("gold-loan-details-body");
-  const start = document.getElementById("gold-filter-start").value;
-  const end = document.getElementById("gold-filter-end").value;
-  if (start && end && start > end) {
-    body.innerHTML = '<tr><td colspan="13" style="padding:24px;text-align:center;color:#c43b2d">Start date must be before end date.</td></tr>';
-    return;
-  }
-  const loans = goldLoans.filter(loan => {
-    const appDate = String(loan["Application Date"] || "").slice(0, 10);
-    return (!start || appDate >= start) && (!end || appDate <= end);
-  });
+  const query = document.getElementById("gold-loan-search").value.trim().toLocaleLowerCase();
+  const loans = goldLoans.filter(loan => [loan["Borrower Name"], loan["Mobile No"]]
+    .some(value => String(value || "").toLocaleLowerCase().includes(query)));
   if (!loans.length) {
-    body.innerHTML = '<tr><td colspan="13" style="padding:30px;text-align:center">No Gold Loan customer found for this date range.</td></tr>';
+    goldLoanCurrentPage = 1;
+    body.innerHTML = `<tr><td colspan="13" style="padding:30px;text-align:center">${query ? "No customer found for this name or mobile number." : "No Gold Loan customers found."}</td></tr>`;
+    updateGoldLoanPagination(0, 1, 1);
     return;
   }
-  body.innerHTML = loans.map(loan => {
+  const pageSizeValue = document.getElementById("gold-loan-page-size").value;
+  const pageSize = pageSizeValue === "all" ? Math.max(loans.length, 1) : Number(pageSizeValue || 10);
+  const pageCount = Math.max(1, Math.ceil(loans.length / pageSize));
+  goldLoanCurrentPage = Math.min(goldLoanCurrentPage, pageCount);
+  const startIndex = (goldLoanCurrentPage - 1) * pageSize;
+  const visibleLoans = loans.slice(startIndex, startIndex + pageSize);
+  body.innerHTML = visibleLoans.map(loan => {
     const id = goldHtml(loan.ID);
     const customerPhoto = goldPhotoUrls(loan["Nominee Photo URL"]);
     const goldPhoto = goldPhotoUrls(loan["Gold Item Photo URL"]);
@@ -114,9 +125,20 @@ function renderGoldLoanCustomers() {
       </td>
     </tr>`;
   }).join("");
+  updateGoldLoanPagination(loans.length, pageSize, pageCount);
   body.querySelectorAll(".gold-details-photo").forEach(image => {
     if (image.complete) finishGoldPhotoLoad({ target: image });
   });
+}
+
+function updateGoldLoanPagination(total, pageSize, pageCount) {
+  const allSelected = document.getElementById("gold-loan-page-size").value === "all";
+  const start = total ? (allSelected ? 1 : (goldLoanCurrentPage - 1) * pageSize + 1) : 0;
+  const end = total ? (allSelected ? total : Math.min(goldLoanCurrentPage * pageSize, total)) : 0;
+  document.getElementById("gold-loan-page-info").textContent = `Showing ${start}–${end} of ${total}`;
+  document.getElementById("gold-loan-page-label").textContent = `Page ${goldLoanCurrentPage} of ${pageCount}`;
+  document.getElementById("gold-loan-prev").disabled = allSelected || goldLoanCurrentPage <= 1;
+  document.getElementById("gold-loan-next").disabled = allSelected || goldLoanCurrentPage >= pageCount;
 }
 
 function goldPhotoMarkup(urls, alt) {

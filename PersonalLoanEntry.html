@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=indusind-1">
+  <title>Personal Loan Customer Entry - Loan Management</title>
+  <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
+  <link rel="stylesheet" href="css/customer.css?v=20261026-gold-icons-2">
+  <link rel="stylesheet" href="css/personal-loan.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="app-container">
+  <aside class="sidebar"><div class="brand"><h2>Loan Management</h2></div><ul class="nav-menu">
+    <li class="nav-item"><a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+    <li class="nav-item has-submenu"><a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-users"></i> RD Customer <i class="fa-solid fa-chevron-down arrow"></i></a><ul class="submenu"><li><a href="CustomerEntry.html">RD Customer Entry</a></li><li><a href="CustomerDetails.html?loan=RD%20Loan">RD Customer Details</a></li><li><a href="CollectionReport.html">Collection Report</a></li></ul></li>
+    <li class="nav-item has-submenu"><a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-coins"></i> Gold Loan <i class="fa-solid fa-chevron-down arrow"></i></a><ul class="submenu"><li><a href="GoldLoanEntry.html">Gold Loan Customer Entry</a></li><li><a href="GoldLoanDetails.html">Gold Loan Customer Details</a></li><li><a href="GoldLoanEMI.html">Pay Gold Loan EMI</a></li><li><a href="GoldLoanReport.html">Gold Loan EMI Report</a></li></ul></li>
+  </ul></aside>
+  <main class="main-content"><section class="content-section personal-loan-page">
+    <header class="pl-header"><div><p>PERSONAL LOAN</p><h1>Personal Loan Customer Entry</h1><span>Capture applicant, nominee and disbursement details.</span></div><i class="fa-solid fa-file-signature" aria-hidden="true"></i></header>
+    <form id="personal-loan-form">
+      <input type="hidden" id="entry-id">
+      <section class="form-card"><h3><span>01</span> Branch Details</h3><div class="form-grid">
+        <div class="form-group"><label for="branch-id">Branch ID</label><input id="branch-id" value="I00F6349" readonly></div>
+        <div class="form-group"><label for="branch-name">Branch Name</label><input id="branch-name" value="Begumpet_SP" readonly></div>
+        <div class="form-group"><label for="branch-code">Branch Code</label><input id="branch-code" value="I00F6349" readonly></div>
+      </div></section>
+      <section class="form-card"><h3><span>02</span> Customer Details</h3><div class="form-grid">
+        <div class="form-group"><label for="customer-name">Customer Name *</label><input id="customer-name" data-proper-case required autocomplete="name"></div>
+        <div class="form-group"><label for="guardian-name">Guardian Name *</label><input id="guardian-name" data-proper-case required></div>
+        <div class="form-group"><label for="aadhaar-number">Aadhaar Number *</label><input id="aadhaar-number" inputmode="numeric" maxlength="12" pattern="[0-9]{12}" placeholder="12-digit number" required></div>
+        <div class="form-group"><label for="mobile-number">Mobile Number *</label><input id="mobile-number" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit number" required></div>
+        <div class="form-group"><label for="customer-occupation">Occupation *</label><div class="pl-select-tools"><select id="customer-occupation" required><option value="">Select occupation</option><option>Service</option><option>Self Employed</option><option>Business</option><option>Labour</option><option>Homemaker</option></select><button type="button" data-list-action="add" data-list="customer-occupation" aria-label="Add occupation" title="Add"><i class="fa-solid fa-plus"></i></button><button type="button" data-list-action="edit" data-list="customer-occupation" aria-label="Edit occupation" title="Edit"><i class="fa-solid fa-pen"></i></button><button type="button" data-list-action="delete" data-list="customer-occupation" aria-label="Delete occupation" title="Delete"><i class="fa-solid fa-trash"></i></button></div></div>
+      </div></section>
+      <section class="form-card"><h3><span>03</span> Loan Details</h3><div class="form-grid">
+        <div class="form-group"><label for="loan-account">Loan Account</label><input id="loan-account" value="Loan" readonly></div>
+        <div class="form-group"><label for="rate-interest">Rate of Interest (%) *</label><input id="rate-interest" type="number" min="0" step="any" required></div>
+        <div class="form-group"><label for="loan-type">Loan Type *</label><select id="loan-type" required><option value="">Select loan type</option><option>Personal Loan</option><option>Business Loan</option><option>Emergency Loan</option><option>Other</option></select></div>
+        <div class="form-group"><label for="disbursement-amount">Disbursement Amount (₹) *</label><input id="disbursement-amount" type="number" min="0" step="0.01" required></div>
+        <div class="form-group"><label for="disbursement-date">Disbursement Date *</label><input id="disbursement-date" type="date" required></div>
+        <div class="form-group"><label for="interest-amount">Interest Amount (₹)</label><input id="interest-amount" type="number" min="0" step="0.01" readonly aria-readonly="true" placeholder="Auto calculated from amount and rate"></div>
+        <div class="form-group"><label for="total-payment">Total Payment (₹)</label><input id="total-payment" type="number" readonly aria-readonly="true" placeholder="Auto calculated"></div>
+        <div class="form-group"><label for="processing-percentage">Processing Percentage (%)</label><input id="processing-percentage" type="number" min="0" step="any"></div>
+        <div class="form-group"><label for="installment-period">No. of Instalments</label><select id="installment-period" required><option value="Days" selected>Days</option><option value="Months">Months</option><option value="Weeks">Weeks</option></select></div>
+        <div class="form-group"><label for="installments">Instalment Count</label><input id="installments" type="number" min="1" step="1" readonly aria-readonly="true" placeholder="Set starting and end dates"></div>
+        <div class="form-group"><label for="processing-amount">Processing Amount (₹)</label><input id="processing-amount" type="number" min="0" step="0.01" readonly aria-readonly="true" placeholder="Auto calculated from amount and percentage"></div>
+        <div class="form-group"><label for="document-charges">Document Charges (₹)</label><input id="document-charges" type="number" min="0" step="0.01"></div>
+        <div class="form-group"><label for="loan-purpose">Purpose</label><input id="loan-purpose" data-proper-case></div>
+      </div></section>
+      <section class="form-card"><h3><span>04</span> Nominee Details</h3><div class="form-grid">
+        <div class="form-group"><label for="nominee-name">Nominee Name</label><input id="nominee-name" data-proper-case></div>
+        <div class="form-group"><label for="nominee-father">Nominee Father's Name</label><input id="nominee-father" data-proper-case></div>
+        <div class="form-group"><label for="nominee-occupation">Nominee Occupation</label><div class="pl-select-tools"><select id="nominee-occupation"><option value="">Select occupation</option><option>Service</option><option>Self Employed</option><option>Business</option><option>Labour</option><option>Homemaker</option></select><button type="button" data-list-action="add" data-list="nominee-occupation" aria-label="Add nominee occupation" title="Add"><i class="fa-solid fa-plus"></i></button><button type="button" data-list-action="edit" data-list="nominee-occupation" aria-label="Edit nominee occupation" title="Edit"><i class="fa-solid fa-pen"></i></button><button type="button" data-list-action="delete" data-list="nominee-occupation" aria-label="Delete nominee occupation" title="Delete"><i class="fa-solid fa-trash"></i></button></div></div>
+        <div class="form-group"><label for="nominee-relation">Relation with Applicant</label><select id="nominee-relation"><option value="">Select relation</option><option>Spouse</option><option>Father</option><option>Mother</option><option>Son</option><option>Daughter</option><option>Brother</option><option>Sister</option><option>Other</option></select></div>
+      </div></section>
+      <section class="form-card"><h3><span>05</span> Additional Details</h3><div class="form-grid">
+        <div class="form-group"><label for="starting-date">Starting Date</label><input id="starting-date" type="date"></div>
+        <div class="form-group"><label for="end-date">End Date</label><input id="end-date" type="date" readonly aria-readonly="true" placeholder="Auto calculated from start date"></div>
+        <div class="form-group"><label for="cash-in-hand">Cash in Hand (₹)</label><input id="cash-in-hand" type="number" step="0.01" readonly aria-readonly="true" placeholder="Auto calculated"></div>
+      </div></section>
+      <div class="pl-actions"><button type="submit" class="pl-button primary"><i class="fa-solid fa-floppy-disk"></i> Save</button><button type="reset" class="pl-button secondary"><i class="fa-solid fa-eraser"></i> Reset</button></div>
+    </form><p id="form-message" class="pl-message" role="status" aria-live="polite"></p>
+  </section></main>
+</div>
+<script src="js/common.js?v=20261026-apps-script-url-1"></script><script src="js/personal_loan.js"></script>
+</body></html>

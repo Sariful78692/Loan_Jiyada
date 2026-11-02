@@ -1,7 +1,7 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkG2Hz9YytVP3baXGyK0suF4W85utBaWr-a3hI4thy0fN5ZHgLx37SAUZ8YvlOazWAIg/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxgv-XI2yogpuDQaX-V7PGDEmU1F0djyCmqXCpHcBZhMmYbzNnTDRadJjiHRfRoRPQofA/exec";
 const APPS_SCRIPT_READ_URLS = [
   APPS_SCRIPT_URL,
   "https://script.google.com/macros/s/AKfycbya3O_mtwT630kTZEugyV_fafyTqTZXQwnyXRIaJPC9PZrbno7OoCZUItHQ8Uf8hhmeXw/exec",
@@ -291,6 +291,7 @@ document.addEventListener("DOMContentLoaded", function () {
   addMobileMenuToggle();
   addGroupLoanMenu();
   addIndusindAccountMenu();
+  addPersonalLoanMenu();
   setGroupPageContext();
   loadCustomLoanTypes();
   syncPrintLogoSettings();
@@ -343,6 +344,24 @@ document.addEventListener("DOMContentLoaded", function () {
     else if (node.nodeType === Node.TEXT_NODE && node.parentElement?.closest("label")) colorRequiredStars(node.parentElement.closest("label"));
   }))).observe(document.body, { childList: true, subtree: true, characterData: true });
 });
+
+function addPersonalLoanMenu() {
+  const navMenu = document.querySelector(".sidebar .nav-menu");
+  if (!navMenu || navMenu.querySelector('[data-personal-loan-menu="true"]')) return;
+  const item = document.createElement("li");
+  item.className = "nav-item has-submenu";
+  item.dataset.personalLoanMenu = "true";
+  item.innerHTML = '<a href="#" class="nav-link submenu-toggle" aria-expanded="false"><i class="fa-solid fa-hand-holding-dollar"></i> Personal Loan <i class="fa-solid fa-chevron-down arrow"></i></a><ul class="submenu"><li><a href="PersonalLoanEntry.html">Personal Loan Customer Entry</a></li><li><a href="PersonalLoanDetails.html">Personal Loan Customer Details</a></li></ul>';
+  const link = item.querySelector('a[href="PersonalLoanEntry.html"]');
+  const detailsLink = item.querySelector('a[href="PersonalLoanDetails.html"]');
+  const isEntry = window.location.pathname.toLowerCase().endsWith("personalloanentry.html");
+  const isDetails = window.location.pathname.toLowerCase().endsWith("personalloandetails.html");
+  if (isEntry || isDetails) {
+    (isEntry ? link : detailsLink).classList.add("active"); item.classList.add("open");
+    item.querySelector(":scope > .nav-link").setAttribute("aria-expanded", "true");
+  }
+  navMenu.appendChild(item);
+}
 
 function addGroupLoanMenu() {
   const navMenu = document.querySelector(".sidebar .nav-menu");

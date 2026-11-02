@@ -1,0 +1,32 @@
+.personal-loan-page { max-width: 1120px; margin: 0 auto; }
+.pl-header { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:24px 28px; margin-bottom:18px; border-radius:16px; color:#fff; background:linear-gradient(120deg,#123e68,#167c8b); box-shadow:0 12px 30px #0f172a1c; }
+.pl-header p { margin:0 0 6px; color:#a5f3fc; font-size:11px; font-weight:800; letter-spacing:.14em; }
+.pl-header h1 { margin:0 0 7px; color:#fff; font-size:25px; }
+.pl-header span { color:#dbeafe; font-size:13px; }
+.pl-header > i { display:grid; place-items:center; width:58px; height:58px; flex:0 0 58px; border-radius:16px; color:#cffafe; background:#ffffff20; font-size:24px; }
+.personal-loan-page .form-card { border:1px solid #e7edf4; border-radius:13px; box-shadow:0 5px 18px #0f172a09; }
+.personal-loan-page .form-card h3 { display:flex; align-items:center; gap:10px; color:#173d62; border-bottom-color:#e8eef5; }
+.personal-loan-page .form-card h3 span { display:grid; place-items:center; width:28px; height:28px; border-radius:9px; color:#0e7490; background:#cffafe; font-size:11px; }
+.personal-loan-page .form-group input[readonly] { color:#526173; background:#f1f5f9; }
+.pl-record-bar { display:flex; align-items:center; gap:10px; padding:12px 15px; margin-bottom:16px; border:1px solid #e7edf4; border-radius:12px; background:#fff; }
+.pl-record-bar label { color:#334155; font-size:13px; font-weight:700; }
+.pl-record-bar select { flex:1; min-width:0; padding:9px 11px; border:1px solid #cbd5e1; border-radius:7px; background:#fff; }
+.pl-select-tools { display:flex; gap:5px; align-items:center; min-width:0; }
+.pl-select-tools select { flex:1; width:0; min-width:0; }
+.pl-select-tools button { display:grid; place-items:center; width:31px; height:31px; flex:0 0 31px; border:1px solid #d6e0ea; border-radius:7px; color:#176c83; background:#f0f9ff; cursor:pointer; }
+.pl-select-tools button[data-list-action="edit"] { color:#a16207; background:#fffbeb; }
+.pl-select-tools button[data-list-action="delete"] { color:#b91c1c; background:#fef2f2; }
+.pl-actions { display:flex; flex-wrap:wrap; gap:10px; padding:5px 0 16px; }
+.pl-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:42px; padding:10px 17px; border:0; border-radius:8px; font-weight:700; cursor:pointer; }
+.pl-button.primary { color:#fff; background:#087f8c; }
+.pl-button.secondary { color:#334155; background:#e9eff5; }
+.pl-button.back { color:#075985; background:#e0f2fe; }
+.pl-record-bar .pl-button { min-height:36px; padding:7px 13px; }
+.pl-message { min-height:20px; margin:0; color:#047857; font-size:13px; font-weight:600; }
+.pl-details-toolbar { display:flex; align-items:center; gap:12px; padding:14px 16px; margin-bottom:16px; border:1px solid #e7edf4; border-radius:12px; background:#fff; }
+.pl-details-toolbar label { color:#334155; font-size:13px; font-weight:700; white-space:nowrap; }
+.pl-details-toolbar input { flex:1; min-width:100px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; }
+.pl-details-table { padding:0; border:1px solid #e7edf4; }
+.pl-details-table th { background:#eff6fa; }
+.pl-empty { padding:24px; text-align:center; color:#64748b; }
+@media(max-width:600px) { .pl-header { padding:20px; } .pl-header h1 { font-size:21px; } .pl-record-bar { flex-wrap:wrap; } .pl-record-bar label { flex-basis:100%; } .pl-record-bar select { flex-basis:60%; } .pl-actions .pl-button { flex:1 1 40%; } .pl-details-toolbar { flex-wrap:wrap; } .pl-details-toolbar label { flex-basis:100%; } .pl-details-toolbar .pl-button { flex:1; } }
