@@ -536,13 +536,11 @@ function doPost(e) {
 
     var custSheet = ss.getSheets()[0];
     var goldSheet = getOrCreateGoldSheet(ss);
+    var folderId = "1tYYWYu7dyg4NCVD_mePsmvyX0fOdYDKa";
 
     if (["save_personal_loan", "delete_personal_loan"].indexOf(data.action) !== -1) {
-      return jsonResponse(handlePersonalLoanAction_(ss, data));
+      return jsonResponse(handlePersonalLoanAction_(ss, data, folderId));
     }
-
-    
-    var folderId = "1tYYWYu7dyg4NCVD_mePsmvyX0fOdYDKa";
 
     if (data.action === "save_app_logo" || data.action === "delete_app_logo") {
       return jsonResponse(saveAppLogoSetting_(ss, data, folderId));
@@ -1108,7 +1106,7 @@ function doPost(e) {
 
 function getOrCreatePersonalLoanSheet_(ss) {
   var sheet = ss.getSheetByName("Personal_Loans");
-  var headers = ["ID", "Timestamp", "Branch ID", "Branch Name", "Branch Code", "Customer Name", "Guardian Name", "Aadhaar Number", "Mobile Number", "Customer Occupation", "Loan Account", "Rate of Interest", "Loan Type", "Disbursement Date", "Disbursement Amount", "Total Payment", "Interest Amount", "Processing Percentage", "No. of Instalments", "Instalment Period", "Processing Amount", "Document Charges", "Purpose", "Nominee Name", "Nominee Father's Name", "Nominee Occupation", "Relation with Applicant", "Starting Date", "End Date", "Cash in Hand"];
+  var headers = ["ID", "Timestamp", "Branch ID", "Branch Name", "Branch Code", "Customer Name", "Guardian Name", "Aadhaar Number", "Mobile Number", "Customer Occupation", "Customer Photo URL", "Loan Account", "Rate of Interest", "Loan Type", "Disbursement Date", "Disbursement Amount", "Total Payment", "Interest Amount", "Processing Percentage", "No. of Instalments", "Instalment Period", "Processing Amount", "Document Charges", "Purpose", "Nominee Name", "Nominee Father's Name", "Nominee Occupation", "Nominee Photo URL", "Relation with Applicant", "Starting Date", "End Date", "Cash in Hand"];
   if (!sheet) {
     sheet = ss.insertSheet("Personal_Loans");
     sheet.appendRow(headers);
@@ -1126,11 +1124,18 @@ function getOrCreatePersonalLoanSheet_(ss) {
     if (currentHeaders.indexOf("End Date") === -1) {
       sheet.getRange(1, sheet.getLastColumn() + 1).setValue("End Date").setFontWeight("bold");
     }
+    currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(header) { return String(header).trim(); });
+    ["Customer Photo URL", "Nominee Photo URL"].forEach(function(header) {
+      if (currentHeaders.indexOf(header) === -1) {
+        sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header).setFontWeight("bold");
+        currentHeaders.push(header);
+      }
+    });
   }
   return sheet;
 }
 
-function handlePersonalLoanAction_(ss, data) {
+function handlePersonalLoanAction_(ss, data, folderId) {
   var sheet = getOrCreatePersonalLoanSheet_(ss);
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
@@ -1153,6 +1158,22 @@ function handlePersonalLoanAction_(ss, data) {
     if (!/^\d{12}$/.test(String(entry["aadhaar-number"] || ""))) return { status: "error", message: "Aadhaar Number must contain 12 digits." };
     if (!/^\d{10}$/.test(String(entry["mobile-number"] || ""))) return { status: "error", message: "Mobile Number must contain 10 digits." };
     var entryId = String(data.id || entry.id || "").trim() || "PL-" + new Date().getTime();
+    var existingRowIndex = -1;
+    for (var findRow = 1; findRow < values.length; findRow++) {
+      if (String(values[findRow][idColumn]) === entryId) { existingRowIndex = findRow; break; }
+    }
+    var customerPhotoColumn = headers.indexOf("Customer Photo URL");
+    var nomineePhotoColumn = headers.indexOf("Nominee Photo URL");
+    var customerPhotoUrl = existingRowIndex >= 0 && customerPhotoColumn >= 0 ? String(values[existingRowIndex][customerPhotoColumn] || "") : "";
+    var nomineePhotoUrl = existingRowIndex >= 0 && nomineePhotoColumn >= 0 ? String(values[existingRowIndex][nomineePhotoColumn] || "") : "";
+    if (data.customerPhotoBase64 && data.customerPhotoName) {
+      customerPhotoUrl = uploadImageToDrive(data.customerPhotoBase64, data.customerPhotoMimeType || "image/jpeg", "Personal-Loan-Customer-" + entryId + "-" + data.customerPhotoName, folderId);
+      if (!customerPhotoUrl) return { status: "error", message: "Could not upload the customer photo to Drive." };
+    }
+    if (data.nomineePhotoBase64 && data.nomineePhotoName) {
+      nomineePhotoUrl = uploadImageToDrive(data.nomineePhotoBase64, data.nomineePhotoMimeType || "image/jpeg", "Personal-Loan-Nominee-" + entryId + "-" + data.nomineePhotoName, folderId);
+      if (!nomineePhotoUrl) return { status: "error", message: "Could not upload the nominee photo to Drive." };
+    }
     var amount = Number(entry["disbursement-amount"]) || 0;
     var rate = Number(entry["rate-interest"]) || 0;
     var interest = amount * rate / 100;
@@ -1183,9 +1204,9 @@ function handlePersonalLoanAction_(ss, data) {
     }
     var fieldByHeader = {
       "ID": entryId, "Timestamp": new Date(), "Branch ID": "I00F6349", "Branch Name": "Begumpet_SP", "Branch Code": "I00F6349",
-      "Customer Name": entry["customer-name"] || "", "Guardian Name": entry["guardian-name"] || "", "Aadhaar Number": entry["aadhaar-number"] || "", "Mobile Number": entry["mobile-number"] || "", "Customer Occupation": entry["customer-occupation"] || "", "Loan Account": "Loan",
+      "Customer Name": entry["customer-name"] || "", "Guardian Name": entry["guardian-name"] || "", "Aadhaar Number": entry["aadhaar-number"] || "", "Mobile Number": entry["mobile-number"] || "", "Customer Occupation": entry["customer-occupation"] || "", "Customer Photo URL": customerPhotoUrl, "Loan Account": "Loan",
       "Rate of Interest": entry["rate-interest"] || "", "Loan Type": entry["loan-type"] || "", "Disbursement Date": entry["disbursement-date"] || "", "Disbursement Amount": amount, "Total Payment": amount + interest, "Interest Amount": interest, "Processing Percentage": processingPercentage, "No. of Instalments": installmentCount, "Instalment Period": installmentPeriod, "Processing Amount": processingAmount, "Document Charges": entry["document-charges"] || "", "Purpose": entry["loan-purpose"] || "",
-      "Nominee Name": entry["nominee-name"] || "", "Nominee Father's Name": entry["nominee-father"] || "", "Nominee Occupation": entry["nominee-occupation"] || "", "Relation with Applicant": entry["nominee-relation"] || "", "Starting Date": startDate, "End Date": endDate, "Cash in Hand": cashInHand
+      "Nominee Name": entry["nominee-name"] || "", "Nominee Father's Name": entry["nominee-father"] || "", "Nominee Occupation": entry["nominee-occupation"] || "", "Nominee Photo URL": nomineePhotoUrl, "Relation with Applicant": entry["nominee-relation"] || "", "Starting Date": startDate, "End Date": endDate, "Cash in Hand": cashInHand
     };
     var rowValues = headers.map(function(header) { return fieldByHeader[header] === undefined ? "" : fieldByHeader[header]; });
     for (var updateRow = 1; updateRow < values.length; updateRow++) {
