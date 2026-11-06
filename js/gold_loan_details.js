@@ -216,33 +216,82 @@ function printGoldLoanDetails(loan) {
   Object.assign(printFrame.style, { position: "absolute", top: "-10000px", left: "-10000px", width: "900px", height: "800px", border: "0" });
   document.body.appendChild(printFrame);
   const popup = printFrame.contentWindow;
-  const articles = (() => { try { return JSON.parse(loan["Gold Articles Details"] || "[]"); } catch (_) { return []; } })();
-  const articleRows = articles.map(article => `<tr><td>${goldHtml(article.description || "—")}</td><td>${goldHtml(article.purity || "—")}</td><td>${Number(article.grossWeight || 0).toFixed(3)} g</td><td>${Number(article.stoneWeight || 0).toFixed(3)} g</td><td>${Number(article.netWeight || 0).toFixed(3)} g</td><td>${goldMoney(article.ratePerGram)}</td><td>${goldMoney(article.assessedValue)}</td></tr>`).join("");
+  const show = value => value === "" || value == null ? "—" : goldHtml(value);
+  const showMoney = value => value === "" || value == null ? "—" : goldMoney(value);
+  const showDate = value => {
+    if (!value) return "—";
+    const raw = String(value);
+    const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00` : raw);
+    return Number.isNaN(date.getTime()) ? goldHtml(raw) : date.toLocaleDateString("en-GB").replaceAll("/", "-");
+  };
+  const showRate = value => value === "" || value == null ? "—" : goldHtml(value);
+  const showWeight = value => value === "" || value == null ? "—" : `${goldHtml(value)} g`;
+  const pairs = items => {
+    let output = "";
+    for (let index = 0; index < items.length; index += 2) {
+      const left = items[index], right = items[index + 1];
+      output += `<tr><th>${left[0]}</th><td>${left[1]}</td>${right ? `<th>${right[0]}</th><td>${right[1]}</td>` : "<th></th><td></td>"}</tr>`;
+    }
+    return output;
+  };
+  const section = (title, items) => `<h2>${title}</h2><table class="details">${pairs(items)}</table>`;
   const photo = (label, value) => {
     const urls = goldPhotoUrls(value);
     return urls.length ? `<figure><figcaption>${label}</figcaption><img src="${goldHtml(urls[0])}" data-photo-candidates="${goldHtml(urls.join("|"))}" alt="${label}"></figure>` : "";
   };
   const customerPhoto = photo("Customer Photo", loan["Nominee Photo URL"]);
   const goldPhoto = photo("Pledged Gold Photo", loan["Gold Item Photo URL"]);
-  const excluded = new Set(["ID", "Timestamp", "Nominee Photo URL", "Gold Item Photo URL", "Gold Articles Details"]);
-  const amountFields = new Set(["Monthly Income", "Total Assessed Value", "Eligible Amount", "Loan Amount Requested", "Processing Charge", "Document Charge", "Net Disbursement Amount", "Installment Amount", "EMI Amount", "Total Interest", "Total Payable", "Outstanding Principal", "Accrued Interest Balance"]);
-  const applicationLabels = new Set(["Application No", "Application Date", "Branch Name", "Branch Code", "Loan Officer Name", "CSP Location"]);
-  const borrowerLabels = new Set(["Borrower Name", "Mobile No", "Identity No", "Address", "Monthly Income", "Guardian Name", "Gender", "DOB", "Religion", "Aadhaar No", "Occupation"]);
-  const fields = Object.entries(loan).filter(([label]) => !excluded.has(label));
-  const rowsFor = selected => Array.from({ length: Math.ceil(selected.length / 2) }, (_, index) => {
-    const cells = selected.slice(index * 2, index * 2 + 2).map(([label, value]) => `<th>${goldHtml(label)}</th><td>${amountFields.has(label) && value !== "" && value != null ? goldMoney(value) : goldHtml(value || "—")}</td>`);
-    while (cells.length < 2) cells.push("<th></th><td></td>");
-    return `<tr>${cells.join("")}</tr>`;
-  }).join("");
-  const applicationRows = rowsFor(fields.filter(([label]) => applicationLabels.has(label)));
-  const borrowerRows = rowsFor(fields.filter(([label]) => borrowerLabels.has(label)));
-  const otherRows = rowsFor(fields.filter(([label]) => !applicationLabels.has(label) && !borrowerLabels.has(label)));
-  const detailTable = rows => `<table class="details">${rows}</table>`;
-  const photoRow = (image, heading, rows) => `<div class="photo-detail-row">${image ? `<div class="photos">${image}</div>` : "<div></div>"}<section><h2>${heading}</h2>${detailTable(rows || "<tr><td colspan='4'>—</td></tr>")}</section></div>`;
+  const appDetails = section("Application & Branch Details", [
+    ["Application No.", show(loan["Application No"])], ["Application Date", showDate(loan["Application Date"])],
+    ["Branch Name", show(loan["Branch Name"])], ["Branch Code", show(loan["Branch Code"])],
+    ["Loan Officer Name", show(loan["Loan Officer Name"])], ["CSP Location", show(loan["CSP Location"])]
+  ]);
+  const borrower = section("Borrower Details", [
+    ["Borrower Name", show(loan["Borrower Name"])], ["Mobile No.", show(loan["Mobile No"])],
+    ["Identity No.", show(loan["Identity No"])], ["Address", show(loan["Address"])],
+    ["Monthly Income", showMoney(loan["Monthly Income"])], ["Guardian Name", show(loan["Guardian Name"])],
+    ["Gender", show(loan["Gender"])], ["Date of Birth", showDate(loan["DOB"])],
+    ["Religion", show(loan["Religion"])], ["Aadhaar No.", show(loan["Aadhaar No"])], ["Occupation", show(loan["Occupation"])]
+  ]);
+  const photoRow = (image, details) => `<div class="photo-detail-row">${image ? `<div class="photos">${image}</div>` : "<div></div>"}<div>${details}</div></div>`;
+  const customerBank = section("Customer Bank Details", [
+    ["Bank Name", show(loan["Customer Bank Name"])], ["Bank Branch", show(loan["Customer Bank Branch"])],
+    ["IFSC Code", show(loan["Customer IFSC Code"])], ["Account Holder", show(loan["Customer Account Holder"])], ["Account Number", show(loan["Customer Account Number"])]
+  ]);
+  const nominee = section("Nominee Details", [
+    ["Nominee Name", show(loan["Nominee Name"])], ["Guardian Name", show(loan["Nominee Guardian Name"])],
+    ["Gender", show(loan["Nominee Gender"])], ["Occupation", show(loan["Nominee Occupation"])],
+    ["Date of Birth", showDate(loan["Nominee DOB"])], ["Aadhaar No.", show(loan["Nominee Aadhaar"])], ["Relation with Applicant", show(loan["Relation With Applicant"])]
+  ]);
+  const valuation = section("Gold Valuation", [
+    ["Valuation Date", showDate(loan["Valuation Date"])], ["Total Gross Weight", showWeight(loan["Total Gross Weight (g)"])],
+    ["Total Net Weight", showWeight(loan["Total Net Weight (g)"])], ["Total Assessed Value", showMoney(loan["Total Assessed Value"])],
+    ["LTV", showRate(loan["LTV (%)"]) + (loan["LTV (%)"] === "" || loan["LTV (%)"] == null ? "" : "%")], ["Eligible Amount", showMoney(loan["Eligible Amount"])]
+  ]);
+  const tenureUnit = loan["Loan Tenure Unit"] || "Months";
+  const dayTenure = String(tenureUnit).toLowerCase() === "days";
+  const loanDetails = section("Loan & Repayment Details", [
+    ["Loan Amount Requested", showMoney(loan["Loan Amount Requested"])], ["Processing Charge", showMoney(loan["Processing Charge"])],
+    ["Document Charge", showMoney(loan["Document Charge"])], ["Net Disbursement Amount", showMoney(loan["Net Disbursement Amount"])],
+    ["Tenure", show(loan["Loan Tenure"]) + " " + goldHtml(tenureUnit)], ["Interest Rate", showRate(loan["Rate of Interest (%)"]) + (loan["Rate of Interest (%)"] === "" || loan["Rate of Interest (%)"] == null ? "" : (dayTenure ? "% per month" : "% p.a."))],
+    ["Repayment Method", show(loan["Repayment Method"])], ["Installment / Interest Amount", showMoney(loan["Installment Amount"] || loan["EMI Amount"])],
+    ["Total Interest", showMoney(loan["Total Interest"])], ["Total Payable", showMoney(loan["Total Payable"])],
+    [dayTenure ? "First Payment Date" : "First EMI Date", showDate(loan["First EMI Date"])], ["EMI Close Date", showDate(loan["EMI Close Date"])],
+    ["Maturity Date", showDate(loan["Maturity Date"])], ["Purpose of Loan", show(loan["Purpose of Loan"])],
+    ["Scheme", show(loan["Scheme"])], ["Disbursement Mode", show(loan["Disbursement Mode"])]
+  ]);
+  const cashMode = String(loan["Disbursement Mode"] || "").trim().toLowerCase() === "cash";
+  const disbursementBank = cashMode ? "" : section("Disbursement Bank Details", [
+    ["Bank Name", show(loan["Bank Name"])], ["Account Holder", show(loan["A/C Holder Name"])],
+    ["Account Number", show(loan["A/C Number"])], ["IFSC Code", show(loan["IFSC Code"])], ["Bank Branch", show(loan["Branch"])]
+  ]);
+  const documents = section("Documents Checklist", [["Submitted Documents", show(loan["Submitted Documents"])]]);
+  const articles = (() => { try { return JSON.parse(loan["Gold Articles Details"] || "[]"); } catch (_) { return []; } })();
+  const articleRows = articles.map(article => `<tr><td>${goldHtml(article.description || "—")}</td><td>${goldHtml(article.purity || "—")}</td><td>${Number(article.grossWeight || 0).toFixed(3)} g</td><td>${Number(article.stoneWeight || 0).toFixed(3)} g</td><td>${Number(article.netWeight || 0).toFixed(3)} g</td><td>${goldMoney(article.ratePerGram)}</td><td>${goldMoney(article.assessedValue)}</td></tr>`).join("");
   const logoUrl = localStorage.getItem("goldPrintLogoDataUrl") || "";
   const logoUrls = goldPhotoUrls(logoUrl);
   const logo = logoUrl ? `<img class="print-logo" src="${goldHtml(logoUrls[0] || logoUrl)}" data-photo-candidates="${goldHtml((logoUrls.length ? logoUrls : [logoUrl]).join("|"))}" alt="Gold Loan logo">` : "";
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Gold Loan Application</title><style>*{box-sizing:border-box}body{font:10px Arial,sans-serif;color:#1f2937;max-width:100%;margin:0}.print-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:2px solid #b8860b;margin-bottom:3px}.print-heading{min-width:0}h1{font-size:16px;color:#805b08;padding:0 0 3px;margin:0 0 2px}.application-id{font-size:15px;font-weight:700;color:#111827;margin:0 0 2px}.print-logo{display:block;max-width:105px;max-height:50px;object-fit:contain}h2{font-size:11px;color:#805b08;margin:2px 0 1px}.print-header p{color:#64748b;margin:2px 0 4px}.photo-detail-row{display:grid;grid-template-columns:3.5cm minmax(0,1fr);gap:6px;align-items:start;margin:0}.details,.articles{width:100%;border-collapse:collapse;margin:0 0 2px;table-layout:fixed}.details th,.details td,.articles th,.articles td{padding:2.5px 3px;border:1px solid #d8d1c0;text-align:left;overflow-wrap:anywhere;line-height:1.12}.details th,.articles th{background:#fff4d2}.details th{width:18%}.details td{width:32%}.photos{display:flex;flex-direction:column;align-items:flex-start;gap:0;margin:0}.photos figure{margin:0;text-align:center;line-height:1}.photos img{display:block;width:3.5cm;height:4.5cm;object-fit:contain;border:1px solid #d8d1c0;margin-top:2px}.articles{font-size:9px}tr{page-break-inside:avoid}section{break-inside:avoid}@page{size:A4 portrait;margin:7mm}@media print{body{margin:0}}</style></head><body><header class="print-header"><div class="print-heading"><h1>Gold Loan Application</h1><div class="application-id">ID: ${goldHtml(loan.ID || "—")}</div><p>Application No.: ${goldHtml(loan["Application No"] || "—")} &nbsp; | &nbsp; Application Date: ${goldHtml(loan["Application Date"] || "—")}</p></div>${logo}</header>${photoRow(customerPhoto, "Application & Branch Details", applicationRows)}${photoRow(goldPhoto, "Borrower Details", borrowerRows)}${otherRows ? `<h2>Other Application Details</h2>${detailTable(otherRows)}` : ""}<h2>Pledged Gold Articles</h2><table class="articles"><thead><tr><th>Article</th><th>Purity</th><th>Gross Wt.</th><th>Less Stone</th><th>Net Wt.</th><th>Rate / g</th><th>Assessed Value</th></tr></thead><tbody>${articleRows || '<tr><td colspan="7">No article details found.</td></tr>'}</tbody></table><script>window.onload=()=>window.print();</script></body></html>`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Gold Loan Application</title><style>*{box-sizing:border-box}body{font:10px Arial,sans-serif;color:#1f2937;max-width:100%;margin:0}.print-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:2px solid #b8860b;margin-bottom:3px}.print-heading{min-width:0}h1{font-size:16px;color:#805b08;padding:0 0 3px;margin:0 0 2px}.application-id{font-size:15px;font-weight:700;color:#111827;margin:0 0 2px}.print-logo{display:block;max-width:105px;max-height:50px;object-fit:contain}h2{font-size:11px;color:#805b08;margin:2px 0 1px}.print-header p{color:#64748b;margin:2px 0 4px}.photo-detail-row{display:grid;grid-template-columns:3.5cm minmax(0,1fr);gap:6px;align-items:start;margin:0}.photo-detail-row+.photo-detail-row{margin-top:-5px}.details,.articles{width:100%;border-collapse:collapse;margin:0 0 2px;table-layout:fixed}.details th,.details td,.articles th,.articles td{padding:2.5px 3px;border:1px solid #d8d1c0;text-align:left;overflow-wrap:anywhere;line-height:1.12}.details th,.articles th{background:#fff4d2}.details th{width:18%}.details td{width:32%}.photos{display:flex;flex-direction:column;align-items:flex-start;gap:0;margin:0}.photos figure{margin:0;text-align:center;line-height:1}.photos img{display:block;width:3.5cm;height:4.5cm;object-fit:contain;border:1px solid #d8d1c0;margin-top:2px}.articles{font-size:9px}tr{page-break-inside:avoid}@page{size:A4 portrait;margin:7mm}@media print{body{margin:0}}</style></head><body><header class="print-header"><div class="print-heading"><h1>Gold Loan Application</h1><div class="application-id">ID: ${goldHtml(loan.ID || "—")}</div><p>Application No.: ${show(loan["Application No"])} &nbsp; | &nbsp; Application Date: ${show(loan["Application Date"])}</p></div>${logo}</header>${photoRow(customerPhoto, appDetails)}${photoRow(goldPhoto, borrower)}${customerBank}${nominee}${valuation}<h2>Pledged Gold Articles</h2><table class="articles"><thead><tr><th>Sl.</th><th>Article</th><th>Purity</th><th>Gross Wt.</th><th>Less Stone</th><th>Net Wt.</th><th>Rate / g</th><th>Assessed Value</th></tr></thead><tbody>${articleRows || '<tr><td colspan="8">No article details found.</td></tr>'}</tbody></table>${loanDetails}${disbursementBank}${documents}<p>This is a computer-generated application record.</p><script>window.onload=()=>window.print();</script></body></html>`;
   popup.document.write(html);
   popup.document.close();
   const cleanupPrintFrame = () => printFrame.remove();
