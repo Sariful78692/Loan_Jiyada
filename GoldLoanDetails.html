@@ -7,6 +7,7 @@
     <title>Gold Loan Customers</title>
     <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
     <link rel="stylesheet" href="css/customer.css">
+    <style>.gold-details-table .gold-id-cell{font-weight:700;white-space:nowrap;color:#805b08}</style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -29,11 +30,11 @@
                     <div><p class="gold-eyebrow">SECURED LENDING</p><h1><i class="fa-solid fa-users"></i> Gold Loan Customers</h1><p>Review, print or edit Gold Loan applications.</p></div>
                     <a href="GoldLoanEntry.html" class="btn-primary gold-submit"><i class="fa-solid fa-plus"></i> New Gold Loan</a>
                 </div>
-                <div class="gold-emi-table-tools"><label class="gold-emi-search"><span>Search customer</span><span class="gold-emi-search-box"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="gold-loan-search" type="search" placeholder="Customer name or mobile number" autocomplete="off"></span></label><label class="gold-emi-page-size">Rows per page<select id="gold-loan-page-size"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="all">All</option></select></label></div>
+                <div class="gold-emi-table-tools"><label class="gold-emi-search"><span>Search customer</span><span class="gold-emi-search-box"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="gold-loan-search" type="search" placeholder="ID, customer name or mobile" autocomplete="off"></span></label><label class="gold-emi-page-size">Rows per page<select id="gold-loan-page-size"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="all">All</option></select></label></div>
                 <div class="table-container" style="overflow-x:auto;background:#fff;padding:10px">
                     <table class="data-table gold-details-table" style="width:100%;border-collapse:collapse">
-                        <thead><tr><th>Application</th><th>Borrower</th><th>Guardian Name</th><th>Mobile</th><th>Customer Photo</th><th>Gold Photo</th><th>Net Wt.</th><th>Eligible Amount</th><th>Loan Amount</th><th>First EMI / Payment Date</th><th>EMI Close</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody id="gold-loan-details-body"><tr><td colspan="13" style="padding:30px;text-align:center"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> Loading Gold Loan customers…</td></tr></tbody>
+                        <thead><tr><th>ID</th><th>Application</th><th>Borrower</th><th>Guardian Name</th><th>Mobile</th><th>Customer Photo</th><th>Gold Photo</th><th>Net Wt.</th><th>Eligible Amount</th><th>Loan Amount</th><th>First EMI / Payment Date</th><th>EMI Close</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="gold-loan-details-body"><tr><td colspan="14" style="padding:30px;text-align:center"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> Loading Gold Loan customers…</td></tr></tbody>
                     </table>
                 </div>
                 <div class="gold-emi-pagination"><span id="gold-loan-page-info" aria-live="polite">Showing 0–0 of 0</span><div><button id="gold-loan-prev" type="button" class="btn-secondary" disabled>Previous</button><span id="gold-loan-page-label">Page 1 of 1</span><button id="gold-loan-next" type="button" class="btn-secondary" disabled>Next</button></div></div>
@@ -50,11 +51,12 @@
                 <label>End date <input id="gold-emi-end" type="date" required></label>
             </div>
             <p id="gold-emi-preview" class="gold-emi-preview"></p>
-            <div class="gold-modal-actions"><button type="submit" id="gold-emi-submit" class="btn-primary">Save EMI & Print Receipt</button><button type="button" id="gold-emi-cancel" class="btn-secondary">Cancel</button></div>
+            <div class="gold-modal-actions"><button type="submit" id="gold-emi-submit" class="btn-primary">Save EMI & Print Receipt</button>
+                <button type="button" id="gold-emi-cancel" class="btn-secondary">Cancel</button></div>
         </form>
     </div>
     <div id="gold-photo-preview" class="gold-photo-preview" aria-hidden="true"><img alt="Photo preview"></div>
     <script src="js/common.js?v=20261026-apps-script-url-1"></script>
-    <script src="js/gold_loan_details.js?v=20261102-search-pagination-1"></script>
+    <script src="js/gold_loan_details.js?v=20261106-show-database-id-1"></script>
 </body>
 </html>

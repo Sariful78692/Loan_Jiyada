@@ -1,5 +1,6 @@
 let goldLoanCalculation = {};
 let goldEditId = new URLSearchParams(window.location.search).get("edit");
+let savedGoldLoanPhotos = { customer: "", gold: "" };
 
 document.addEventListener("DOMContentLoaded", () => {
   addGoldCustomerFields();
@@ -284,10 +285,11 @@ async function handleGoldLoanSubmit(event) {
       goldArticles: JSON.stringify(articles), loanAmount: document.getElementById("goldLoanAmount").value, processingCharge: goldLoanCalculation.processingCharge, documentCharge: goldLoanCalculation.documentCharge, netDisbursementAmount: goldLoanCalculation.netDisbursement, loanTenure: document.getElementById("goldLoanTenure").value, loanTenureUnit: document.getElementById("goldLoanTenureUnit").value, purpose: document.getElementById("goldPurpose").value, scheme: document.getElementById("goldScheme").value, interestRate: document.getElementById("goldInterestRate").value, repaymentType: document.getElementById("goldRepaymentType").value, valuationDate: document.getElementById("goldValuationDate").value,
       totalGrossWeight: goldLoanCalculation.grossTotal, totalNetWeight: goldLoanCalculation.netTotal, assessedValue: goldLoanCalculation.assessedTotal, ltvPercent: goldLoanCalculation.ltv, eligibleAmount: goldLoanCalculation.eligible, installmentAmount: goldLoanCalculation.payment, totalInterest: goldLoanCalculation.totalInterest, totalPayable: goldLoanCalculation.totalPayable, firstEmiDate: goldLoanCalculation.firstEmiDate, emiCloseDate: goldLoanCalculation.emiCloseDate, maturityDate: goldLoanCalculation.maturity,
       disbursementMode: document.getElementById("goldDisbursementMode").value, bankName: document.getElementById("goldBankName").value, acHolderName: document.getElementById("goldAcHolderName").value, acNumber: document.getElementById("goldAcNumber").value, ifscCode: document.getElementById("goldIfscCode").value, bankBranch: document.getElementById("goldBankBranch").value, submittedDocuments: getChecklists(),
-      nomineeImgBase64: nominee ? await fileAsBase64(nominee) : "", nomineeImgName: nominee?.name || "", nomineeImgType: nominee?.type || "", goldItemImgBase64: item ? await fileAsBase64(item) : "", goldItemImgName: item?.name || "", goldItemImgType: item?.type || ""
+      nomineeImgBase64: nominee ? await fileAsBase64(nominee) : "", nomineeImgName: nominee?.name || "", nomineeImgType: nominee?.type || "", nomineeImgUrl: document.getElementById("goldNomineeImagePreview").getAttribute("src") || savedGoldLoanPhotos.customer, goldItemImgBase64: item ? await fileAsBase64(item) : "", goldItemImgName: item?.name || "", goldItemImgType: item?.type || "", goldItemImgUrl: document.getElementById("goldItemImagePreview").getAttribute("src") || savedGoldLoanPhotos.gold
     };
     const response = await postAppData(payload); const result = await response.json();
     if (result.status !== "success") throw new Error(result.message || "Could not save the application.");
+    payload.databaseId = payload.id || result.id || result.ID || "";
     alert(goldEditId ? "Gold loan customer updated successfully." : `Gold loan application ${payload.appNo} saved successfully.`);
     submit.classList.add("hidden");
     let printButton = document.getElementById("print-gold-loan-btn");
@@ -316,6 +318,8 @@ async function loadGoldLoanForEdit(id) {
       if (element.tagName === "SELECT" && savedValue && ![...element.options].some(option => option.value === savedValue)) element.add(new Option(savedValue, savedValue));
       element.value = savedValue;
     });
+    savedGoldLoanPhotos.customer = goldEntryPhotoSource(loan["Nominee Photo URL"]).source;
+    savedGoldLoanPhotos.gold = goldEntryPhotoSource(loan["Gold Item Photo URL"]).source;
     [["goldNomineeImagePreview", loan["Nominee Photo URL"], "goldNomineePhotoCard", "goldNomineePhotoCaption"], ["goldItemImagePreview", loan["Gold Item Photo URL"], "goldItemPhotoCard", "goldItemPhotoCaption"]].forEach(([previewId, url, cardId, captionId]) => {
       const photo = goldEntryPhotoSource(url);
       if (photo.source) showGoldEntryPhoto(previewId, photo.source, photo.fallback, "Saved photo", cardId, captionId);
@@ -342,9 +346,24 @@ function goldDateInputValue(value) {
   return Number.isNaN(date.getTime()) ? raw : localDate(date);
 }
 
-function printGoldLoanReceipt(data) {
+async function printGoldLoanReceipt(data) {
   const popup = window.open("", "_blank", "width=1000,height=800");
   if (!popup) return alert("Please allow pop-ups to print the application.");
+  let printLogo = localStorage.getItem("goldPrintLogoDataUrl") || "";
+  if (!printLogo) {
+    try {
+      const settings = await fetchAppData("app_settings", true);
+      printLogo = settings.logos?.gold || "";
+    } catch (error) { console.warn("Could not load the Gold Loan print logo.", error); }
+  }
+  const logoMatch = printLogo.match(/[?&]id=([^&]+)/i) || printLogo.match(/\/d\/([^/?]+)/i);
+  let logoCandidates = [printLogo];
+  if (logoMatch) {
+    let fileId = logoMatch[1];
+    try { fileId = decodeURIComponent(fileId); } catch (_) {}
+    const encodedId = encodeURIComponent(fileId);
+    logoCandidates = [`https://drive.google.com/thumbnail?id=${encodedId}&sz=w400`, `https://drive.google.com/uc?export=view&id=${encodedId}`, `https://lh3.googleusercontent.com/d/${encodedId}=w400`, printLogo];
+  }
   const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
   const show = value => value === "" || value == null ? "—" : escapeHtml(value);
   const showMoney = value => value === "" || value == null ? "—" : money(value);
@@ -366,8 +385,12 @@ function printGoldLoanReceipt(data) {
   const section = (title, items) => "<h2>" + title + "</h2><table class='details'>" + pairs(items) + "</table>";
   const articles = (() => { try { return JSON.parse(data.goldArticles || "[]"); } catch (_) { return []; } })();
   const articleRows = articles.map((item, index) => "<tr><td>" + (index + 1) + "</td><td>" + show(item.description) + "</td><td>" + show(item.purity) + "</td><td>" + Number(item.grossWeight || 0).toFixed(3) + " g</td><td>" + Number(item.stoneWeight || 0).toFixed(3) + " g</td><td>" + Number(item.netWeight || 0).toFixed(3) + " g</td><td>" + showMoney(item.ratePerGram) + "</td><td>" + showMoney(item.assessedValue) + "</td></tr>").join("");
-  const printPhoto = (label, base64, mime) => base64 ? "<figure><figcaption>" + label + "</figcaption><img src='data:" + escapeHtml(mime || "image/jpeg") + ";base64," + base64 + "' alt='" + label + "'></figure>" : "";
-  const photos = printPhoto("Customer Photo", data.nomineeImgBase64, data.nomineeImgType) + printPhoto("Pledged Gold Photo", data.goldItemImgBase64, data.goldItemImgType);
+  const printPhoto = (label, base64, mime, savedUrl) => {
+    const src = base64 ? "data:" + escapeHtml(mime || "image/jpeg") + ";base64," + base64 : savedUrl && !savedUrl.startsWith("data:image/svg") ? savedUrl : "";
+    return src ? "<figure><figcaption>" + label + "</figcaption><img src='" + escapeHtml(src) + "' alt='" + label + "'></figure>" : "";
+  };
+  const customerPhoto = printPhoto("Customer Photo", data.nomineeImgBase64, data.nomineeImgType, data.nomineeImgUrl);
+  const goldPhoto = printPhoto("Pledged Gold Photo", data.goldItemImgBase64, data.goldItemImgType, data.goldItemImgUrl);
   const application = section("Application & Branch Details", [
     ["Application No.", show(data.appNo)], ["Application Date", showDate(data.appDate)], ["Branch Name", show(data.branchName)], ["Branch Code", show(data.branchCode)], ["Loan Officer Name", show(data.officerName)], ["CSP Location", show(data.cspLocation)]
   ]);
@@ -390,7 +413,10 @@ function printGoldLoanReceipt(data) {
     ["Bank Name", show(data.bankName)], ["Account Holder", show(data.acHolderName)], ["Account Number", show(data.acNumber)], ["IFSC Code", show(data.ifscCode)], ["Bank Branch", show(data.bankBranch)]
   ]);
   const documents = section("Documents Checklist", [["Submitted Documents", show(data.submittedDocuments)]]);
-  const html = "<!doctype html><html><head><meta charset='utf-8'><title>Gold Loan Application</title><style>body{font:13px Arial,sans-serif;color:#1f2937;max-width:980px;margin:26px auto}h1{color:#805b08;border-bottom:3px solid #b8860b;padding-bottom:10px}h2{font-size:16px;color:#805b08;margin:20px 0 6px}p{color:#64748b}.details,.articles{width:100%;border-collapse:collapse;margin:0 0 14px;table-layout:fixed}.details th,.details td,.articles th,.articles td{padding:7px;border:1px solid #d8d1c0;text-align:left;overflow-wrap:anywhere}.details th,.articles th{background:#fff4d2}.details th{width:18%}.details td{width:32%}.photos{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0}.photos figure{margin:0;text-align:center}.photos img{display:block;width:145px;height:145px;object-fit:contain;border:1px solid #d8d1c0;margin-top:5px}.articles{font-size:12px}tr{page-break-inside:avoid}@page{size:A4 portrait;margin:12mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>Gold Loan Application</h1><p>Application No.: " + show(data.appNo) + " &nbsp; | &nbsp; Application Date: " + showDate(data.appDate) + "</p>" + (photos ? "<h2>Photographs</h2><div class='photos'>" + photos + "</div>" : "") + application + borrower + customerBank + nominee + valuation + "<h2>Pledged Gold Articles</h2><table class='articles'><thead><tr><th>Sl.</th><th>Article</th><th>Purity</th><th>Gross Wt.</th><th>Less Stone</th><th>Net Wt.</th><th>Rate / g</th><th>Assessed Value</th></tr></thead><tbody>" + (articleRows || "<tr><td colspan='8'>No article details found.</td></tr>") + "</tbody></table>" + loan + bank + documents + "<p>This is a computer-generated application record.</p><script>window.onload=()=>window.print();</script></body></html>";
+  const logo = logoCandidates[0] ? "<img class='print-logo' src='" + escapeHtml(logoCandidates[0]) + "' data-logo-candidates='" + escapeHtml(logoCandidates.join("|")) + "' alt='Gold Loan logo'>" : "";
+  const photoDetailRow = (photo, details) => photo ? "<div class='photo-detail-row'><div class='photos'>" + photo + "</div><section>" + details + "</section></div>" : details;
+  const photoApplication = photoDetailRow(customerPhoto, application) + photoDetailRow(goldPhoto, borrower);
+  const html = "<!doctype html><html><head><meta charset='utf-8'><title>Gold Loan Application</title><style>*{box-sizing:border-box}body{font:10px Arial,sans-serif;color:#1f2937;max-width:100%;margin:0}.print-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:2px solid #b8860b;margin-bottom:3px}.print-heading{min-width:0}h1{font-size:16px;color:#805b08;padding:0 0 3px;margin:0 0 2px}.application-id{font-size:15px;font-weight:700;color:#111827;margin:0 0 2px}.print-logo{display:block;max-width:105px;max-height:50px;object-fit:contain}h2{font-size:11px;color:#805b08;margin:2px 0 1px}p{color:#64748b;margin:2px 0 4px}.details,.articles{width:100%;border-collapse:collapse;margin:0 0 2px;table-layout:fixed}.details th,.details td,.articles th,.articles td{padding:2.5px 3px;border:1px solid #d8d1c0;text-align:left;overflow-wrap:anywhere;line-height:1.12}.details th,.articles th{background:#fff4d2}.details th{width:18%}.details td{width:32%}.photo-detail-row{display:grid;grid-template-columns:145px minmax(0,1fr);gap:6px;align-items:start;margin:0}.photo-detail-row section h2{margin:0 0 1px}.photo-detail-row+.photo-detail-row{margin-top:-5px}.photos{display:flex;flex-direction:column;align-items:flex-start;gap:0;margin:0}.photos figure{margin:0;text-align:center;line-height:1}.photos img{display:block;width:3.5cm;height:4.5cm;object-fit:contain;border:1px solid #d8d1c0;margin-top:2px}.articles{font-size:9px}tr{page-break-inside:avoid}section{break-inside:avoid}@page{size:A4 portrait;margin:7mm}@media print{body{margin:0}}</style></head><body><header class='print-header'><div class='print-heading'><h1>Gold Loan Application</h1><div class='application-id'>ID: " + show(data.databaseId || data.id || goldEditId || "—") + "</div><p>Application No.: " + show(data.appNo) + " &nbsp; | &nbsp; Application Date: " + showDate(data.appDate) + "</p></div>" + logo + "</header>" + photoApplication + customerBank + nominee + valuation + "<h2>Pledged Gold Articles</h2><table class='articles'><thead><tr><th>Sl.</th><th>Article</th><th>Purity</th><th>Gross Wt.</th><th>Less Stone</th><th>Net Wt.</th><th>Rate / g</th><th>Assessed Value</th></tr></thead><tbody>" + (articleRows || "<tr><td colspan='8'>No article details found.</td></tr>") + "</tbody></table>" + loan + bank + documents + "<p>This is a computer-generated application record.</p><script>window.onload=()=>{const image=document.querySelector('.print-logo');if(!image){window.print();return}const sources=(image.dataset.logoCandidates||'').split('|').filter(Boolean);let index=0;const print=()=>window.print();image.onerror=()=>{index++;if(index<sources.length)image.src=sources[index];else{image.hidden=true;print()}};image.onload=print;if(image.complete){if(image.naturalWidth)print();else image.onerror()}};</script></body></html>";
   popup.document.write(html);
   popup.document.close();
 }

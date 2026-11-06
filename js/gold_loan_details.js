@@ -54,12 +54,12 @@ async function loadGoldLoanCustomers() {
     renderGoldLoanCustomers();
   } catch (error) {
     console.error(error);
-    body.innerHTML = '<tr><td colspan="13" style="padding:30px;text-align:center;color:#c43b2d">Could not load Gold Loan customers.</td></tr>';
+    body.innerHTML = '<tr><td colspan="14" style="padding:30px;text-align:center;color:#c43b2d">Could not load Gold Loan customers.</td></tr>';
   }
 }
 
 function renderGoldLoanLoadingState(body) {
-  const columns = 13;
+  const columns = 14;
   const skeletons = Array.from({ length: columns }, () => '<span class="customer-skeleton"></span>').join("");
   const row = `<div class="customer-loading-row" style="grid-template-columns:repeat(${columns},minmax(50px,1fr))">${skeletons}</div>`;
   body.innerHTML = `<tr><td colspan="${columns}" class="customer-loading-cell"><div class="customer-loading-card" role="status" aria-live="polite"><div class="customer-loading-heading"><span class="customer-loading-icon"><i class="fa-solid fa-coins"></i></span><div><strong>Loading Gold Loan customers</strong><span>Fetching customer and loan details…</span></div><i class="fa-solid fa-circle-notch fa-spin customer-loading-spinner" aria-hidden="true"></i></div><div class="customer-skeleton-table" aria-hidden="true"><div class="customer-skeleton-header" style="grid-template-columns:repeat(${columns},minmax(50px,1fr))">${skeletons}</div>${row}${row}${row}</div></div><span class="sr-only">Loading Gold Loan details</span></td></tr>`;
@@ -84,11 +84,11 @@ function normalizeGoldLoanPayments(savedPayments, collections) {
 function renderGoldLoanCustomers() {
   const body = document.getElementById("gold-loan-details-body");
   const query = document.getElementById("gold-loan-search").value.trim().toLocaleLowerCase();
-  const loans = goldLoans.filter(loan => [loan["Borrower Name"], loan["Mobile No"]]
+  const loans = goldLoans.filter(loan => [loan.ID, loan["Borrower Name"], loan["Mobile No"]]
     .some(value => String(value || "").toLocaleLowerCase().includes(query)));
   if (!loans.length) {
     goldLoanCurrentPage = 1;
-    body.innerHTML = `<tr><td colspan="13" style="padding:30px;text-align:center">${query ? "No customer found for this name or mobile number." : "No Gold Loan customers found."}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="14" style="padding:30px;text-align:center">${query ? "No customer found for this ID, name or mobile number." : "No Gold Loan customers found."}</td></tr>`;
     updateGoldLoanPagination(0, 1, 1);
     return;
   }
@@ -106,6 +106,7 @@ function renderGoldLoanCustomers() {
     const isEmi = String(loan["Repayment Method"] || "").toLowerCase() === "emi";
     const firstDateLabel = String(loan["Loan Tenure Unit"] || "Months").trim().toLowerCase() === "days" ? "First Payment Date" : "First EMI Date";
     return `<tr>
+      <td class="gold-id-cell"><strong>${goldHtml(loan.ID || "—")}</strong></td>
       <td>${goldHtml(loan["Application No"] || loan.ID)}</td>
       <td><strong>${goldHtml(loan["Borrower Name"] || "—")}</strong></td>
       <td>${goldHtml(loan["Guardian Name"] || "—")}</td>
@@ -215,33 +216,34 @@ function printGoldLoanDetails(loan) {
   Object.assign(printFrame.style, { position: "absolute", top: "-10000px", left: "-10000px", width: "900px", height: "800px", border: "0" });
   document.body.appendChild(printFrame);
   const popup = printFrame.contentWindow;
-  const articleData = (() => { try { return JSON.parse(loan["Gold Articles Details"] || "[]"); } catch (_) { return []; } })();
-  const articleRows = articleData.map(article => `<tr><td>${goldHtml(article.description || "—")}</td><td>${goldHtml(article.purity || "—")}</td><td>${Number(article.grossWeight || 0).toFixed(3)} g</td><td>${Number(article.stoneWeight || 0).toFixed(3)} g</td><td>${Number(article.netWeight || 0).toFixed(3)} g</td><td>${goldMoney(article.ratePerGram)}</td><td>${goldMoney(article.assessedValue)}</td></tr>`).join("");
-  const photo = (label, urls) => urls.length ? `<figure><figcaption>${label}</figcaption><img src="${goldHtml(urls[0])}" data-photo-candidates="${goldHtml(urls.join("|"))}" alt="${label}"></figure>` : "";
-  const photos = photo("Customer Photo", goldPhotoUrls(loan["Nominee Photo URL"])) + photo("Pledged Gold Photo", goldPhotoUrls(loan["Gold Item Photo URL"]));
+  const articles = (() => { try { return JSON.parse(loan["Gold Articles Details"] || "[]"); } catch (_) { return []; } })();
+  const articleRows = articles.map(article => `<tr><td>${goldHtml(article.description || "—")}</td><td>${goldHtml(article.purity || "—")}</td><td>${Number(article.grossWeight || 0).toFixed(3)} g</td><td>${Number(article.stoneWeight || 0).toFixed(3)} g</td><td>${Number(article.netWeight || 0).toFixed(3)} g</td><td>${goldMoney(article.ratePerGram)}</td><td>${goldMoney(article.assessedValue)}</td></tr>`).join("");
+  const photo = (label, value) => {
+    const urls = goldPhotoUrls(value);
+    return urls.length ? `<figure><figcaption>${label}</figcaption><img src="${goldHtml(urls[0])}" data-photo-candidates="${goldHtml(urls.join("|"))}" alt="${label}"></figure>` : "";
+  };
+  const customerPhoto = photo("Customer Photo", loan["Nominee Photo URL"]);
+  const goldPhoto = photo("Pledged Gold Photo", loan["Gold Item Photo URL"]);
   const excluded = new Set(["ID", "Timestamp", "Nominee Photo URL", "Gold Item Photo URL", "Gold Articles Details"]);
   const amountFields = new Set(["Monthly Income", "Total Assessed Value", "Eligible Amount", "Loan Amount Requested", "Processing Charge", "Document Charge", "Net Disbursement Amount", "Installment Amount", "EMI Amount", "Total Interest", "Total Payable", "Outstanding Principal", "Accrued Interest Balance"]);
-  const detailFields = Object.entries(loan).filter(([label]) => !excluded.has(label));
-  const detailRows = Array.from({ length: Math.ceil(detailFields.length / 2) }, (_, rowIndex) => {
-    const cells = detailFields.slice(rowIndex * 2, rowIndex * 2 + 2).map(([label, value]) => `<th>${goldHtml(label)}</th><td>${amountFields.has(label) && value !== "" && value != null ? goldMoney(value) : goldHtml(value || "—")}</td>`);
+  const applicationLabels = new Set(["Application No", "Application Date", "Branch Name", "Branch Code", "Loan Officer Name", "CSP Location"]);
+  const borrowerLabels = new Set(["Borrower Name", "Mobile No", "Identity No", "Address", "Monthly Income", "Guardian Name", "Gender", "DOB", "Religion", "Aadhaar No", "Occupation"]);
+  const fields = Object.entries(loan).filter(([label]) => !excluded.has(label));
+  const rowsFor = selected => Array.from({ length: Math.ceil(selected.length / 2) }, (_, index) => {
+    const cells = selected.slice(index * 2, index * 2 + 2).map(([label, value]) => `<th>${goldHtml(label)}</th><td>${amountFields.has(label) && value !== "" && value != null ? goldMoney(value) : goldHtml(value || "—")}</td>`);
     while (cells.length < 2) cells.push("<th></th><td></td>");
     return `<tr>${cells.join("")}</tr>`;
-  });
-  const details = detailRows.join("");
-  const sideDetails = detailRows.slice(0, 7).join("");
-  const remainingDetails = detailRows.slice(7).join("");
-  const customGoldLogo = localStorage.getItem("goldPrintLogoDataUrl") || "";
-  const customGoldLogoUrls = goldPhotoUrls(customGoldLogo);
-  const originalDocumentWrite = popup.document.write.bind(popup.document);
-  popup.document.write = html => {
-    let printHtml = html.replace("<script>window.onload=()=>window.print();</script>", "");
-    if (customGoldLogo) {
-      const brandedHeading = `<div style="display:flex;align-items:center;justify-content:space-between;gap:20px"><h1 style="flex:1">Gold Loan Application</h1><img src="${goldHtml(customGoldLogoUrls[0] || customGoldLogo)}" data-photo-candidates="${goldHtml(customGoldLogoUrls.join("|"))}" alt="Gold Print Logo" style="display:block;max-width:180px;max-height:64px;object-fit:contain"></div>`;
-      printHtml = printHtml.replace("<h1>Gold Loan Application</h1>", brandedHeading);
-    }
-    originalDocumentWrite(printHtml);
-  };
-  popup.document.write(`<!doctype html><html><head><title>Gold Loan Application</title><style>body{font:14px Arial,sans-serif;color:#1f2937;max-width:900px;margin:28px auto}h1{color:#805b08;border-bottom:3px solid #b8860b;padding-bottom:10px}table{width:100%;border-collapse:collapse;margin:16px 0;page-break-inside:auto}tr{page-break-inside:avoid}td,th{padding:8px;border:1px solid #d8d1c0;text-align:left}th{background:#fff4d2}@page{size:A4 landscape;margin:10mm}.print-top-grid{display:grid;grid-template-columns:235px minmax(0,1fr);gap:12px;align-items:start}.print-top-grid h3{margin:8px 0}.details{table-layout:fixed}.details th{width:22%;font-size:11px}.details td{width:28%;font-size:11px}.photos{display:flex;gap:8px;flex-wrap:wrap}.photos figure{margin:0 0 14px;text-align:center}.photos img{display:block;width:108px;height:120px;object-fit:contain;border:1px solid #d8d1c0;margin-top:6px}@media print{body{margin:10mm auto}}</style></head><body><h1>Gold Loan Application</h1><p>Application No: ${goldHtml(loan["Application No"] || loan.ID)} | Date: ${goldHtml(loan["Application Date"] || "—")}</p>${photos ? `<div class="print-top-grid"><section><h3>Photographs</h3><div class="photos">${photos}</div></section><section><h3>Application Details</h3><table class="details">${sideDetails}</table></section></div><table class="details">${remainingDetails}</table>` : `<h3>Application Details</h3><table class="details">${details}</table>`}<h3>Pledged Gold Articles</h3><table><thead><tr><th>Article</th><th>Purity</th><th>Gross Wt.</th><th>Less Stone</th><th>Net Wt.</th><th>Rate / g</th><th>Assessed Value</th></tr></thead><tbody>${articleRows || '<tr><td colspan="7">No article details found.</td></tr>'}</tbody></table><script>window.onload=()=>window.print();</script></body></html>`);
+  }).join("");
+  const applicationRows = rowsFor(fields.filter(([label]) => applicationLabels.has(label)));
+  const borrowerRows = rowsFor(fields.filter(([label]) => borrowerLabels.has(label)));
+  const otherRows = rowsFor(fields.filter(([label]) => !applicationLabels.has(label) && !borrowerLabels.has(label)));
+  const detailTable = rows => `<table class="details">${rows}</table>`;
+  const photoRow = (image, heading, rows) => `<div class="photo-detail-row">${image ? `<div class="photos">${image}</div>` : "<div></div>"}<section><h2>${heading}</h2>${detailTable(rows || "<tr><td colspan='4'>—</td></tr>")}</section></div>`;
+  const logoUrl = localStorage.getItem("goldPrintLogoDataUrl") || "";
+  const logoUrls = goldPhotoUrls(logoUrl);
+  const logo = logoUrl ? `<img class="print-logo" src="${goldHtml(logoUrls[0] || logoUrl)}" data-photo-candidates="${goldHtml((logoUrls.length ? logoUrls : [logoUrl]).join("|"))}" alt="Gold Loan logo">` : "";
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Gold Loan Application</title><style>*{box-sizing:border-box}body{font:10px Arial,sans-serif;color:#1f2937;max-width:100%;margin:0}.print-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:2px solid #b8860b;margin-bottom:3px}.print-heading{min-width:0}h1{font-size:16px;color:#805b08;padding:0 0 3px;margin:0 0 2px}.application-id{font-size:15px;font-weight:700;color:#111827;margin:0 0 2px}.print-logo{display:block;max-width:105px;max-height:50px;object-fit:contain}h2{font-size:11px;color:#805b08;margin:2px 0 1px}.print-header p{color:#64748b;margin:2px 0 4px}.photo-detail-row{display:grid;grid-template-columns:3.5cm minmax(0,1fr);gap:6px;align-items:start;margin:0}.details,.articles{width:100%;border-collapse:collapse;margin:0 0 2px;table-layout:fixed}.details th,.details td,.articles th,.articles td{padding:2.5px 3px;border:1px solid #d8d1c0;text-align:left;overflow-wrap:anywhere;line-height:1.12}.details th,.articles th{background:#fff4d2}.details th{width:18%}.details td{width:32%}.photos{display:flex;flex-direction:column;align-items:flex-start;gap:0;margin:0}.photos figure{margin:0;text-align:center;line-height:1}.photos img{display:block;width:3.5cm;height:4.5cm;object-fit:contain;border:1px solid #d8d1c0;margin-top:2px}.articles{font-size:9px}tr{page-break-inside:avoid}section{break-inside:avoid}@page{size:A4 portrait;margin:7mm}@media print{body{margin:0}}</style></head><body><header class="print-header"><div class="print-heading"><h1>Gold Loan Application</h1><div class="application-id">ID: ${goldHtml(loan.ID || "—")}</div><p>Application No.: ${goldHtml(loan["Application No"] || "—")} &nbsp; | &nbsp; Application Date: ${goldHtml(loan["Application Date"] || "—")}</p></div>${logo}</header>${photoRow(customerPhoto, "Application & Branch Details", applicationRows)}${photoRow(goldPhoto, "Borrower Details", borrowerRows)}${otherRows ? `<h2>Other Application Details</h2>${detailTable(otherRows)}` : ""}<h2>Pledged Gold Articles</h2><table class="articles"><thead><tr><th>Article</th><th>Purity</th><th>Gross Wt.</th><th>Less Stone</th><th>Net Wt.</th><th>Rate / g</th><th>Assessed Value</th></tr></thead><tbody>${articleRows || '<tr><td colspan="7">No article details found.</td></tr>'}</tbody></table><script>window.onload=()=>window.print();</script></body></html>`;
+  popup.document.write(html);
   popup.document.close();
   const cleanupPrintFrame = () => printFrame.remove();
   popup.addEventListener("afterprint", cleanupPrintFrame, { once: true });
