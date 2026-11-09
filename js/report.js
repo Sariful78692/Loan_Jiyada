@@ -137,7 +137,9 @@ async function fetchReportData() {
       : (reportPath.endsWith("goldloanreport.html") || requestedType === "goldEmiPayments"
         ? "gold_emi_report"
         : "customer_report");
-    const data = await fetchAppData(reportView);
+    // Gold loan reports can be edited directly in Sheets, so bypass both the
+    // browser cache and the Apps Script report cache when this page loads.
+    const data = await fetchAppData(reportView, reportPath.endsWith("goldloanreport.html"));
     
     allCollectionsData = data.collections || [];
     allClosedCollectionsData = data.closed_collections || [];
