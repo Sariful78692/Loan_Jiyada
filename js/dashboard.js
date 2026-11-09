@@ -40,6 +40,20 @@ async function loadDashboardData() {
     updateDashboardCharts(activeCustomers, activeGoldLoans.length, activeGroupLoanCustomers);
     updateRDLoanMetrics(activeCustomers, allCollections);
 
+    fetchAppData("personal_loan_entries").then(result => {
+      const personalLoans = result.personal_loan_entries || [];
+      const activePersonalLoans = personalLoans.filter(loan => {
+        const status = String(loan.Status || "active").trim().toLowerCase();
+        return status !== "disabled" && status !== "closed";
+      });
+      const count = document.getElementById("count-personal-loan");
+      if (count) count.textContent = activePersonalLoans.length;
+    }).catch(error => {
+      const count = document.getElementById("count-personal-loan");
+      if (count) count.textContent = "—";
+      console.warn("Could not load Personal Loan dashboard count.", error);
+    });
+
   } catch (err) {
     console.error("Failed to load dashboard data:", err);
   }

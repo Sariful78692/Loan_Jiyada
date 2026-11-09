@@ -115,6 +115,7 @@ function invalidateAppDataCache() {
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_rd_customer_details`);
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_collection_report`);
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_gold_emi_report`);
+    sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_personal_loan_entries`);
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_indusind_accounts`);
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_app_settings`);
   } catch (_) {
