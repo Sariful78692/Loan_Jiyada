@@ -19,7 +19,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   toggleBankDetails();
   ["goldLtvPercent", "goldLoanAmount", "goldProcessingCharge", "goldDocumentCharge", "goldLoanTenure", "goldInterestRate", "goldRepaymentType", "goldValuationDate", "goldAppDate"].forEach(id => document.getElementById(id).addEventListener("input", calculateGoldLoan));
-  ["goldRepaymentType", "goldValuationDate", "goldAppDate", "goldLoanTenureUnit"].forEach(id => document.getElementById(id).addEventListener("change", () => { updateGoldTenureUnit(); calculateGoldLoan(); }));
+  ["goldRepaymentType", "goldValuationDate", "goldAppDate", "goldLoanTenureUnit"].forEach(id => document.getElementById(id).addEventListener("change", () => {
+    if (id === "goldLoanTenureUnit") {
+      document.getElementById("goldLoanTenure").value = document.getElementById(id).value === "Days" ? "365" : "12";
+    }
+    updateGoldTenureUnit();
+    calculateGoldLoan();
+  }));
   document.getElementById("goldDisbursementMode").addEventListener("change", toggleBankDetails);
   document.getElementById("gold-table-body").addEventListener("input", calculateGoldLoan);
   document.getElementById("gold-loan-form").addEventListener("submit", handleGoldLoanSubmit);

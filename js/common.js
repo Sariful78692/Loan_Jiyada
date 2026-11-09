@@ -1,7 +1,7 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzjRZBgyrB_T6YJuWrd5oHxgQkjhYiwcYhX67hzZkCztQgij481qPXZWgeeT2w7qNDc4g/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH5vhu_STNAz4JDk3kgECckrDU-gSBv18OFQeDdwkyq65dt0Mau3N9N2u_HWdxyMR3mQ/exec";
 const APPS_SCRIPT_READ_URLS = [
   APPS_SCRIPT_URL,
   "https://script.google.com/macros/s/AKfycbya3O_mtwT630kTZEugyV_fafyTqTZXQwnyXRIaJPC9PZrbno7OoCZUItHQ8Uf8hhmeXw/exec",
