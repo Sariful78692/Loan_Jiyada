@@ -27,8 +27,8 @@ function doGet(e) {
   }
   // 🟢 CACHE: প্রথমে ক্যাশে ডেটা আছে কিনা চেক করুন
   var cache = CacheService.getScriptCache();
-  var cached = cache.get("dashboard_data_v2");
-  if (cached != null) {
+  var cached = getChunkedCacheText_(cache, "dashboard_data_v2");
+  if (cached !== null) {
     return ContentService.createTextOutput(cached).setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -170,12 +170,37 @@ function doGet(e) {
   });
 
   try {
-    cache.put("dashboard_data_v2", finalOutput, 180);
+    putChunkedCacheText_(cache, "dashboard_data_v2", finalOutput, 180);
   } catch (cacheErr) {
     // ক্যাশ ফেইল করলেও সমস্যা নেই
   }
 
   return ContentService.createTextOutput(finalOutput).setMimeType(ContentService.MimeType.JSON);
+}
+
+function getChunkedCacheText_(cache, cacheKey) {
+  var manifest = null;
+  try { manifest = JSON.parse(cache.get(cacheKey) || "null"); } catch (manifestError) {}
+  if (!manifest || !manifest.chunkCount || manifest.chunkCount > 900) return null;
+  var chunkKeys = [];
+  for (var index = 0; index < manifest.chunkCount; index++) chunkKeys.push(cacheKey + "_part_" + index);
+  var parts = cache.getAll(chunkKeys);
+  if (!chunkKeys.every(function(key) { return Object.prototype.hasOwnProperty.call(parts, key); })) return null;
+  return chunkKeys.map(function(key) { return parts[key]; }).join("");
+}
+
+function putChunkedCacheText_(cache, cacheKey, output, ttlSeconds) {
+  var chunkSize = 20000;
+  var chunkCount = Math.ceil(output.length / chunkSize);
+  if (!chunkCount || chunkCount > 900) return;
+  try {
+    var values = {};
+    for (var index = 0; index < chunkCount; index++) {
+      values[cacheKey + "_part_" + index] = output.slice(index * chunkSize, (index + 1) * chunkSize);
+    }
+    cache.putAll(values, ttlSeconds);
+    cache.put(cacheKey, JSON.stringify({ chunkCount: chunkCount }), ttlSeconds);
+  } catch (cacheError) {}
 }
 
 function clearDashboardCache() {
@@ -297,9 +322,19 @@ function readReportCollections_(ss, timezone, goldOnly) {
 function doGetRdCustomerDetails() {
   var cache = CacheService.getScriptCache();
   var cacheKey = "rd_customer_details_v1";
-  var cached = cache.get(cacheKey);
-  if (cached !== null) {
-    return ContentService.createTextOutput(cached).setMimeType(ContentService.MimeType.JSON);
+  var manifest = null;
+  try { manifest = JSON.parse(cache.get(cacheKey) || "null"); } catch (manifestError) {}
+  if (manifest && manifest.chunkCount > 0 && manifest.chunkCount <= 900) {
+    var chunkKeys = [];
+    for (var chunkIndex = 0; chunkIndex < manifest.chunkCount; chunkIndex++) {
+      chunkKeys.push(cacheKey + "_part_" + chunkIndex);
+    }
+    var cachedParts = cache.getAll(chunkKeys);
+    var complete = chunkKeys.every(function(key) { return Object.prototype.hasOwnProperty.call(cachedParts, key); });
+    if (complete) {
+      var cachedOutput = chunkKeys.map(function(key) { return cachedParts[key]; }).join("");
+      return ContentService.createTextOutput(cachedOutput).setMimeType(ContentService.MimeType.JSON);
+    }
   }
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -360,7 +395,18 @@ function doGetRdCustomerDetails() {
   }
 
   var output = JSON.stringify({ customers: customers, collections: collections });
-  try { cache.put(cacheKey, output, 180); } catch (cacheError) {}
+  var chunkSize = 20000;
+  var chunkCount = Math.ceil(output.length / chunkSize);
+  if (chunkCount > 0 && chunkCount <= 900) {
+    try {
+      var cacheValues = {};
+      for (var partIndex = 0; partIndex < chunkCount; partIndex++) {
+        cacheValues[cacheKey + "_part_" + partIndex] = output.slice(partIndex * chunkSize, (partIndex + 1) * chunkSize);
+      }
+      cache.putAll(cacheValues, 180);
+      cache.put(cacheKey, JSON.stringify({ chunkCount: chunkCount }), 180);
+    } catch (cacheError) {}
+  }
   return ContentService.createTextOutput(output).setMimeType(ContentService.MimeType.JSON);
 }
 

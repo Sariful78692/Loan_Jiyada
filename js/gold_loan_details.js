@@ -46,12 +46,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function loadGoldLoanCustomers() {
   const body = document.getElementById("gold-loan-details-body");
-  renderGoldLoanLoadingState(body);
+  if (!goldLoans.length) renderGoldLoanLoadingState(body);
   try {
-    const data = await fetchAppData();
+    const data = await fetchAppData("gold_emi_report");
     goldLoans = data.gold_loans || [];
     goldEmiPayments = normalizeGoldLoanPayments(data.gold_emi_payments || [], data.collections || []);
     renderGoldLoanCustomers();
+
   } catch (error) {
     console.error(error);
     body.innerHTML = '<tr><td colspan="14" style="padding:30px;text-align:center;color:#c43b2d">Could not load Gold Loan customers.</td></tr>';

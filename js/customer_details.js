@@ -52,38 +52,10 @@ async function fetchCustomers() {
   }
 
   try {
-    const data = await fetchAppData(isRdLoanPage ? "rd_customer_details" : "");
-    
-    allCollectionsData = data.collections || [];
-    collectionsByCustomerId = new Map();
-    allCollectionsData.forEach((collection) => {
-      const id = String(collection["Customer ID"] || "").trim();
-      if (!id) return;
-      if (!collectionsByCustomerId.has(id)) collectionsByCustomerId.set(id, []);
-      collectionsByCustomerId.get(id).push(collection);
-    });
+    const view = isRdLoanPage ? "rd_customer_details" : "";
+    const data = await fetchAppData(view);
+    applyCustomerDetailsData(data);
 
-    const customerRecords = (isGroupDetailsPage ? (data.group_customers || []) : (data.customers || []))
-      .filter(c => String(c["Status"] || "").trim().toLowerCase() !== "disabled");
-    // Reopening restores the same customer ID to the active sheet while the
-    // archived row remains as the original closed-loan snapshot. Show the
-    // active record once in the list and keep the archived snapshot in storage.
-    const activeCustomerIds = new Set(customerRecords
-      .filter(c => String(c["Status"] || "").trim().toLowerCase() !== "closed")
-      .map(c => String(c.ID || c["Customer ID"] || "").trim())
-      .filter(Boolean));
-    let activeCustomers = customerRecords.filter(c => {
-      const status = String(c["Status"] || "").trim().toLowerCase();
-      const id = String(c.ID || c["Customer ID"] || "").trim();
-      return status !== "closed" || !id || !activeCustomerIds.has(id);
-    });
-    
-    if (currentLoanFilter) {
-      activeCustomers = activeCustomers.filter(c => (c["Loan Type"] || "").trim() === currentLoanFilter.trim());
-    }
-
-    customersData = activeCustomers;
-    renderTable(customersData);
   } catch (err) {
     console.error("Failed to fetch", err);
     if (tbody) {
@@ -96,6 +68,31 @@ async function fetchCustomers() {
       if (button) button.disabled = true;
     });
   }
+}
+
+function applyCustomerDetailsData(data) {
+  allCollectionsData = data.collections || [];
+  collectionsByCustomerId = new Map();
+  allCollectionsData.forEach(collection => {
+    const id = String(collection["Customer ID"] || "").trim();
+    if (!id) return;
+    if (!collectionsByCustomerId.has(id)) collectionsByCustomerId.set(id, []);
+    collectionsByCustomerId.get(id).push(collection);
+  });
+
+  const customerRecords = (isGroupDetailsPage ? (data.group_customers || []) : (data.customers || []))
+    .filter(customer => String(customer["Status"] || "").trim().toLowerCase() !== "disabled");
+  const activeCustomerIds = new Set(customerRecords
+    .filter(customer => String(customer["Status"] || "").trim().toLowerCase() !== "closed")
+    .map(customer => String(customer.ID || customer["Customer ID"] || "").trim())
+    .filter(Boolean));
+  customersData = customerRecords.filter(customer => {
+    const status = String(customer["Status"] || "").trim().toLowerCase();
+    const id = String(customer.ID || customer["Customer ID"] || "").trim();
+    return (status !== "closed" || !id || !activeCustomerIds.has(id))
+      && (!currentLoanFilter || String(customer["Loan Type"] || "").trim() === currentLoanFilter.trim());
+  });
+  renderTable(customersData);
 }
 
 function renderTable(data) {

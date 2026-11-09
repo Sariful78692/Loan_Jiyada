@@ -137,9 +137,7 @@ async function fetchReportData() {
       : (reportPath.endsWith("goldloanreport.html") || requestedType === "goldEmiPayments"
         ? "gold_emi_report"
         : "customer_report");
-    // Gold loan reports can be edited directly in Sheets, so bypass both the
-    // browser cache and the Apps Script report cache when this page loads.
-    const data = await fetchAppData(reportView, reportPath.endsWith("goldloanreport.html"));
+    const data = await fetchAppData(reportView);
     
     allCollectionsData = data.collections || [];
     allClosedCollectionsData = data.closed_collections || [];
@@ -159,6 +157,7 @@ async function fetchReportData() {
     
     populateDynamicYears(); // 🟢 ডেটা ফেচ হওয়ার পর ইয়ার ড্রপডাউন আপডেট করা হচ্ছে
     renderCurrentReport();
+
   } catch (err) {
     console.error("Failed to load report data", err);
     tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; color: red; padding: 20px;">Failed to load report data.</td></tr>`;

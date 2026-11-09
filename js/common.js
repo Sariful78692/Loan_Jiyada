@@ -1,7 +1,7 @@
 // ---------------- Common Setup (সব পেজে চলবে) ---------------- //
 
 // আপনার Google Apps Script এর আসল /exec URL — echo/temporary URL কখনো এখানে বসাবেন না
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH5vhu_STNAz4JDk3kgECckrDU-gSBv18OFQeDdwkyq65dt0Mau3N9N2u_HWdxyMR3mQ/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwz9fvlxMnv06jLDJNmCqcT7B9_AVlZCwr-h5IpSRyoq6bGpLWIL3bV03OrQVs2K8fsXg/exec";
 const APPS_SCRIPT_READ_URLS = [
   APPS_SCRIPT_URL,
   "https://script.google.com/macros/s/AKfycbya3O_mtwT630kTZEugyV_fafyTqTZXQwnyXRIaJPC9PZrbno7OoCZUItHQ8Uf8hhmeXw/exec",
@@ -22,6 +22,18 @@ async function fetchAppData(view = "", forceRefresh = false) {
     }
   } catch (_) {
     invalidateAppDataCache();
+  }
+
+  if (view) {
+    try {
+      const baseCache = JSON.parse(sessionStorage.getItem(APP_DATA_CACHE_KEY) || "null");
+      if (baseCache && baseCache.savedAt && Date.now() - baseCache.savedAt < APP_DATA_CACHE_MAX_AGE_MS && baseCache.data) {
+        const viewData = projectAppDataView(baseCache.data, view);
+        if (viewData) return viewData;
+      }
+    } catch (_) {
+      // Fall through to the requested server view if the shared cache is unavailable.
+    }
   }
 
   if (!forceRefresh && appDataRequests.has(view)) return appDataRequests.get(view);
@@ -76,9 +88,30 @@ async function fetchFreshAppData(view = "", cacheKey = APP_DATA_CACHE_KEY, force
   throw lastError || new Error("Could not load data from Apps Script.");
 }
 
+function projectAppDataView(data, view) {
+  const customers = data.customers || [];
+  const collections = data.collections || [];
+  if (view === "customer_report") return { customers };
+  if (view === "collection_report") return { customers, collections, closed_collections: data.closed_collections || [] };
+  if (view === "gold_emi_report") {
+    return {
+      gold_loans: data.gold_loans || [],
+      gold_emi_payments: data.gold_emi_payments || [],
+      collections: collections.filter(item => String(item["Loan Type"] || "").trim().toLowerCase() === "gold loan")
+    };
+  }
+  if (view === "rd_customer_details") {
+    const rdCustomers = customers.filter(customer => String(customer["Loan Type"] || "").trim().toLowerCase() === "rd loan");
+    const rdCustomerIds = new Set(rdCustomers.map(customer => String(customer.ID || customer["Customer ID"] || "").trim()));
+    return { customers: rdCustomers, collections: collections.filter(item => rdCustomerIds.has(String(item["Customer ID"] || "").trim())) };
+  }
+  return null;
+}
+
 function invalidateAppDataCache() {
   try {
     sessionStorage.removeItem(APP_DATA_CACHE_KEY);
+    sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_customer_report`);
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_rd_customer_details`);
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_collection_report`);
     sessionStorage.removeItem(`${APP_DATA_CACHE_KEY}_gold_emi_report`);

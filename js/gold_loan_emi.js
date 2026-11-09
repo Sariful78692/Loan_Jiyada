@@ -55,8 +55,7 @@ async function fetchGoldEmiData() {
   const body = document.getElementById("gold-emi-body");
   body.innerHTML = '<tr><td colspan="10" role="status" style="padding:30px;text-align:center"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Loading EMI accounts…</td></tr>';
   try {
-    invalidateAppDataCache();
-    const data = await fetchAppData("", true);
+    const data = await fetchAppData("gold_emi_report");
     goldEmiLoans = data.gold_loans || [];
     goldEmiPayments = normalizeGoldEmiPayments(data.gold_emi_payments || [], data.collections || []);
     renderGoldEmiLoans();
