@@ -1,0 +1,113 @@
+.personal-finance-page {
+  --pl-ink: #172033;
+  --pl-muted: #64748b;
+  --pl-line: #e2e8f0;
+  --pl-blue: #2563eb;
+  --pl-navy: #123e68;
+  background: #f4f7fb;
+  color: var(--pl-ink);
+}
+
+.personal-finance-page .main-content { padding: clamp(18px, 3vw, 38px); }
+.personal-finance-page .content-section { max-width: 1440px; margin: 0 auto; }
+.personal-finance-page .gold-page-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: clamp(22px, 3vw, 34px); margin-bottom: 24px; border-radius: 18px;
+  color: white; background: linear-gradient(120deg, #102f50 0%, #174e7b 58%, #2563a6 100%);
+  box-shadow: 0 14px 34px rgba(18, 62, 104, .17); overflow: hidden; position: relative;
+}
+.personal-finance-page .gold-page-header::after {
+  content: ""; width: 220px; height: 220px; border: 1px solid rgba(255,255,255,.13);
+  border-radius: 50%; position: absolute; right: 7%; top: -140px; box-shadow: 0 0 0 28px rgba(255,255,255,.035), 0 0 0 58px rgba(255,255,255,.025);
+}
+.personal-finance-page .gold-page-header > div, .personal-finance-page .gold-page-header > a { position: relative; z-index: 1; }
+.personal-finance-page .gold-page-header .gold-eyebrow { margin: 0 0 8px; color: #9bd8ff; font-size: 11px; letter-spacing: .16em; font-weight: 800; }
+.personal-finance-page .gold-page-header h1 { margin: 0 0 9px; padding: 0; border: 0; background: none; box-shadow: none; color: white; font-size: clamp(25px, 3vw, 34px); letter-spacing: -.035em; }
+.personal-finance-page .gold-page-header h1 i { margin-right: 8px; color: #8bd2ff; }
+.personal-finance-page .gold-page-header p:last-child { margin: 0; color: #d5e7f7; font-size: 14px; }
+.personal-finance-page .gold-page-header .btn-secondary,
+.personal-finance-page .personal-action-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 42px;
+  padding: 0 16px; border: 1px solid rgba(255,255,255,.35); border-radius: 10px;
+  color: white; background: rgba(255,255,255,.12); text-decoration: none; font-family: inherit; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: .18s ease;
+}
+.personal-finance-page .gold-page-header .btn-secondary:hover { background: rgba(255,255,255,.22); transform: translateY(-1px); }
+.personal-finance-page .personal-report-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; }
+.personal-finance-page .personal-payment-tools { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin: 0 0 16px; }
+.personal-finance-page .personal-page-size { display: inline-flex; align-items: center; gap: 10px; color: #52647a; font-size: 13px; font-weight: 700; }
+.personal-finance-page .personal-page-size select { min-width: 88px; height: 42px; padding: 0 30px 0 12px; border: 1px solid #dbe3ed; border-radius: 9px; background: white; color: var(--pl-ink); font: inherit; cursor: pointer; }
+.personal-finance-page .personal-payment-tools { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin: 0 0 16px; }
+.personal-finance-page .personal-page-size { display: inline-flex; align-items: center; gap: 10px; color: #52647a; font-size: 13px; font-weight: 700; }
+.personal-finance-page .personal-page-size select { min-width: 88px; height: 42px; padding: 0 30px 0 12px; border: 1px solid #dbe3ed; border-radius: 9px; background: white; color: var(--pl-ink); font: inherit; cursor: pointer; }
+.personal-finance-page .personal-search { position: relative; flex: 1 1 280px; max-width: 440px; }
+.personal-finance-page .personal-search i { position: absolute; top: 50%; left: 15px; transform: translateY(-50%); color: #94a3b8; }
+.personal-finance-page .personal-search input {
+  box-sizing: border-box; width: 100%; height: 44px; padding: 0 14px 0 42px; outline: none;
+  border: 1px solid #dbe3ed; border-radius: 10px; background: white; color: var(--pl-ink); font-family: inherit; font-size: 14px;
+  box-shadow: 0 2px 5px rgba(15,23,42,.025); transition: border-color .18s, box-shadow .18s;
+}
+.personal-finance-page .personal-search input:focus { border-color: #60a5fa; box-shadow: 0 0 0 4px rgba(37,99,235,.11); }
+.personal-finance-page .personal-action-button { border-color: var(--pl-blue); background: var(--pl-blue); box-shadow: 0 4px 10px rgba(37,99,235,.18); }
+.personal-finance-page .personal-action-button:hover { background: #1d4ed8; transform: translateY(-1px); }
+.personal-finance-page .personal-table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--pl-line); border-radius: 14px; background: white; box-shadow: 0 7px 22px rgba(15,23,42,.045); }
+.personal-finance-page .personal-table { width: 100%; min-width: 720px; border-collapse: collapse; text-align: left; }
+.personal-finance-page .personal-table th { padding: 14px 17px; color: #52647a; background: #f1f6fb; border-bottom: 1px solid var(--pl-line); font-size: 11px; font-weight: 800; letter-spacing: .055em; text-transform: uppercase; white-space: nowrap; }
+.personal-finance-page .personal-table td { padding: 15px 17px; color: #334155; border-bottom: 1px solid #edf1f6; font-size: 13px; vertical-align: middle; }
+.personal-finance-page .personal-table tbody tr:last-child td { border-bottom: 0; }
+.personal-finance-page .personal-table tbody tr:hover { background: #f8fbff; }
+.personal-finance-page .personal-table tbody tr td[colspan] { padding: 32px 18px; color: var(--pl-muted); text-align: center; }
+.personal-finance-page .personal-table .btn-primary { padding: 9px 13px; border: 0; border-radius: 8px; background: var(--pl-blue); color: white; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.personal-finance-page .personal-table .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+.personal-finance-page .personal-table .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
+.personal-finance-page .personal-total { display: inline-flex; align-items: center; gap: 8px; margin: 16px 0 0; padding: 12px 16px; border: 1px solid #bbf7d0; border-radius: 10px; background: #f0fdf4; color: #166534; font-size: 14px; font-weight: 800; }
+.personal-finance-page .personal-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 11px 14px; border: 1px solid var(--pl-line); border-radius: 11px; background: white; color: var(--pl-muted); font-size: 13px; }
+.personal-finance-page .personal-pagination > div { display: flex; align-items: center; gap: 12px; }
+.personal-finance-page .personal-pagination button { min-height: 35px; padding: 0 12px; border: 1px solid #dbe3ed; border-radius: 8px; background: white; color: #334155; font: inherit; font-weight: 700; cursor: pointer; }
+.personal-finance-page .personal-pagination button:hover:not(:disabled) { border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; }
+.personal-finance-page .personal-pagination button:disabled { opacity: .45; cursor: not-allowed; }
+.personal-finance-page .personal-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 11px 14px; border: 1px solid var(--pl-line); border-radius: 11px; background: white; color: var(--pl-muted); font-size: 13px; }
+.personal-finance-page .personal-pagination > div { display: flex; align-items: center; gap: 12px; }
+.personal-finance-page .personal-pagination button { min-height: 35px; padding: 0 12px; border: 1px solid #dbe3ed; border-radius: 8px; background: white; color: #334155; font: inherit; font-weight: 700; cursor: pointer; }
+.personal-finance-page .personal-pagination button:hover:not(:disabled) { border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; }
+.personal-finance-page .personal-pagination button:disabled { opacity: .45; cursor: not-allowed; }
+#personal-emi-message:not(:empty) { padding: 12px 15px; border: 1px solid #bbf7d0; border-radius: 9px; background: #f0fdf4; color: #166534; }
+.personal-payment-modal[hidden] { display: none; }
+.personal-payment-modal { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 18px; background: rgba(9, 20, 36, .62); backdrop-filter: blur(5px); }
+.personal-payment-card { position: relative; box-sizing: border-box; width: min(100%, 570px); max-height: min(90vh, 760px); overflow: auto; padding: clamp(22px, 4vw, 34px); border: 1px solid #e3eaf2; border-radius: 18px; background: #fff; box-shadow: 0 24px 80px rgba(0,0,0,.24); }
+.personal-payment-close { position: absolute; top: 13px; right: 15px; width: 36px; height: 36px; border: 0; border-radius: 9px; background: #f1f5f9; color: #64748b; font-size: 25px; line-height: 1; cursor: pointer; }
+.personal-payment-card > .gold-eyebrow { margin: 0 0 7px; color: #2563eb; font-size: 11px; font-weight: 800; letter-spacing: .13em; }
+.personal-payment-card h2 { margin: 0 38px 5px 0; color: #172033; font-size: 22px; }
+.personal-payment-intro { margin: 0 0 20px; color: #64748b; font-size: 13px; }
+.personal-payment-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+.personal-payment-details > div { min-width: 0; padding: 12px 14px; border: 1px solid #e7edf4; border-radius: 10px; background: #f8fafc; }
+.personal-payment-details dt { margin-bottom: 5px; color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.personal-payment-details dd { overflow-wrap: anywhere; margin: 0; color: #172033; font-size: 14px; font-weight: 750; }
+.personal-payment-details > div:nth-last-child(2), .personal-payment-details > div:nth-last-child(1) { background: #eff6ff; border-color: #dbeafe; }
+.personal-payment-details > div:nth-last-child(1) dd { color: #1d4ed8; font-size: 17px; }
+.personal-payment-error { color: #b91c1c; font-size: 13px; }
+.personal-payment-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.personal-payment-actions button { min-height: 42px; padding: 0 15px; border-radius: 9px; font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; }
+.personal-payment-cancel { border: 1px solid #dbe3ed; background: white; color: #475569; }
+.personal-payment-collect { border: 1px solid #15803d; background: #16a34a; color: white; box-shadow: 0 4px 12px rgba(22,163,74,.19); }
+.personal-payment-collect:hover { background: #15803d; }
+@media (max-width: 700px) {
+  .personal-finance-page .main-content { padding: 16px 12px; }
+  .personal-finance-page .gold-page-header { align-items: flex-start; flex-direction: column; gap: 18px; padding: 22px 19px; border-radius: 14px; }
+  .personal-finance-page .gold-page-header .btn-secondary { width: 100%; box-sizing: border-box; }
+  .personal-finance-page .personal-action-button { flex: 1; }
+  .personal-finance-page .personal-table th, .personal-finance-page .personal-table td { padding: 12px; }
+  .personal-payment-details { grid-template-columns: 1fr; }
+  .personal-payment-actions { flex-direction: column-reverse; }
+  .personal-payment-actions button { width: 100%; }
+}
+@media print {
+  .personal-finance-page { background: white; }
+  .personal-finance-page .sidebar, .personal-finance-page .gold-page-header > a, .personal-finance-page .personal-report-tools { display: none !important; }
+  .personal-finance-page .app-container, .personal-finance-page .main-content { display: block; width: 100%; padding: 0; }
+  .personal-finance-page .gold-page-header { padding: 0 0 15px; color: #111; background: white; box-shadow: none; }
+  .personal-finance-page .gold-page-header h1, .personal-finance-page .gold-page-header .gold-eyebrow, .personal-finance-page .gold-page-header p:last-child { color: #111; }
+  .personal-finance-page .gold-page-header::after { display: none; }
+  .personal-finance-page .personal-table-wrap { overflow: visible; box-shadow: none; }
+  .personal-finance-page .personal-table { min-width: 0; }
+}

@@ -385,13 +385,17 @@ function addPersonalLoanMenu() {
   const item = document.createElement("li");
   item.className = "nav-item has-submenu";
   item.dataset.personalLoanMenu = "true";
-  item.innerHTML = '<a href="#" class="nav-link submenu-toggle" aria-expanded="false"><i class="fa-solid fa-hand-holding-dollar"></i> Personal Loan <i class="fa-solid fa-chevron-down arrow"></i></a><ul class="submenu"><li><a href="PersonalLoanEntry.html">Personal Loan Customer Entry</a></li><li><a href="PersonalLoanDetails.html">Personal Loan Customer Details</a></li></ul>';
+  item.innerHTML = '<a href="#" class="nav-link submenu-toggle" aria-expanded="false"><i class="fa-solid fa-hand-holding-dollar"></i> Personal Loan <i class="fa-solid fa-chevron-down arrow"></i></a><ul class="submenu"><li><a href="PersonalLoanEntry.html">Personal Loan Customer Entry</a></li><li><a href="PersonalLoanDetails.html">Personal Loan Customer Details</a></li><li><a href="PersonalLoanEMI.html">Pay Personal Loan</a></li><li><a href="PersonalLoanReport.html">Personal Loan Report</a></li></ul>';
   const link = item.querySelector('a[href="PersonalLoanEntry.html"]');
   const detailsLink = item.querySelector('a[href="PersonalLoanDetails.html"]');
+  const emiLink = item.querySelector('a[href="PersonalLoanEMI.html"]');
+  const reportLink = item.querySelector('a[href="PersonalLoanReport.html"]');
   const isEntry = window.location.pathname.toLowerCase().endsWith("personalloanentry.html");
   const isDetails = window.location.pathname.toLowerCase().endsWith("personalloandetails.html");
-  if (isEntry || isDetails) {
-    (isEntry ? link : detailsLink).classList.add("active"); item.classList.add("open");
+  const isEmi = window.location.pathname.toLowerCase().endsWith("personalloanemi.html");
+  const isReport = window.location.pathname.toLowerCase().endsWith("personalloanreport.html");
+  if (isEntry || isDetails || isEmi || isReport) {
+    (isEntry ? link : isDetails ? detailsLink : isEmi ? emiLink : reportLink).classList.add("active"); item.classList.add("open");
     item.querySelector(":scope > .nav-link").setAttribute("aria-expanded", "true");
   }
   navMenu.appendChild(item);

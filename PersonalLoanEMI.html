@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pay Personal Loan</title>
+  <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
+  <link rel="stylesheet" href="css/customer.css?v=20261026-collect-confirm-1">
+  <link rel="stylesheet" href="css/personal-payment-pages.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="personal-finance-page"><div class="app-container">
+  <aside class="sidebar"><div class="brand"><h2>Loan Management</h2></div><ul class="nav-menu">
+    <li class="nav-item"><a href="Dashboard.html" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+    <li class="nav-item has-submenu"><a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-users"></i> RD Customer <i class="fa-solid fa-chevron-down arrow"></i></a><ul class="submenu"><li><a href="CustomerEntry.html">RD Customer Entry</a></li><li><a href="CustomerDetails.html?loan=RD%20Loan">RD Customer Details</a></li><li><a href="CollectionReport.html">Collection Report</a></li></ul></li>
+    <li class="nav-item has-submenu"><a href="#" class="nav-link submenu-toggle"><i class="fa-solid fa-coins"></i> Gold Loan <i class="fa-solid fa-chevron-down arrow"></i></a><ul class="submenu"><li><a href="GoldLoanEntry.html">Gold Loan Customer Entry</a></li><li><a href="GoldLoanDetails.html">Gold Loan Customer Details</a></li><li><a href="GoldLoanEMI.html">Pay Gold Loan EMI</a></li><li><a href="GoldLoanReport.html">Gold Loan EMI Report</a></li></ul></li>
+  </ul></aside>
+  <main class="main-content"><section class="content-section">
+    <div class="gold-page-header"><div><p class="gold-eyebrow">PAYMENT COLLECTION</p><h1><i class="fa-solid fa-money-bill-wave"></i> Pay Personal Loan</h1><p>Record an installment for a Personal Loan customer.</p></div><a href="PersonalLoanDetails.html" class="btn-secondary">Personal Loan Customers</a></div>
+    <p id="personal-emi-message" role="status"></p>
+    <div class="personal-payment-tools">
+      <label class="personal-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="personal-emi-search" type="search" placeholder="Search customer name or mobile" autocomplete="off" aria-label="Search customer name or mobile"></label>
+      <label class="personal-page-size">Rows per page <select id="personal-emi-page-size"><option value="10">10</option><option value="30">30</option><option value="50">50</option><option value="all">All</option></select></label>
+    </div>
+    <div class="personal-table-wrap"><table class="personal-table"><thead><tr><th>Customer</th><th>Mobile</th><th>Loan Type</th><th>Installments</th><th>Installment Amount</th><th>Paid</th><th>Next Payment</th><th>Action</th></tr></thead><tbody id="personal-emi-body"><tr><td colspan="8">Loading accounts…</td></tr></tbody></table></div>
+    <div class="personal-pagination"><span id="personal-emi-page-info" aria-live="polite">Showing 0–0 of 0</span><div><button id="personal-emi-prev" type="button" disabled>Previous</button><span id="personal-emi-page-label">Page 1 of 1</span><button id="personal-emi-next" type="button" disabled>Next</button></div></div>
+  </section></main>
+</div>
+<div id="personal-payment-modal" class="personal-payment-modal" hidden role="dialog" aria-modal="true" aria-labelledby="personal-payment-title">
+  <section class="personal-payment-card">
+    <button id="personal-payment-close" class="personal-payment-close" type="button" aria-label="Close">&times;</button>
+    <p class="gold-eyebrow">PAYMENT CONFIRMATION</p>
+    <h2 id="personal-payment-title">Customer installment details</h2>
+    <p class="personal-payment-intro">Review the details, then collect the installment.</p>
+    <dl class="personal-payment-details">
+      <div><dt>Customer name</dt><dd id="payment-customer-name">—</dd></div>
+      <div><dt>Mobile number</dt><dd id="payment-customer-mobile">—</dd></div>
+      <div><dt>Loan type</dt><dd id="payment-customer-loan-type">—</dd></div>
+      <div><dt>Installment</dt><dd id="payment-installment-number">—</dd></div>
+      <div><dt>Installment amount</dt><dd id="payment-installment-amount">—</dd></div>
+      <div><dt>Payment date</dt><dd id="payment-installment-date">—</dd></div>
+    </dl>
+    <p id="personal-payment-modal-error" class="personal-payment-error" role="alert"></p>
+    <div class="personal-payment-actions">
+      <button id="personal-payment-cancel" class="personal-payment-cancel" type="button">Cancel</button>
+      <button id="personal-payment-collect" class="personal-payment-collect" type="button"><i class="fa-solid fa-check"></i> Collect installment</button>
+    </div>
+  </section>
+</div>
+<script src="js/common.js?v=20261026-apps-script-url-1"></script><script src="js/personal_loan_payments.js"></script></body></html>

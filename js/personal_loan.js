@@ -22,7 +22,13 @@
     const interest = principal * rate / 100;
     byId("interest-amount").value = amountValue !== "" && rateValue !== "" ? interest.toFixed(2) : "";
     byId("total-payment").value = amountValue !== "" && rateValue !== "" ? (principal + interest).toFixed(2) : "";
+    updateInstallmentAmount();
     updateProcessingAmount();
+  }
+  function updateInstallmentAmount() {
+    const total = Number(byId("total-payment").value) || 0;
+    const count = Number(byId("installments").value) || 0;
+    byId("installment-amount").value = total > 0 && count > 0 ? String(Math.round(total / count)) : "";
   }
   function updateProcessingAmount() {
     const amountValue = byId("disbursement-amount").value;
@@ -46,6 +52,7 @@
     const count = counts[period] || "";
     byId("installments").value = String(count);
     byId("installment-unit-label").textContent = period || "";
+    updateInstallmentAmount();
     const startValue = byId("starting-date").value;
     if (!startValue || !count) { byId("end-date").value = ""; return; }
     const start = new Date(`${startValue}T00:00:00Z`);
