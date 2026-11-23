@@ -60,6 +60,7 @@
 .personal-finance-page .personal-table .btn-primary { padding: 9px 13px; border: 0; border-radius: 8px; background: var(--pl-blue); color: white; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .personal-finance-page .personal-table .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
 .personal-finance-page .personal-table .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
+.personal-finance-page .personal-table .btn-primary.is-closed:disabled { border: 1px solid #86efac; color: #15803d; background: #dcfce7; box-shadow: none; opacity: 1; }
 .personal-finance-page .personal-total { display: inline-flex; align-items: center; gap: 8px; margin: 16px 0 0; padding: 12px 16px; border: 1px solid #bbf7d0; border-radius: 10px; background: #f0fdf4; color: #166534; font-size: 14px; font-weight: 800; }
 .personal-finance-page .personal-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 11px 14px; border: 1px solid var(--pl-line); border-radius: 11px; background: white; color: var(--pl-muted); font-size: 13px; }
 .personal-finance-page .personal-pagination > div { display: flex; align-items: center; gap: 12px; }
@@ -74,8 +75,9 @@
 #personal-emi-message:not(:empty) { padding: 12px 15px; border: 1px solid #bbf7d0; border-radius: 9px; background: #f0fdf4; color: #166534; }
 .personal-payment-modal[hidden] { display: none; }
 .personal-payment-modal { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 18px; background: rgba(9, 20, 36, .62); backdrop-filter: blur(5px); }
-.personal-payment-card { position: relative; box-sizing: border-box; width: min(100%, 570px); max-height: min(90vh, 760px); overflow: auto; padding: clamp(22px, 4vw, 34px); border: 1px solid #e3eaf2; border-radius: 18px; background: #fff; box-shadow: 0 24px 80px rgba(0,0,0,.24); }
-.personal-payment-close { position: absolute; top: 13px; right: 15px; width: 36px; height: 36px; border: 0; border-radius: 9px; background: #f1f5f9; color: #64748b; font-size: 25px; line-height: 1; cursor: pointer; }
+.personal-payment-card { position: relative; box-sizing: border-box; width: min(100%, 570px); max-height: min(90vh, 760px); overflow: auto; padding: clamp(22px, 4vw, 34px); border: 1px solid #e3eaf2; border-radius: 18px; background: #fff; box-shadow: 0 24px 80px rgba(0,0,0,.24); animation: payment-modal-enter .28s cubic-bezier(.2,.8,.2,1) both; }
+.personal-payment-close { position: absolute; top: 13px; right: 15px; width: 36px; height: 36px; border: 1px solid #fecaca; border-radius: 9px; background: #fef2f2; color: #dc2626; font-size: 25px; line-height: 1; cursor: pointer; transition: transform .2s ease, background .2s ease, box-shadow .2s ease; }
+.personal-payment-close:hover { transform: rotate(90deg) scale(1.08); background: #fee2e2; box-shadow: 0 4px 10px rgba(220,38,38,.16); }
 .personal-payment-card > .gold-eyebrow { margin: 0 0 7px; color: #2563eb; font-size: 11px; font-weight: 800; letter-spacing: .13em; }
 .personal-payment-card h2 { margin: 0 38px 5px 0; color: #172033; font-size: 22px; }
 .personal-payment-intro { margin: 0 0 20px; color: #64748b; font-size: 13px; }
@@ -85,12 +87,78 @@
 .personal-payment-details dd { overflow-wrap: anywhere; margin: 0; color: #172033; font-size: 14px; font-weight: 750; }
 .personal-payment-details > div:nth-last-child(2), .personal-payment-details > div:nth-last-child(1) { background: #eff6ff; border-color: #dbeafe; }
 .personal-payment-details > div:nth-last-child(1) dd { color: #1d4ed8; font-size: 17px; }
+.personal-payment-details > .payment-total-card { border-color: #86efac; background: linear-gradient(135deg, #f0fdf4, #dcfce7); }
+.personal-payment-details > .payment-total-card dt { color: #15803d; }
+.personal-payment-details > .payment-total-card dd { color: #166534; font-size: 18px; }
+.personal-payment-details > .payment-due-card { border-color: #fdba74; background: linear-gradient(135deg, #fff7ed, #ffedd5); }
+.personal-payment-details > .payment-due-card dt { color: #c2410c; }
+.personal-payment-details > .payment-due-card dd { color: #9a3412; font-size: 18px; }
+.personal-payment-details > .payment-customer-card { border-color: #93c5fd; background: linear-gradient(135deg, #eff6ff, #dbeafe); }
+.personal-payment-details > .payment-customer-card dt, .personal-payment-details > .payment-customer-card dd { color: #1d4ed8; }
+.personal-payment-details > .payment-mobile-card { border-color: #c4b5fd; background: linear-gradient(135deg, #f5f3ff, #ede9fe); }
+.personal-payment-details > .payment-mobile-card dt, .personal-payment-details > .payment-mobile-card dd { color: #6d28d9; }
+.personal-payment-details > .payment-loan-card { border-color: #67e8f9; background: linear-gradient(135deg, #ecfeff, #cffafe); }
+.personal-payment-details > .payment-loan-card dt, .personal-payment-details > .payment-loan-card dd { color: #0e7490; }
+.personal-payment-details > .payment-installment-card { border-color: #a5b4fc; background: linear-gradient(135deg, #eef2ff, #e0e7ff); }
+.personal-payment-details > .payment-installment-card dt, .personal-payment-details > .payment-installment-card dd { color: #4338ca; }
+.personal-payment-details > .payment-amount-card { border-color: #f9a8d4; background: linear-gradient(135deg, #fdf2f8, #fce7f3); }
+.personal-payment-details > .payment-amount-card dt, .personal-payment-details > .payment-amount-card dd { color: #be185d; }
+.personal-payment-details > .payment-date-card { border-color: #7dd3fc; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); }
+.personal-payment-details > .payment-date-card dt, .personal-payment-details > .payment-date-card dd { color: #0369a1; }
+.personal-payment-details > div.payment-amount-card { border-color: #f9a8d4; background: linear-gradient(135deg, #fdf2f8, #fce7f3); }
+.personal-payment-details > div.payment-date-card { border-color: #7dd3fc; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); }
+.payment-progress-card { padding: 14px 16px; margin-top: 12px; border: 1px solid #c4b5fd; border-radius: 12px; background: linear-gradient(115deg, #f5f3ff, #ecfeff 55%, #f0fdf4); }
+.payment-progress-heading, .payment-progress-labels { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.payment-progress-heading { color: #4338ca; font-size: 13px; }
+.payment-progress-heading span { padding: 4px 9px; border-radius: 999px; color: #fff; background: linear-gradient(100deg, #7c3aed, #0891b2); font-size: 12px; font-weight: 800; }
+.payment-progress-card progress { display: block; width: 100%; height: 13px; margin: 10px 0; overflow: hidden; border: 0; border-radius: 999px; background: #e2e8f0; accent-color: #7c3aed; }
+.payment-progress-card progress::-webkit-progress-bar { border-radius: 999px; background: #e2e8f0; }
+.payment-progress-card progress::-webkit-progress-value { border-radius: 999px; background: linear-gradient(90deg, #7c3aed, #0891b2, #22c55e); }
+.payment-progress-card progress::-moz-progress-bar { border-radius: 999px; background: linear-gradient(90deg, #7c3aed, #0891b2, #22c55e); }
+.payment-progress-labels { color: #475569; font-size: 12px; }
+.payment-progress-labels span:first-child strong { color: #15803d; }
+.payment-progress-labels span:last-child strong { color: #c2410c; }
+.personal-payment-details dd.payment-date-range { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.payment-date-range input { min-width: 0; width: 43%; padding: 6px; border: 1px solid #7dd3fc; border-radius: 7px; color: #075985; background: #fff; font: 600 12px Arial,sans-serif; }
+.payment-date-range input:focus { outline: 2px solid #38bdf8; outline-offset: 1px; }
+.payment-date-range input:disabled { color: #94a3b8; background: #f1f5f9; }
 .personal-payment-error { color: #b91c1c; font-size: 13px; }
 .personal-payment-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 .personal-payment-actions button { min-height: 42px; padding: 0 15px; border-radius: 9px; font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; }
-.personal-payment-cancel { border: 1px solid #dbe3ed; background: white; color: #475569; }
+.personal-payment-cancel { border: 1px solid #fca5a5; background: #fef2f2; color: #b91c1c; transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
+.personal-payment-cancel:hover { transform: translateY(-2px); border-color: #ef4444; background: #fee2e2; box-shadow: 0 5px 12px rgba(220,38,38,.16); }
 .personal-payment-collect { border: 1px solid #15803d; background: #16a34a; color: white; box-shadow: 0 4px 12px rgba(22,163,74,.19); }
 .personal-payment-collect:hover { background: #15803d; }
+@keyframes payment-modal-enter { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .personal-payment-card { animation: none; } .personal-payment-close, .personal-payment-cancel { transition: none; } }
+.personal-payment-details { gap: 7px; }
+.personal-payment-details > div { padding: 9px 11px; border-radius: 9px; }
+.personal-payment-details dt { margin-bottom: 3px; font-size: 10px; }
+.personal-payment-details dd { font-size: 13px; }
+.personal-payment-details > .payment-total-card dd, .personal-payment-details > .payment-due-card dd { font-size: 16px; }
+.payment-progress-card { padding: 10px 13px; margin-top: 9px; }
+.payment-progress-card progress { height: 10px; margin: 7px 0; }
+.personal-finance-page .personal-payment-tools { padding: 13px 15px; border: 1px solid #c7d2fe; border-radius: 13px; background: linear-gradient(110deg, #eff6ff, #f5f3ff 52%, #ecfeff); box-shadow: 0 5px 16px rgba(79,70,229,.07); }
+.personal-finance-page .personal-page-size { color: #5b21b6; }
+.personal-finance-page .personal-page-size select { border-color: #c4b5fd; box-shadow: 0 2px 5px rgba(124,58,237,.06); }
+.personal-finance-page .personal-search input { border-color: #bfdbfe; }
+.personal-finance-page .personal-table-wrap { border-color: #c7d2fe; box-shadow: 0 8px 24px rgba(79,70,229,.09); }
+.personal-finance-page .personal-table th { color: #334155; background: linear-gradient(105deg, #eff6ff, #f5f3ff 55%, #ecfeff); border-bottom: 1px solid #dbeafe; line-height: 1.35; }
+.personal-finance-page .personal-table th:nth-child(4) { color: #0e7490; background: #ecfeff; }
+.personal-finance-page .personal-table th:nth-child(5) { color: #15803d; background: #f0fdf4; }
+.personal-finance-page .personal-table th:nth-child(6) { color: #c2410c; background: #fff7ed; }
+.personal-finance-page .personal-table th:nth-child(10) { color: #6d28d9; background: #f5f3ff; }
+.personal-finance-page .personal-table tbody tr:nth-child(even) { background: #f8faff; }
+.personal-finance-page .personal-table tbody tr:hover { background: #eef2ff; }
+.personal-finance-page .personal-table td:nth-child(5) { color: #166534; background: #f0fdf4; font-weight: 800; }
+.personal-finance-page .personal-table td:nth-child(6) { color: #c2410c; background: #fff7ed; font-weight: 800; }
+.personal-finance-page .personal-table td:nth-child(9) { color: #6d28d9; font-weight: 800; }
+.personal-finance-page .personal-table .personal-emi-photo { position: relative; z-index: 1; display: block; width: 42px; height: 42px; border: 2px solid #c4b5fd; border-radius: 50%; background: linear-gradient(135deg, #dbeafe, #fce7f3); object-fit: cover; cursor: zoom-in; transition: transform .2s ease, box-shadow .2s ease; }
+.personal-finance-page .personal-table .personal-emi-photo:hover { z-index: 10; transform: scale(2.2); box-shadow: 0 5px 16px rgba(15,23,42,.35); }
+.personal-finance-page .personal-table .btn-primary { background: linear-gradient(110deg, #0f766e, #0891b2); box-shadow: 0 4px 10px rgba(8,145,178,.18); }
+.personal-finance-page .personal-table .btn-primary:hover:not(:disabled) { background: linear-gradient(110deg, #115e59, #0369a1); }
+.personal-finance-page .personal-pagination { border-color: #c7d2fe; background: linear-gradient(110deg, #f8fafc, #eef2ff); }
+.personal-finance-page .personal-pagination button { border-color: #c4b5fd; color: #5b21b6; }
 @media (max-width: 700px) {
   .personal-finance-page .main-content { padding: 16px 12px; }
   .personal-finance-page .gold-page-header { align-items: flex-start; flex-direction: column; gap: 18px; padding: 22px 19px; border-radius: 14px; }

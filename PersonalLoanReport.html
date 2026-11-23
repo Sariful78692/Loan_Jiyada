@@ -5,7 +5,7 @@
   <title>Personal Loan Report</title>
   <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
   <link rel="stylesheet" href="css/table.css">
-  <link rel="stylesheet" href="css/personal-payment-pages.css">
+  <link rel="stylesheet" href="css/personal-payment-pages.css?v=20261123-report-paging-1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="personal-finance-page"><div class="app-container">
@@ -16,8 +16,9 @@
   </ul></aside>
   <main class="main-content"><section class="content-section">
     <div class="gold-page-header"><div><p class="gold-eyebrow">PAYMENT HISTORY</p><h1><i class="fa-solid fa-file-lines"></i> Personal Loan Report</h1><p>Personal Loan customer accounts and recorded installments.</p></div><a href="PersonalLoanEMI.html" class="btn-secondary">Pay Personal Loan</a></div>
-    <div class="personal-report-tools"><label class="personal-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="personal-report-search" type="search" placeholder="Search customer or mobile" autocomplete="off" aria-label="Search customer or mobile"></label><button id="personal-report-print" type="button" class="personal-action-button"><i class="fa-solid fa-print"></i> Print report</button></div>
-    <div class="personal-table-wrap"><table class="personal-table"><thead><tr><th>Customer</th><th>Mobile</th><th>Payment Date</th><th>Installment No.</th><th>Amount (₹)</th></tr></thead><tbody id="personal-report-body"><tr><td colspan="5">Loading report…</td></tr></tbody></table></div>
+    <div class="personal-report-tools"><label class="personal-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="personal-report-search" type="search" placeholder="Search customer or mobile" autocomplete="off" aria-label="Search customer or mobile"></label><label class="personal-page-size">Rows per page <select id="personal-report-page-size"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="all">All</option></select></label><button id="personal-report-print" type="button" class="personal-action-button"><i class="fa-solid fa-print"></i> Print report</button></div>
+    <div class="personal-table-wrap"><table class="personal-table"><thead><tr><th>Customer</th><th>Mobile</th><th>Collection Date</th><th>Payment Date Range</th><th>Installment No.</th><th>Total Amount (₹)</th></tr></thead><tbody id="personal-report-body"><tr><td colspan="6">Loading report…</td></tr></tbody></table></div>
     <p id="personal-report-total" class="personal-total"></p>
+    <div class="personal-pagination"><span id="personal-report-page-info" aria-live="polite">Showing 0-0 of 0</span><div><button id="personal-report-prev" type="button" disabled>Previous</button><span id="personal-report-page-label">Page 1 of 1</span><button id="personal-report-next" type="button" disabled>Next</button></div></div>
   </section></main>
-</div><script src="js/common.js?v=20261026-apps-script-url-1"></script><script src="js/personal_loan_payments.js"></script></body></html>
+</div><script src="js/common.js?v=20261026-apps-script-url-1"></script><script src="js/personal_loan_payments.js?v=20261123-same-day-groups-1"></script></body></html>

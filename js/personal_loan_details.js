@@ -4,19 +4,29 @@
   const search = document.getElementById("search-personal-loans");
   const pageSizeSelect = document.getElementById("personal-loan-page-size");
   const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+  const photoUrls = value => {
+    const url = String(value || "").trim();
+    if (!/^https?:\/\//i.test(url)) return [];
+    const match = url.match(/[?&]id=([^&]+)/i) || url.match(/\/d\/([^/?]+)/i);
+    if (!match) return [url];
+    let id = match[1];
+    try { id = decodeURIComponent(id); } catch (_) {}
+    id = encodeURIComponent(id);
+    return [`https://drive.google.com/thumbnail?id=${id}&sz=w160`, `https://lh3.googleusercontent.com/d/${id}=w160`, `https://drive.google.com/uc?export=view&id=${id}`, url];
+  };
   let databaseEntries = [];
   let currentPage = 1;
   async function loadEntries() {
-    rows.innerHTML = '<tr><td colspan="12" class="text-center">Loading entries…</td></tr>';
+    rows.innerHTML = '<tr><td colspan="13" class="text-center">Loading entries...</td></tr>';
     empty.hidden = true;
     try {
-      const response = await fetch(`${APPS_SCRIPT_URL}?view=personal_loan_entries&t=${Date.now()}`, { cache: "no-store" });
+      const response = await fetch(`${APPS_SCRIPT_URL}?view=personal_loan_entries&t=${Date.now()}`, { cache: "no-store", signal: AbortSignal.timeout(20000) });
       const data = await response.json();
       if (!response.ok || !Array.isArray(data.personal_loan_entries)) throw new Error(data.message || "Could not read database entries.");
       databaseEntries = data.personal_loan_entries;
       render();
     } catch (error) {
-      rows.innerHTML = `<tr><td colspan="12" class="text-center">${esc(error.message || "Database connection failed.")}</td></tr>`;
+      rows.innerHTML = `<tr><td colspan="13" class="text-center">${esc(error.message || "Database connection failed.")}</td></tr>`;
     }
   }
   function render() {
@@ -28,7 +38,7 @@
     currentPage = Math.min(currentPage, pageCount);
     const startIndex = (currentPage - 1) * pageSize;
     const visibleEntries = filtered.slice(startIndex, startIndex + pageSize);
-    rows.innerHTML = visibleEntries.map(entry => `<tr><td><strong>${esc(entry["Customer Name"] || "—")}</strong></td><td>${esc(entry["Mobile Number"] || "—")}</td><td>${esc(entry["Aadhaar Number"] || "—")}</td><td>${esc(entry["Starting Date"] || "—")}</td><td>${esc(entry["End Date"] || "—")}</td><td>${esc(entry["Disbursement Date"] || "—")}</td><td>${esc(entry["Disbursement Amount"] || "—")}</td><td>${esc(entry["Total Payment"] ?? "—")}</td><td>${esc(entry["Cash in Hand"] ?? "—")}</td><td>${esc(entry["No. of Instalments"] ?? "—")} ${esc(entry["Instalment Period"] || "Days")}</td><td>${esc(entry["Customer Occupation"] || "—")}</td><td><div class="action-btns"><button type="button" class="btn-edit" data-edit="${esc(entry.ID)}" title="Edit entry" aria-label="Edit ${esc(entry["Customer Name"])}"><i class="fa-solid fa-pen"></i></button><button type="button" class="btn-delete" data-delete="${esc(entry.ID)}" title="Delete entry" aria-label="Delete ${esc(entry["Customer Name"])}"><i class="fa-solid fa-trash"></i></button></div></td></tr>`).join("");
+    rows.innerHTML = visibleEntries.map(entry => { const candidates = photoUrls(entry["Customer Photo URL"]); const photo = candidates.length ? `<img class="pl-customer-photo" src="${esc(candidates[0])}" data-photo-candidates="${esc(candidates.join("|"))}" data-photo-index="0" alt="${esc(entry["Customer Name"] || "Customer")} photo" loading="lazy">` : "—"; return `<tr><td>${photo}</td><td><strong>${esc(entry["Customer Name"] || "—")}</strong></td><td>${esc(entry["Mobile Number"] || "—")}</td><td>${esc(entry["Aadhaar Number"] || "—")}</td><td>${esc(entry["Starting Date"] || "—")}</td><td>${esc(entry["End Date"] || "—")}</td><td>${esc(entry["Disbursement Date"] || "—")}</td><td>${esc(entry["Disbursement Amount"] || "—")}</td><td>${esc(entry["Total Payment"] ?? "—")}</td><td>${esc(entry["Cash in Hand"] ?? "—")}</td><td>${esc(entry["No. of Instalments"] ?? "—")} ${esc(entry["Instalment Period"] || "Days")}</td><td>${esc(entry["Customer Occupation"] || "—")}</td><td><div class="action-btns"><button type="button" class="btn-edit" data-edit="${esc(entry.ID)}" title="Edit entry" aria-label="Edit ${esc(entry["Customer Name"])}"><i class="fa-solid fa-pen"></i></button><button type="button" class="btn-delete" data-delete="${esc(entry.ID)}" title="Delete entry" aria-label="Delete ${esc(entry["Customer Name"])}"><i class="fa-solid fa-trash"></i></button></div></td></tr>`; }).join("");
     empty.hidden = filtered.length > 0;
     empty.textContent = databaseEntries.length === 0 ? "No saved Personal Loan entries found." : "No customers match that name or mobile number.";
     updatePagination(filtered.length, pageSize, pageCount, selectedSize === "all");
@@ -36,7 +46,7 @@
   function updatePagination(total, pageSize, pageCount, allSelected) {
     const start = total ? (allSelected ? 1 : (currentPage - 1) * pageSize + 1) : 0;
     const end = total ? (allSelected ? total : Math.min(currentPage * pageSize, total)) : 0;
-    document.getElementById("personal-loan-page-info").textContent = `Showing ${start}–${end} of ${total}`;
+    document.getElementById("personal-loan-page-info").textContent = `Showing ${start}-${end} of ${total}`;
     document.getElementById("personal-loan-page-label").textContent = `Page ${currentPage} of ${pageCount}`;
     document.getElementById("personal-loan-prev").disabled = allSelected || currentPage <= 1;
     document.getElementById("personal-loan-next").disabled = allSelected || currentPage >= pageCount;
@@ -45,6 +55,14 @@
   pageSizeSelect.addEventListener("change", () => { currentPage = 1; render(); });
   document.getElementById("personal-loan-prev").addEventListener("click", () => { if (currentPage > 1) { currentPage--; render(); } });
   document.getElementById("personal-loan-next").addEventListener("click", () => { currentPage++; render(); });
+  rows.addEventListener("error", event => {
+    const image = event.target.closest("[data-photo-candidates]");
+    if (!image) return;
+    const candidates = image.dataset.photoCandidates.split("|");
+    const next = Number(image.dataset.photoIndex || 0) + 1;
+    if (next < candidates.length) { image.dataset.photoIndex = String(next); image.src = candidates[next]; }
+    else { image.removeAttribute("data-photo-candidates"); image.alt = "Photo unavailable"; }
+  }, true);
   rows.addEventListener("click", async event => {
     const edit = event.target.closest("[data-edit]");
     if (edit) { location.href = `PersonalLoanEntry.html?edit=${encodeURIComponent(edit.dataset.edit)}`; return; }

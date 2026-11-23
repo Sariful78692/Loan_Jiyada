@@ -46,6 +46,18 @@
     const documents = Number(byId("document-charges").value) || 0;
     byId("cash-in-hand").value = (amount - processing - documents).toFixed(2);
   }
+  function applyAmountDefaults() {
+    const amount = Number(byId("disbursement-amount").value);
+    if (amount === 25000) {
+      byId("rate-interest").value = "21.18";
+      byId("processing-percentage").value = "0.0348";
+      updateProcessingAmount();
+    } else if (amount === 50000) {
+      byId("rate-interest").value = "20.45";
+      byId("processing-percentage").value = "0.0274";
+      updateProcessingAmount();
+    }
+  }
   function updateInstallments() {
     const counts = { Days: 365, Months: 12, Weeks: 52 };
     const period = byId("installment-period").value;
@@ -71,7 +83,8 @@
   const setMessage = text => { byId("form-message").textContent = text; };
   function previewPhoto(photo, url, caption) {
     const image = byId(photo.image);
-    image.src = url;
+    if (/^https?:\/\//i.test(url) && typeof setImageSourceWithFallback === "function") setImageSourceWithFallback(image, url);
+    else image.src = url;
     image.classList.remove("hidden");
     byId(photo.placeholder).classList.add("hidden");
     byId(photo.caption).textContent = caption;
@@ -95,37 +108,53 @@
   function escapePrint(value) {
     return String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
   }
+  function printPhotoUrls(source) {
+    const url = String(source || "").trim();
+    if (!/^https?:\/\//i.test(url)) return url ? [url] : [];
+    const match = url.match(/[?&]id=([^&]+)/i) || url.match(/\/d\/([^/?]+)/i);
+    if (!match) return [url];
+    let id = match[1];
+    try { id = decodeURIComponent(id); } catch (_) {}
+    id = encodeURIComponent(id);
+    return [`https://drive.google.com/thumbnail?id=${id}&sz=w600`, `https://lh3.googleusercontent.com/d/${id}=w600`, `https://drive.google.com/uc?export=view&id=${id}`, url];
+  }
   function printPersonalLoanForm(record, photoSources, printWindow) {
     const cards = [...form.querySelectorAll(".form-card")].map(card => {
       const title = card.querySelector("h3")?.innerText || "Personal Loan Details";
       const rows = [...card.querySelectorAll(".form-group")].map(group => {
         const field = group.querySelector('input:not([type="file"]), select, textarea');
-        if (!field) return "";
+        if (!field) return null;
         const label = group.querySelector("label")?.innerText || field.id;
         const value = record[field.id] || "—";
-        return `<tr><th>${escapePrint(label)}</th><td>${escapePrint(value)}</td></tr>`;
-      });
+        return { label, value: escapePrint(value) };
+      }).filter(Boolean);
       const sectionNo = card.querySelector("h3 span")?.textContent.trim();
       const relevantPhotos = sectionNo === "02" ? [photoFields[0]] : sectionNo === "04" ? [photoFields[1]] : [];
       relevantPhotos.forEach(photo => {
-        const src = photoSources[photo.input];
-        if (src) rows.push(`<tr><th>${photo.input === "personal-customer-photo" ? "Customer Photo" : "Nominee Photo"}</th><td><img class="print-photo" src="${escapePrint(src)}" alt="${photo.input === "personal-customer-photo" ? "Customer" : "Nominee"} photo"></td></tr>`);
+        const urls = printPhotoUrls(photoSources[photo.input]);
+        if (urls.length) rows.push({ label: photo.input === "personal-customer-photo" ? "Customer Photo" : "Nominee Photo", value: `<img class="print-photo" src="${escapePrint(urls[0])}" data-photo-candidates="${escapePrint(urls.join("|"))}" alt="${photo.input === "personal-customer-photo" ? "Customer" : "Nominee"} photo">` });
       });
-      return `<section><h2>${escapePrint(title.replace(/^\s*\d+\s*/, ""))}</h2><table>${rows.join("")}</table></section>`;
+      const tableRows = [];
+      for (let i = 0; i < rows.length; i += 2) {
+        const pair = rows.slice(i, i + 2);
+        const cells = pair.flatMap(item => [`<th>${escapePrint(item.label)}</th><td>${item.value}</td>`]);
+        if (pair.length === 1) cells.push("<th></th><td></td>");
+        tableRows.push(`<tr>${cells.join("")}</tr>`);
+      }
+      return `<section><h2>${escapePrint(title.replace(/^\s*\d+\s*/, ""))}</h2><table><tbody>${tableRows.join("")}</tbody></table></section>`;
     }).join("");
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Personal Loan Form</title><style>body{font:12px Arial,sans-serif;color:#172033;padding:24px;max-width:900px;margin:auto}h1{font-size:22px;color:#123e68;margin:0 0 4px}.sub{color:#64748b;margin:0 0 20px}section{margin:16px 0;break-inside:avoid}h2{font-size:15px;color:#123e68;border-bottom:2px solid #dce8ef;padding:0 0 7px}table{width:100%;border-collapse:collapse}th,td{padding:7px 9px;border:1px solid #dbe3eb;text-align:left;vertical-align:top}th{width:34%;background:#f4f8fb;font-weight:700}.print-photo{width:95px;height:95px;object-fit:cover;border:1px solid #dbe3eb;border-radius:5px}@page{size:A4 portrait;margin:14mm}@media print{body{padding:0}}</style></head><body><h1>Personal Loan Form</h1><p class="sub">Printed: ${escapePrint(new Date().toLocaleString())}</p>${cards}<script>window.onload=()=>setTimeout(()=>window.print(),300);</script></body></html>`;
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Personal Loan Form</title><style>*{box-sizing:border-box}body{font:9px Arial,sans-serif;color:#172033;padding:18px;margin:0}h1{font-size:20px;color:#123e68;margin:0 0 4px}.sub{color:#64748b;margin:0 0 12px}.print-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}section{min-width:0;margin:0;padding:7px;border:1px solid #dbe3eb;border-radius:5px;break-inside:avoid}h2{font-size:12px;color:#123e68;border-bottom:1px solid #dce8ef;padding:0 0 4px;margin:0 0 5px}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{padding:4px 5px;border:1px solid #dbe3eb;text-align:left;vertical-align:top;overflow-wrap:anywhere}th,td{width:25%}th{background:#f4f8fb;font-weight:700}.print-photo{width:55px;height:55px;object-fit:cover;border:1px solid #dbe3eb;border-radius:5px}@page{size:A4 portrait;margin:9mm}@media print{body{padding:0}.print-grid{gap:6px}}</style></head><body><h1>Personal Loan Form</h1><p class="sub">Printed: ${escapePrint(new Date().toLocaleString())}</p><main class="print-grid">${cards}</main><script>const waitForImage=image=>new Promise(resolve=>{const urls=(image.dataset.photoCandidates||image.src).split("|").filter(Boolean);let index=1,done=false;const finish=()=>{if(done)return;done=true;resolve()};const retry=()=>{if(index<urls.length){image.src=urls[index++]}else{image.alt="Photo unavailable";finish()}};image.onload=()=>image.naturalWidth?finish():retry();image.onerror=retry;if(image.complete){if(image.naturalWidth)finish();else retry()}});Promise.all([...document.images].map(waitForImage)).then(()=>setTimeout(()=>window.print(),300));</script></body></html>`;
     if (printWindow && !printWindow.closed) {
       printWindow.document.open();
       printWindow.document.write(html);
       printWindow.document.close();
       return;
     }
-    const frame = document.createElement("iframe");
-    frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
-    frame.onload = () => { setTimeout(() => { frame.contentWindow.focus(); frame.contentWindow.print(); }, 350); };
-    frame.srcdoc = html;
-    document.body.appendChild(frame);
-    frame.contentWindow?.addEventListener("afterprint", () => frame.remove(), { once: true });
+    const popup = window.open("", "_blank");
+    if (!popup) return;
+    popup.document.open();
+    popup.document.write(html);
+    popup.document.close();
   }
   const readLists = () => { try { return JSON.parse(localStorage.getItem(LIST_KEY) || "{}"); } catch (_) { return {}; } };
   function refreshLists() {
@@ -199,9 +228,17 @@
   form.addEventListener("submit", event => { event.preventDefault(); saveEntry(); });
   form.addEventListener("reset", () => setTimeout(() => { byId("entry-id").value = ""; byId("submit-label").textContent = "Save"; printButton.hidden = true; lastPrintData = null; updateTotalPayment(); updateProcessingAmount(); updateInstallments(); photoFields.forEach(photo => { clearPhotoPreview(photo); delete savedPhotoUrls[photo.input]; }); setMessage(""); }, 0));
   printButton.addEventListener("click", () => {
-    if (lastPrintData) printPersonalLoanForm(lastPrintData.record, lastPrintData.photoSources, null);
+    if (lastPrintData) {
+      const printWindow = window.open("", "_blank");
+      if (printWindow) printPersonalLoanForm(lastPrintData.record, lastPrintData.photoSources, printWindow);
+      else showToast("Allow pop-ups for this site to print the form.", "warning");
+    }
   });
-  ["disbursement-amount", "rate-interest"].forEach(id => byId(id).addEventListener("input", updateTotalPayment));
+  byId("disbursement-amount").addEventListener("input", () => {
+    applyAmountDefaults();
+    updateTotalPayment();
+  });
+  byId("rate-interest").addEventListener("input", updateTotalPayment);
   byId("processing-percentage").addEventListener("input", updateProcessingAmount);
   byId("document-charges").addEventListener("input", updateCashInHand);
   byId("installment-period").addEventListener("change", updateInstallments);
@@ -239,6 +276,7 @@
         "branch-id": saved["Branch ID"], "branch-name": saved["Branch Name"], "branch-code": saved["Branch Code"], "customer-name": saved["Customer Name"], "guardian-name": saved["Guardian Name"], "aadhaar-number": saved["Aadhaar Number"], "mobile-number": saved["Mobile Number"], "customer-occupation": saved["Customer Occupation"], "loan-account": saved["Loan Account"], "rate-interest": saved["Rate of Interest"], "loan-type": saved["Loan Type"], "disbursement-date": saved["Disbursement Date"], "disbursement-amount": saved["Disbursement Amount"], "interest-amount": saved["Interest Amount"], "processing-percentage": saved["Processing Percentage"], "installments": saved["No. of Instalments"], "installment-period": saved["Instalment Period"] || "Days", "processing-amount": saved["Processing Amount"], "document-charges": saved["Document Charges"], "loan-purpose": saved.Purpose, "nominee-name": saved["Nominee Name"], "nominee-father": saved["Nominee Father's Name"], "nominee-occupation": saved["Nominee Occupation"], "nominee-relation": saved["Relation with Applicant"], "starting-date": saved["Starting Date"], "end-date": saved["End Date"], "cash-in-hand": saved["Cash in Hand"]
       };
       fields.forEach(field => { if (mapped[field.id] !== undefined && mapped[field.id] !== null) field.value = field.hasAttribute("data-proper-case") ? toProperCase(String(mapped[field.id])) : mapped[field.id]; });
+      applyAmountDefaults();
       photoFields.forEach(photo => {
         const photoUrl = saved[photo.urlKey];
         if (photoUrl) {
@@ -250,6 +288,11 @@
       updateProcessingAmount();
       updateCashInHand();
       updateInstallments();
+      lastPrintData = {
+        record: Object.fromEntries(fields.map(field => [field.id, field.value])),
+        photoSources: Object.fromEntries(photoFields.map(photo => [photo.input, savedPhotoUrls[photo.input] || ""]))
+      };
+      printButton.hidden = false;
       byId("entry-id").value = editId;
       byId("submit-label").textContent = "Update";
       setMessage("Editing database entry. Select Update to save your changes.");

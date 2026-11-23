@@ -19,6 +19,10 @@ function doGet(e) {
     var personalLoanSheet = getOrCreatePersonalLoanSheet_(SpreadsheetApp.getActiveSpreadsheet());
     return jsonResponse({ personal_loan_entries: readReportSheet_(personalLoanSheet, Session.getScriptTimeZone()) });
   }
+  if (e && e.parameter && e.parameter.view === "personal_loan_payments") {
+    var personalLoanPaymentsSheet = getOrCreatePersonalLoanPaymentsSheet_(SpreadsheetApp.getActiveSpreadsheet());
+    return jsonResponse({ personal_loan_payments: readPersonalLoanPaymentsForClient_(personalLoanPaymentsSheet) });
+  }
   if (e && e.parameter && e.parameter.view === "app_settings") {
     return jsonResponse(readAppLogoSettings_(SpreadsheetApp.getActiveSpreadsheet()));
   }
@@ -587,6 +591,9 @@ function doPost(e) {
     if (["save_personal_loan", "delete_personal_loan"].indexOf(data.action) !== -1) {
       return jsonResponse(handlePersonalLoanAction_(ss, data, folderId));
     }
+    if (data.action === "collect_personal_loan_installments") {
+      return jsonResponse(handlePersonalLoanPayments_(ss, data));
+    }
 
     if (data.action === "save_app_logo" || data.action === "delete_app_logo") {
       return jsonResponse(saveAppLogoSetting_(ss, data, folderId));
@@ -1149,6 +1156,73 @@ function doPost(e) {
 // =====================================
 // Helper Functions
 // =====================================
+
+function getOrCreatePersonalLoanPaymentsSheet_(ss) {
+  var sheet = ss.getSheetByName("Personal_Loan_Payments");
+  var headers = ["Batch ID", "Loan ID", "Customer Name", "Mobile Number", "Collection Date", "Payment Date", "Installment No.", "Amount", "Timestamp"];
+  if (!sheet) {
+    sheet = ss.insertSheet("Personal_Loan_Payments");
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+  }
+  return sheet;
+}
+
+function readPersonalLoanPaymentsForClient_(sheet) {
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+  var headers = values[0].map(function(value) { return String(value).trim(); });
+  var timezone = Session.getScriptTimeZone();
+  function text(value) {
+    if (value instanceof Date) return Utilities.formatDate(value, timezone, "yyyy-MM-dd");
+    return String(value == null ? "" : value).trim();
+  }
+  return values.slice(1).filter(function(row) { return row.some(function(value) { return value !== ""; }); }).map(function(row) {
+    var record = {};
+    headers.forEach(function(header, index) { record[header] = row[index]; });
+    return {
+      batchId: text(record["Batch ID"]), loanId: text(record["Loan ID"]),
+      customerName: text(record["Customer Name"]), mobile: text(record["Mobile Number"]),
+      collectionDate: text(record["Collection Date"]), paymentDate: text(record["Payment Date"]),
+      installment: Number(record["Installment No."]) || 0, amount: Number(record.Amount) || 0
+    };
+  });
+}
+
+function handlePersonalLoanPayments_(ss, data) {
+  var installments = Array.isArray(data.installments) ? data.installments : [];
+  var loanId = String(data.loanId || "").trim();
+  var collectionDate = String(data.collectionDate || "").trim();
+  if (!loanId || !/^\d{4}-\d{2}-\d{2}$/.test(collectionDate) || !installments.length) {
+    return { status: "error", message: "A loan, collection date, and at least one installment are required." };
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var sheet = getOrCreatePersonalLoanPaymentsSheet_(ss);
+    var existing = readPersonalLoanPaymentsForClient_(sheet);
+    var paidInstallments = {};
+    existing.forEach(function(payment) { paidInstallments[payment.loanId + "|" + payment.installment] = true; });
+    var batchId = String(data.batchId || Utilities.getUuid());
+    var timestamp = new Date();
+    var rows = [];
+    installments.forEach(function(item) {
+      var number = Number(item.installment) || 0;
+      var paymentDate = String(item.paymentDate || "").trim();
+      var amount = Number(item.amount);
+      if (!number || !/^\d{4}-\d{2}-\d{2}$/.test(paymentDate) || !Number.isFinite(amount) || amount <= 0) return;
+      var key = loanId + "|" + number;
+      if (paidInstallments[key]) return;
+      paidInstallments[key] = true;
+      rows.push([batchId, loanId, String(data.customerName || ""), String(data.mobile || ""), collectionDate, paymentDate, number, amount, timestamp]);
+    });
+    if (!rows.length) return { status: "error", message: "These installment dates have already been collected." };
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+    return { status: "success", batchId: batchId, saved: rows.length };
+  } finally {
+    lock.releaseLock();
+  }
+}
 
 function getOrCreatePersonalLoanSheet_(ss) {
   var sheet = ss.getSheetByName("Personal_Loans");

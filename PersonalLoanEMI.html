@@ -5,7 +5,7 @@
   <title>Pay Personal Loan</title>
   <link rel="stylesheet" href="css/common.css?v=20261015-colorful-loaders-1">
   <link rel="stylesheet" href="css/customer.css?v=20261026-collect-confirm-1">
-  <link rel="stylesheet" href="css/personal-payment-pages.css">
+  <link rel="stylesheet" href="css/personal-payment-pages.css?v=20261123-payment-date-range-2">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="personal-finance-page"><div class="app-container">
@@ -21,7 +21,7 @@
       <label class="personal-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="personal-emi-search" type="search" placeholder="Search customer name or mobile" autocomplete="off" aria-label="Search customer name or mobile"></label>
       <label class="personal-page-size">Rows per page <select id="personal-emi-page-size"><option value="10">10</option><option value="30">30</option><option value="50">50</option><option value="all">All</option></select></label>
     </div>
-    <div class="personal-table-wrap"><table class="personal-table"><thead><tr><th>Customer</th><th>Mobile</th><th>Loan Type</th><th>Installments</th><th>Installment Amount</th><th>Paid</th><th>Next Payment</th><th>Action</th></tr></thead><tbody id="personal-emi-body"><tr><td colspan="8">Loading accounts…</td></tr></tbody></table></div>
+    <div class="personal-table-wrap"><table class="personal-table"><thead><tr><th>Photo</th><th>Customer</th><th>Mobile</th><th>Loan<br>Type</th><th>Total<br>Amount</th><th>Due<br>Amount</th><th>Installments</th><th>Installment<br>Amount</th><th>Paid</th><th>Next<br>Payment</th><th>Action</th></tr></thead><tbody id="personal-emi-body"><tr><td colspan="11">Loading accounts…</td></tr></tbody></table></div>
     <div class="personal-pagination"><span id="personal-emi-page-info" aria-live="polite">Showing 0–0 of 0</span><div><button id="personal-emi-prev" type="button" disabled>Previous</button><span id="personal-emi-page-label">Page 1 of 1</span><button id="personal-emi-next" type="button" disabled>Next</button></div></div>
   </section></main>
 </div>
@@ -30,20 +30,28 @@
     <button id="personal-payment-close" class="personal-payment-close" type="button" aria-label="Close">&times;</button>
     <p class="gold-eyebrow">PAYMENT CONFIRMATION</p>
     <h2 id="personal-payment-title">Customer installment details</h2>
-    <p class="personal-payment-intro">Review the details, then collect the installment.</p>
+    <p class="personal-payment-intro">Choose an unpaid date range, then collect the installments.</p>
     <dl class="personal-payment-details">
-      <div><dt>Customer name</dt><dd id="payment-customer-name">—</dd></div>
-      <div><dt>Mobile number</dt><dd id="payment-customer-mobile">—</dd></div>
-      <div><dt>Loan type</dt><dd id="payment-customer-loan-type">—</dd></div>
-      <div><dt>Installment</dt><dd id="payment-installment-number">—</dd></div>
-      <div><dt>Installment amount</dt><dd id="payment-installment-amount">—</dd></div>
-      <div><dt>Payment date</dt><dd id="payment-installment-date">—</dd></div>
+      <div class="payment-customer-card"><dt>Customer name</dt><dd id="payment-customer-name">—</dd></div>
+      <div class="payment-mobile-card"><dt>Mobile number</dt><dd id="payment-customer-mobile">—</dd></div>
+      <div class="payment-loan-card"><dt>Loan type</dt><dd id="payment-customer-loan-type">—</dd></div>
+      <div class="payment-total-card"><dt>Total amount</dt><dd id="payment-total-amount">-</dd></div>
+      <div class="payment-due-card"><dt>Due amount</dt><dd id="payment-due-amount">-</dd></div>
+      <div class="payment-installment-card"><dt>Installment</dt><dd id="payment-installment-number">—</dd></div>
+      <div class="payment-amount-card"><dt>Installment amount</dt><dd id="payment-installment-amount">—</dd></div>
+      <div class="payment-date-card"><dt>Payment date range</dt><dd class="payment-date-range"><input type="date" id="payment-date-start" aria-label="Payment range start"><span>to</span><input type="date" id="payment-date-end" aria-label="Payment range end"></dd></div>
     </dl>
+    <div class="payment-progress-card" aria-label="Loan repayment progress">
+      <div class="payment-progress-heading"><strong>Repayment progress</strong><span id="payment-progress-percent">0%</span></div>
+      <progress id="payment-progress-bar" max="100" value="0">0%</progress>
+      <div class="payment-progress-labels"><span>Paid: <strong id="payment-progress-paid">₹0</strong></span><span>Due: <strong id="payment-progress-due">₹0</strong></span></div>
+    </div>
+
     <p id="personal-payment-modal-error" class="personal-payment-error" role="alert"></p>
     <div class="personal-payment-actions">
       <button id="personal-payment-cancel" class="personal-payment-cancel" type="button">Cancel</button>
-      <button id="personal-payment-collect" class="personal-payment-collect" type="button"><i class="fa-solid fa-check"></i> Collect installment</button>
+      <button id="personal-payment-collect" class="personal-payment-collect" type="button"><i class="fa-solid fa-check"></i> Collect Installment</button>
     </div>
   </section>
 </div>
-<script src="js/common.js?v=20261026-apps-script-url-1"></script><script src="js/personal_loan_payments.js"></script></body></html>
+<script src="js/common.js?v=20261026-apps-script-url-1"></script><script src="js/personal_loan_payments.js?v=20261123-database-batches-1"></script></body></html>

@@ -39,3 +39,28 @@
 .pl-details-pagination button:disabled { opacity:.5; cursor:not-allowed; }
 .pl-empty { padding:24px; text-align:center; color:#64748b; }
 @media(max-width:600px) { .pl-header { padding:20px; } .pl-header h1 { font-size:21px; } .pl-record-bar { flex-wrap:wrap; } .pl-record-bar label { flex-basis:100%; } .pl-record-bar select { flex-basis:60%; } .pl-actions .pl-button { flex:1 1 40%; } .pl-details-toolbar { flex-wrap:wrap; } .pl-details-toolbar > label:first-child { flex-basis:100%; } .pl-details-toolbar > input { flex-basis:100%; } .pl-details-toolbar .pl-button { flex:1; } .pl-details-page-size { flex:1; justify-content:space-between; } .pl-details-pagination { align-items:flex-start; flex-direction:column; } .pl-details-pagination > div { width:100%; justify-content:space-between; } }
+
+.pl-customer-photo { width:42px; height:42px; border-radius:50%; object-fit:cover; border:1px solid #dbe3eb; }
+.personal-loan-page .pl-header { background: linear-gradient(120deg, #0f766e, #2563eb 58%, #7c3aed); box-shadow: 0 14px 30px rgba(37,99,235,.18); }
+.personal-loan-page .pl-header p { color: #a5f3fc; }
+.personal-loan-page .pl-header > i { color: #e0e7ff; background: linear-gradient(145deg, #ffffff30, #ffffff14); }
+.personal-loan-page .pl-details-toolbar { border-color: #c7d2fe; background: linear-gradient(110deg, #eff6ff, #f5f3ff 55%, #ecfeff); box-shadow: 0 6px 18px rgba(79,70,229,.07); }
+.personal-loan-page .pl-details-toolbar label { color: #4c1d95; }
+.personal-loan-page .pl-details-toolbar input { border-color: #bfdbfe; background: #fff; }
+.personal-loan-page .pl-details-toolbar input:focus { outline: 0; border-color: #818cf8; box-shadow: 0 0 0 4px rgba(99,102,241,.12); }
+.personal-loan-page .pl-details-page-size select { border-color: #c4b5fd; color: #5b21b6; }
+.personal-loan-page .pl-details-toolbar .pl-button.primary { color: #fff; background: linear-gradient(110deg, #0f766e, #2563eb 58%, #7c3aed); box-shadow: 0 5px 12px rgba(79,70,229,.2); }
+.personal-loan-page .pl-details-table { border-color: #c7d2fe; box-shadow: 0 8px 24px rgba(79,70,229,.08); }
+.personal-loan-page .pl-details-table th { color: #334155; background: linear-gradient(105deg, #eff6ff, #f5f3ff 55%, #ecfeff); border-bottom-color: #c7d2fe; }
+.personal-loan-page .pl-details-table tbody tr:nth-child(even) { background: #f8faff; }
+.personal-loan-page .pl-details-table tbody tr:hover { background: #eef2ff; }
+.personal-loan-page .pl-details-table td:nth-child(8) { color: #15803d; background: #f0fdf4; font-weight: 750; }
+.personal-loan-page .pl-details-table td:nth-child(9) { color: #1d4ed8; background: #eff6ff; font-weight: 750; }
+.personal-loan-page .pl-details-table td:nth-child(10) { color: #c2410c; background: #fff7ed; font-weight: 750; }
+.personal-loan-page .pl-customer-photo { border: 2px solid #a5b4fc; box-shadow: 0 2px 7px rgba(99,102,241,.18); transition: transform .2s ease, box-shadow .2s ease; }
+.personal-loan-page .pl-customer-photo:hover { position: relative; z-index: 5; transform: scale(1.8); box-shadow: 0 5px 16px rgba(15,23,42,.3); }
+.personal-loan-page .pl-details-pagination { padding: 10px 12px; border: 1px solid #c7d2fe; border-radius: 11px; background: linear-gradient(110deg, #f8fafc, #eef2ff 55%, #ecfeff); }
+.personal-loan-page .pl-details-pagination .pl-button { border: 1px solid #c4b5fd; color: #5b21b6; background: #fff; }
+.personal-loan-page .pl-details-pagination .pl-button:hover:not(:disabled) { color: #fff; background: linear-gradient(110deg, #2563eb, #7c3aed); }
+.personal-loan-page .pl-details-pagination button:disabled { opacity: .45; }
+.personal-loan-page .pl-empty { border: 1px dashed #a5b4fc; border-radius: 12px; color: #5b21b6; background: #f5f3ff; }
