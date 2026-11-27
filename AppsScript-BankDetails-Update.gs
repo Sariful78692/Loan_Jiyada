@@ -671,8 +671,8 @@ function doPost(e) {
           var rows = sheets[s].getDataRange().getValues();
           for (var i = 1; i < rows.length; i++) {
             if (String(rows[i][0]).trim() === String(data.collectionId).trim()) {
-              sheets[s].getRange(i + 1, 5).setValue(data.collectionDate); 
-              sheets[s].getRange(i + 1, 6).setValue(data.amount);        
+              sheets[s].getRange(i + 1, 5).setValue(data.collectionDate);
+              sheets[s].getRange(i + 1, 6).setValue(data.amount);
               updated = true;
               break;
             }

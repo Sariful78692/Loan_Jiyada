@@ -62,6 +62,8 @@
     .rd-payment-date-fields input { width: 100%; padding: 9px; border: 1px solid #7dd3fc; border-radius: 7px; color: #075985; background: white; font: 600 13px Arial,sans-serif; }
     .rd-payment-date-fields label { letter-spacing: 0; text-transform: none; font-size: 11px; }
     .rd-last-payment { margin: 10px 0 0; color: #475569; font-size: 12px; }
+    .rd-last-payment strong { display:inline-block; padding:3px 8px; border:1px solid #93c5fd; border-radius:999px; background:#dbeafe; color:#1d4ed8; font-weight:800; }
+    .rd-last-payment-delete { margin-left:4px; padding:3px 7px; border:1px solid #fca5a5; border-radius:6px; background:#fff; color:#dc2626; cursor:pointer; }
     .rd-payment-summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; padding: 13px; border: 1px solid #c4b5fd; border-radius: 11px; background: linear-gradient(110deg, #f5f3ff, #ecfeff); }
     .rd-payment-summary p { margin: 0; color: #475569; font-size: 12px; }
     .rd-payment-summary #collect-amount { margin-top: 4px; color: #047857; font-size: 20px; font-weight: 900; }
@@ -185,7 +187,7 @@
           <div><label for="collection-start-date">From date</label><input type="date" id="collection-start-date" onchange="handleCollectionDateChange('start')"></div>
           <div><label for="collection-end-date">To date</label><input type="date" id="collection-end-date" onchange="handleCollectionDateChange('end')"></div>
         </div>
-        <p class="rd-last-payment">Last payment date: <strong id="last-payment-date">—</strong></p>
+        <p class="rd-last-payment">Last payment date: <strong id="last-payment-date">—</strong><button type="button" id="delete-last-payment-date" class="rd-last-payment-delete" onclick="deleteLastPayment()" title="Remove last payment" aria-label="Remove last payment"><i class="fa-solid fa-trash"></i></button></p>
       </div>
 
       <!-- অ্যামাউন্ট শো বক্স -->
@@ -204,8 +206,8 @@
   </div>
   </div>
 
-  <script src="js/common.js?v=20261127-apps-script-url-2"></script>
-  <script src="js/customer_details.js?v=20261127-india-future-date-guard-1"></script>
+  <script src="js/common.js?v=20261127-apps-script-url-3"></script>
+  <script src="js/customer_details.js?v=20261127-last-payment-delete-only-1"></script>
   <script src="js/customer_name_sort.js?v=20261009-1"></script>
 </body>
 </html>

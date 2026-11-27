@@ -10,6 +10,7 @@ let selectedLoanType = null;
 let selectedAmount = null;
 let lastCollectionReceipt = null;
 let selectedCustomerDuration = 0;
+let lastPaymentRecordId = "";
 const closingCustomerIds = new Set();
 const isGroupDetailsPage = window.location.pathname.toLowerCase().endsWith("groupdetails.html");
 const isRdCollectPage = new URLSearchParams(window.location.search).get("mode") === "collect";
@@ -614,6 +615,56 @@ function getLastCustomerPaymentDate() {
   return dates.at(-1) || "";
 }
 
+function getLastCustomerPaymentRecord() {
+  const records = allCollectionsData
+    .filter(item => String(item["Customer ID"] || "").trim() === String(selectedCustomerId).trim())
+    .sort((a, b) => normalizeCollectionDate(a["Collection Date"]).localeCompare(normalizeCollectionDate(b["Collection Date"])));
+  return records.at(-1) || null;
+}
+
+function updateLastPaymentDateDisplay() {
+  const record = getLastCustomerPaymentRecord();
+  lastPaymentRecordId = record ? String(record["Collection ID"] || "") : "";
+  const dateValue = record ? normalizeCollectionDate(record["Collection Date"]) : "";
+  document.getElementById("last-payment-date").textContent = dateValue
+    ? new Date(`${dateValue}T00:00:00`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : "No payments yet";
+  document.getElementById("delete-last-payment-date").hidden = !record;
+}
+
+function updateCollectionDateMinimum() {
+  const lastDate = getLastCustomerPaymentDate();
+  const minDate = lastDate ? new Date(`${lastDate}T00:00:00`) : null;
+  if (minDate) minDate.setDate(minDate.getDate() + 1);
+  ["collection-start-date", "collection-end-date"].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.min = minDate ? formatDateInput(minDate) : "";
+  });
+}
+
+async function deleteLastPayment() {
+  const record = allCollectionsData.find(item => String(item["Collection ID"] || "") === lastPaymentRecordId);
+  if (!record) return alert("Last payment record was not found. Refresh and try again.");
+  const displayDate = normalizeCollectionDate(record["Collection Date"]).split("-").reverse().join("-");
+  if (!confirm(`Remove the payment of ${formatMoney(record.Amount)} recorded on ${displayDate}?`)) return;
+  try {
+    const response = await postAppData({ action: "delete_collection", collectionId: lastPaymentRecordId, id: lastPaymentRecordId });
+    const result = await response.json();
+    if (!response.ok || result.status !== "success") throw new Error(result.message || "Could not remove the payment.");
+    allCollectionsData = allCollectionsData.filter(item => String(item["Collection ID"] || "") !== lastPaymentRecordId);
+    const customerId = String(selectedCustomerId).trim();
+    collectionsByCustomerId.set(customerId, allCollectionsData.filter(item => String(item["Customer ID"] || "").trim() === customerId));
+    updateLastPaymentDateDisplay();
+    const customer = customersData.find(item => String(item["ID"] || "").trim() === customerId);
+    if (customer) updateCollectionPaidDue(customer);
+    updateCollectionDateMinimum();
+    updateCollectionRangeSummary();
+    alert("Last payment removed successfully.");
+  } catch (error) {
+    alert("Could not remove the payment: " + error.message);
+  }
+}
+
 function updateCollectionPaidDue(cust) {
   const customerCollections = allCollectionsData.filter(item => String(item["Customer ID"]).trim() === String(cust["ID"]).trim());
   const paidAmount = sumUniqueDailyCollections(customerCollections);
@@ -644,7 +695,7 @@ function openCollectionModal(id) {
   document.getElementById("collection-end-date").max = today;
   const paidDates = allCollectionsData.filter(item => String(item["Customer ID"]).trim() === String(selectedCustomerId).trim()).map(item => normalizeCollectionDate(item["Collection Date"])).filter(Boolean).sort();
   updateCollectionPaidDue(cust);
-  document.getElementById("last-payment-date").textContent = paidDates.length ? new Date(`${paidDates[paidDates.length - 1]}T00:00:00`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "No payments yet";
+  updateLastPaymentDateDisplay();
   const minDate = paidDates.at(-1) || "";
   const minSelectableDate = minDate ? new Date(`${minDate}T00:00:00`) : null;
   if (minSelectableDate) minSelectableDate.setDate(minSelectableDate.getDate() + 1);

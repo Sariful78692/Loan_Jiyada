@@ -726,6 +726,7 @@ function renderCollectionsTable(data, status) {
   const filterYear = document.getElementById("reportYearFilter")?.value || "All";
   const showLoanDates = !isCollectionReportPage;
   const showPaymentDateRange = isCollectionReportPage;
+  const showActions = !isCollectionReportPage;
   const startValue = document.getElementById("startDate")?.value || "";
   const endValue = document.getElementById("endDate")?.value || "";
   const startDate = startValue ? normalizeReportDate(startValue) : "";
@@ -766,12 +767,12 @@ function renderCollectionsTable(data, status) {
     ${showPaymentDateRange ? '<th style="padding: 12px; white-space: nowrap;">Payment Date Range</th>' : ''}
     <th style="padding: 12px;">Amount</th>
     ${status === "Closed" ? '<th style="padding: 12px;">Archive Date</th>' : ''}
-    <th class="no-print" style="padding: 12px; text-align: center;">Actions</th>
+    ${showActions ? '<th class="no-print" style="padding: 12px; text-align: center;">Actions</th>' : ''}
   `;
 
   tbody.innerHTML = "";
   if (filteredCollections.length === 0) {
-    const columnCount = (status === "Closed" ? 11 : 10) - (showLoanDates ? 0 : 2) + (showPaymentDateRange ? 1 : 0);
+    const columnCount = (status === "Closed" ? 11 : 10) - (showLoanDates ? 0 : 2) + (showPaymentDateRange ? 1 : 0) - (showActions ? 0 : 1);
     tbody.innerHTML = `<tr><td colspan="${columnCount}" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
   }
 
@@ -783,7 +784,9 @@ function renderCollectionsTable(data, status) {
     const loanSchedule = customer ? getLoanSchedule(customer["Start Date"], duration) : { startDate: "N/A", endDate: "N/A" };
     let actionHtml = '';
     
-    if (status === "Closed") {
+    if (!showActions) {
+      actionHtml = "";
+    } else if (status === "Closed") {
       actionHtml = `
         <span style="background: #f1f5f9; color: #64748b; padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px;">
           <i class="fa-solid fa-lock"></i> Archived
@@ -812,7 +815,7 @@ function renderCollectionsTable(data, status) {
       ${showPaymentDateRange ? `<td style="padding: 10px 15px; white-space: nowrap;">${item["Payment Date Range"] || item["Payment Dates"] || formatDate(item["Collection Date"])}</td>` : ''}
       <td style="padding: 10px 15px; font-weight: bold; color: #10b981;">₹ ${item["Amount"] || "0"}</td>
       ${status === "Closed" ? `<td style="padding: 10px 15px;">${formatDate(item["Archive Date"])}</td>` : ''}
-      <td class="no-print" style="padding: 10px 15px; text-align: center; white-space: nowrap;">${actionHtml}</td>
+      ${showActions ? `<td class="no-print" style="padding: 10px 15px; text-align: center; white-space: nowrap;">${actionHtml}</td>` : ''}
     `;
     fragment.appendChild(tr);
   });
