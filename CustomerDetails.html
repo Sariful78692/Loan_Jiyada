@@ -49,6 +49,13 @@
     .rd-payment-info:nth-child(2) { border-color: #c4b5fd; background: linear-gradient(135deg, #f5f3ff, #ede9fe); }
     .rd-payment-info dt { margin-bottom: 5px; color: #4f46e5; font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
     .rd-payment-info dd { margin: 0; overflow-wrap: anywhere; color: #1d4ed8; font-size: 13px; font-weight: 800; }
+    .rd-payment-totals { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 12px; }
+    .rd-payment-total { padding:11px 12px; border:1px solid #86efac; border-radius:10px; background:linear-gradient(135deg,#f0fdf4,#dcfce7); }
+    .rd-payment-total.due { border-color:#fdba74; background:linear-gradient(135deg,#fff7ed,#ffedd5); }
+    .rd-payment-total dt { margin-bottom:5px; color:#15803d; font-size:9px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+    .rd-payment-total.due dt { color:#c2410c; }
+    .rd-payment-total dd { margin:0; color:#047857; font-size:16px; font-weight:900; }
+    .rd-payment-total.due dd { color:#c2410c; }
     .rd-payment-date-box { margin: 0 0 12px; padding: 13px; border: 1px solid #7dd3fc; border-radius: 11px; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); }
     .rd-payment-date-box label { display: block; margin-bottom: 7px; color: #0369a1; font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
     .rd-payment-date-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -167,6 +174,10 @@
         <div class="rd-payment-info"><dt>Customer name</dt><dd id="collect-cust-name"></dd></div>
         <div class="rd-payment-info"><dt>Customer ID</dt><dd id="collect-cust-id"></dd></div>
       </dl>
+      <dl class="rd-payment-totals">
+        <div class="rd-payment-total"><dt>Total paid amount</dt><dd id="collection-total-paid">₹0.00</dd></div>
+        <div class="rd-payment-total due"><dt>Due amount</dt><dd id="collection-due-amount">₹0.00</dd></div>
+      </dl>
       
       <!-- ম্যানুয়াল ডেট ইনপুট ফিল্ড -->
       <div class="rd-payment-date-box">
@@ -194,7 +205,7 @@
   </div>
 
   <script src="js/common.js?v=20261127-apps-script-url-2"></script>
-  <script src="js/customer_details.js?v=20261127-no-future-collection-dates-1"></script>
+  <script src="js/customer_details.js?v=20261127-india-future-date-guard-1"></script>
   <script src="js/customer_name_sort.js?v=20261009-1"></script>
 </body>
 </html>

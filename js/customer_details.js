@@ -586,6 +586,10 @@ function formatDisplayDate(date) {
 // then keep the modal open so the saved payment can be printed as a receipt.
 function handleCollectionDateChange(field) {
   const input = document.getElementById(`collection-${field}-date`);
+  if (input.value && input.value > getIndiaTodayDateInput()) {
+    input.value = "";
+    alert("Future dates cannot be collected. Please choose today or an earlier date.");
+  }
   const paidDates = new Set(allCollectionsData
     .filter(item => String(item["Customer ID"]).trim() === String(selectedCustomerId).trim())
     .map(item => normalizeCollectionDate(item["Collection Date"])));
@@ -610,6 +614,19 @@ function getLastCustomerPaymentDate() {
   return dates.at(-1) || "";
 }
 
+function updateCollectionPaidDue(cust) {
+  const customerCollections = allCollectionsData.filter(item => String(item["Customer ID"]).trim() === String(cust["ID"]).trim());
+  const paidAmount = sumUniqueDailyCollections(customerCollections);
+  const paidDays = new Set(customerCollections.map(item => normalizeCollectionDate(item["Collection Date"])).filter(Boolean)).size;
+  const installmentAmount = getCustomerInstallmentAmount(cust, paidAmount, paidDays);
+  let durationDays = getCustomerDurationDays(cust, installmentAmount);
+  if (!durationDays && paidDays > 0) durationDays = 365;
+  const storedTotal = Number(String(cust["Total Amount"] || cust["Total Loan Amount"] || cust["Total RD Amount"] || cust["Total Amount (RD)"] || "").replace(/[^0-9.-]/g, "")) || 0;
+  const totalAmount = storedTotal || installmentAmount * durationDays;
+  document.getElementById("collection-total-paid").textContent = formatMoney(paidAmount);
+  document.getElementById("collection-due-amount").textContent = formatMoney(Math.max(0, totalAmount - paidAmount));
+}
+
 function openCollectionModal(id) {
   const cust = customersData.find(c => String(c["ID"]) === String(id));
   if (!cust) return;
@@ -620,12 +637,13 @@ function openCollectionModal(id) {
   selectedAmount = cust["Loan Amount"] || "0.00";
   selectedCustomerDuration = parseInt(cust["Duration (Days)"], 10) || 0;
 
-  const today = formatDateInput(new Date());
+  const today = getIndiaTodayDateInput();
   document.getElementById("collection-start-date").value = today;
   document.getElementById("collection-end-date").value = today;
   document.getElementById("collection-start-date").max = today;
   document.getElementById("collection-end-date").max = today;
   const paidDates = allCollectionsData.filter(item => String(item["Customer ID"]).trim() === String(selectedCustomerId).trim()).map(item => normalizeCollectionDate(item["Collection Date"])).filter(Boolean).sort();
+  updateCollectionPaidDue(cust);
   document.getElementById("last-payment-date").textContent = paidDates.length ? new Date(`${paidDates[paidDates.length - 1]}T00:00:00`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "No payments yet";
   const minDate = paidDates.at(-1) || "";
   const minSelectableDate = minDate ? new Date(`${minDate}T00:00:00`) : null;
@@ -666,6 +684,13 @@ function formatDateInput(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function getIndiaTodayDateInput() {
+  const values = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit"
+  }).formatToParts(new Date()).map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function formatMoney(amount) {
@@ -711,8 +736,9 @@ async function submitCollection() {
     alert("Please select a valid date range.");
     return;
   }
-  if (endDate > formatDateInput(new Date())) {
-    alert("Future dates cannot be collected.");
+  const today = getIndiaTodayDateInput();
+  if (startDate > today || endDate > today) {
+    alert("Future dates cannot be collected. Please choose today or an earlier date.");
     return;
   }
   const lastPaymentDate = getLastCustomerPaymentDate();
@@ -764,6 +790,8 @@ async function submitCollection() {
         "Amount": selectedAmount
       });
     });
+    const selectedCustomer = customersData.find(customer => String(customer["ID"]).trim() === String(selectedCustomerId).trim());
+    if (selectedCustomer) updateCollectionPaidDue(selectedCustomer);
     if (!collectedDates.length) throw new Error("The selected payments were already collected.");
 
     lastCollectionReceipt = { customerId: selectedCustomerId, customerName: selectedCustomerName, loanType: selectedLoanType, dates: collectedDates, dailyAmount: Number(selectedAmount), totalAmount: Number(selectedAmount) * collectedDates.length, paidAt: new Date() };
