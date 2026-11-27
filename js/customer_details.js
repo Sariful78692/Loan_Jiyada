@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     pageTitle.innerHTML = `<i class="fa-solid fa-users"></i> All Customers`;
   }
   if (isRdCollectPage) {
+    document.body.classList.add("rd-collect-page");
     document.querySelectorAll('.submenu a[href*="CustomerDetails.html"]').forEach(link => { link.style.color = ""; });
     document.querySelectorAll('.submenu a[href*="mode=collect"]').forEach(link => { link.style.color = "#fff"; });
   }
@@ -199,7 +200,8 @@ function renderTable(data) {
       `;
     } else if (loanStatus === "closed") {
       actionButtonsHtml = isRdCollectPage ? `
-        <span style="color:#64748b;font-weight:bold;font-size:12px;background:#f1f5f9;padding:6px 10px;border-radius:4px;display:inline-block;"><i class="fa-solid fa-lock"></i> Closed</span>
+        <span style="color:#64748b;font-weight:bold;font-size:12px;background:#f1f5f9;padding:6px 10px;border-radius:4px;display:inline-block;margin-right:4px"><i class="fa-solid fa-lock"></i> Closed</span>
+        <button onclick="reopenCustomerLoan('${custId}')" style="background:linear-gradient(110deg,#2563eb,#4f46e5);color:white;padding:6px 10px;border:0;border-radius:7px;cursor:pointer;font-weight:700;box-shadow:0 3px 8px rgba(37,99,235,.18)" title="Re-open this loan"><i class="fa-solid fa-arrow-rotate-left"></i> Re-open</button>
       ` : `
         <span style="color: #64748b; font-weight: bold; font-size: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 4px; margin-right: 5px; display: inline-block;">
           <i class="fa-solid fa-lock"></i> Closed
