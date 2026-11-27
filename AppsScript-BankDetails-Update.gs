@@ -482,12 +482,14 @@ function saveCollectionInstallments(ss, data) {
   }
 
   var uniqueDates = {};
+  var todayIso = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
   for (var i = 0; i < dates.length; i++) {
     var dateValue = String(dates[i] || "").trim();
     var parsedDate = parseGoldLoanDate(dateValue);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue) || !parsedDate || goldLoanDateIso(parsedDate) !== dateValue || uniqueDates[dateValue]) {
       return { status: "error", message: "The bulk collection contains an invalid or duplicate date." };
     }
+    if (dateValue > todayIso) return { status: "error", message: "Future dates cannot be collected." };
     uniqueDates[dateValue] = true;
     dates[i] = dateValue;
   }

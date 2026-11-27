@@ -112,12 +112,16 @@
       paymentPage.innerHTML = visibleEntries.length ? visibleEntries.map(entry => {
         const paid = payments.filter(p => p.loanId === String(entry.ID));
         const count = Number(entry["No. of Instalments"]) || 0;
+        const period = String(entry["Instalment Period"] || "Days").trim();
+        const periodLabel = period === "Months" ? (count === 1 ? "Month" : "Months")
+          : period === "Weeks" ? (count === 1 ? "Week" : "Weeks")
+            : (count === 1 ? "Day" : "Days");
         const total = loanTotal(entry);
         const due = Math.max(0, total - paidTotal(entry.ID, payments));
         const installmentAmount = nextInstallmentAmount(entry, paid.length, total - due);
         const photo = entry["Customer Photo URL"] ? `<img class="personal-emi-photo" data-customer-photo="${esc(entry["Customer Photo URL"])}" alt="${esc(entry["Customer Name"] || "Customer")} photo" loading="lazy">` : "—";
         const isClosed = paid.length >= count || due <= 0;
-        return `<tr><td>${photo}</td><td>${esc(entry["Customer Name"])}</td><td>${esc(entry["Mobile Number"])}</td><td>${esc(entry["Loan Type"])}</td><td>${wholeMoney(total)}</td><td>${wholeMoney(due)}</td><td>${count}</td><td>${wholeMoney(installmentAmount || (count ? Math.round(total / count) : 0))}</td><td>${paid.length} / ${count}</td><td>${isClosed ? "Complete" : paid.length + 1}</td><td><button type="button" class="btn-primary${isClosed ? " is-closed" : ""}" data-pay="${esc(entry.ID)}" ${isClosed ? "disabled" : ""}>${isClosed ? "Closed" : "Pay installment"}</button></td></tr>`;
+        return `<tr><td>${photo}</td><td>${esc(entry["Customer Name"])}</td><td>${esc(entry["Mobile Number"])}</td><td>${esc(entry["Loan Type"])}</td><td>${wholeMoney(total)}</td><td>${wholeMoney(due)}</td><td>${count} ${periodLabel}</td><td>${wholeMoney(installmentAmount || (count ? Math.round(total / count) : 0))}</td><td>${paid.length} / ${count}</td><td>${isClosed ? "Complete" : paid.length + 1}</td><td><button type="button" class="btn-primary${isClosed ? " is-closed" : ""}" data-pay="${esc(entry.ID)}" ${isClosed ? "disabled" : ""}>${isClosed ? "Closed" : "Pay installment"}</button></td></tr>`;
       }).join("") : '<tr><td colspan="11" style="padding:24px;text-align:center">No matching Personal Loan accounts found.</td></tr>';
       paymentPage.querySelectorAll("[data-customer-photo]").forEach(image => {
         if (typeof setImageSourceWithFallback === "function") setImageSourceWithFallback(image, image.dataset.customerPhoto);
@@ -147,9 +151,14 @@
       const payments = readPayments().filter(payment => payment.loanId === String(selectedEntry.ID));
       const dates = scheduleDates(selectedEntry);
       const available = availableInstallmentDates(selectedEntry, payments);
-      const start = document.getElementById("payment-date-start").value;
-      const end = document.getElementById("payment-date-end").value;
-      selectedInstallmentDates = available.filter(date => date >= start && date <= end);
+      const period = String(selectedEntry["Instalment Period"] || "Days").trim();
+      if (period === "Months" || period === "Weeks") {
+        selectedInstallmentDates = available.slice(0, 1);
+      } else {
+        const start = document.getElementById("payment-date-start").value;
+        const end = document.getElementById("payment-date-end").value;
+        selectedInstallmentDates = available.filter(date => date >= start && date <= end);
+      }
       if (!available.length || selectedInstallmentDates[0] !== available[0]) selectedInstallmentDates = [];
       const total = loanTotal(selectedEntry);
       let remaining = Math.max(0, total - paidTotal(selectedEntry.ID, payments));
@@ -182,6 +191,13 @@
       const totalAmount = loanTotal(selectedEntry);
       const dueAmount = Math.max(0, totalAmount - paidAmount);
       const availableDates = availableInstallmentDates(selectedEntry, payments);
+      const useSinglePaymentDate = ["Months", "Weeks"].includes(String(selectedEntry["Instalment Period"] || "Days").trim());
+      document.getElementById("payment-date-label").textContent = useSinglePaymentDate ? "Payment date" : "Payment date range";
+      document.getElementById("payment-date-range-fields").hidden = useSinglePaymentDate;
+      document.getElementById("payment-single-date-field").hidden = !useSinglePaymentDate;
+      const singleDateInput = document.getElementById("payment-single-date");
+      const now = new Date();
+      singleDateInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const startInput = document.getElementById("payment-date-start");
       const endInput = document.getElementById("payment-date-end");
       startInput.min = endInput.min = availableDates[0] || "";
@@ -242,7 +258,10 @@
       selectedDates.forEach(date => {
         const installment = dates.indexOf(date) + 1;
         const amount = installment === count ? remaining : Math.min(Math.round(loanTotal(selectedEntry) / count), remaining);
-        installmentsToSave.push({ installment, paymentDate: date, amount });
+        const paymentDate = ["Months", "Weeks"].includes(String(selectedEntry["Instalment Period"] || "Days").trim())
+          ? document.getElementById("payment-single-date").value
+          : date;
+        installmentsToSave.push({ installment, paymentDate, amount });
         remaining -= amount;
       });
       const collectButton = event.currentTarget;

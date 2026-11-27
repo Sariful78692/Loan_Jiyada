@@ -137,7 +137,7 @@ async function fetchReportData() {
       : (reportPath.endsWith("goldloanreport.html") || requestedType === "goldEmiPayments"
         ? "gold_emi_report"
         : "customer_report");
-    const data = await fetchAppData(reportView);
+    const data = await fetchAppData(reportView, reportPath.endsWith("collectionreport.html"));
     
     allCollectionsData = data.collections || [];
     allClosedCollectionsData = data.closed_collections || [];
@@ -721,13 +721,22 @@ function renderCollectionsTable(data, status) {
   const tbody = document.getElementById("report-table-body");
   const loanTypeFilter = document.getElementById("emiLoanTypeFilter")?.value || "All";
   const isEmiPaymentReport = currentReportType === "emiPayments";
+  const isCollectionReportPage = window.location.pathname.toLowerCase().endsWith("collectionreport.html");
   const searchText = (document.getElementById("reportSearchInput")?.value || "").trim().toLowerCase();
   const filterYear = document.getElementById("reportYearFilter")?.value || "All";
+  const showLoanDates = !isCollectionReportPage;
+  const showPaymentDateRange = isCollectionReportPage;
   const startValue = document.getElementById("startDate")?.value || "";
   const endValue = document.getElementById("endDate")?.value || "";
   const startDate = startValue ? normalizeReportDate(startValue) : "";
   const endDate = endValue ? normalizeReportDate(endValue) : "";
   const filteredCollections = data.filter(item => {
+    if (isCollectionReportPage) {
+      const collectionDate = normalizeReportDate(item["Collection Date"]);
+      const savedDate = normalizeReportDate(item.Timestamp);
+      // Future-dated rows created earlier are scheduled dates, not collections that happened that day.
+      if (collectionDate && savedDate && collectionDate > savedDate) return false;
+    }
     const loanType = String(item["Loan Type"] || "").trim();
     if (isEmiPaymentReport && loanType.toLowerCase() === "rd loan") return false;
     if (!isEmiPaymentReport && loanTypeFilter !== "All" && loanType !== loanTypeFilter) return false;
@@ -752,9 +761,9 @@ function renderCollectionsTable(data, status) {
     <th style="padding: 12px; white-space: nowrap;">Customer ID</th>
     <th style="padding: 12px;">Customer Name</th>
     <th style="padding: 12px;">Loan Type</th>
-    <th style="padding: 12px; white-space: nowrap;">Start Date</th>
-    <th style="padding: 12px; white-space: nowrap;">End Date</th>
+    ${showLoanDates ? '<th style="padding: 12px; white-space: nowrap;">Start Date</th><th style="padding: 12px; white-space: nowrap;">End Date</th>' : ''}
     <th style="padding: 12px;">Collection Date</th>
+    ${showPaymentDateRange ? '<th style="padding: 12px; white-space: nowrap;">Payment Date Range</th>' : ''}
     <th style="padding: 12px;">Amount</th>
     ${status === "Closed" ? '<th style="padding: 12px;">Archive Date</th>' : ''}
     <th class="no-print" style="padding: 12px; text-align: center;">Actions</th>
@@ -762,7 +771,8 @@ function renderCollectionsTable(data, status) {
 
   tbody.innerHTML = "";
   if (filteredCollections.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${status === "Closed" ? 11 : 10}" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
+    const columnCount = (status === "Closed" ? 11 : 10) - (showLoanDates ? 0 : 2) + (showPaymentDateRange ? 1 : 0);
+    tbody.innerHTML = `<tr><td colspan="${columnCount}" style="text-align: center; padding: 20px; color: #64748b;">No ${status.toLowerCase()} collection records found.</td></tr>`;
   }
 
   const fragment = document.createDocumentFragment();
@@ -797,9 +807,9 @@ function renderCollectionsTable(data, status) {
       <td style="padding: 10px 15px; white-space: nowrap;">${customerId || "N/A"}</td>
       <td style="padding: 10px 15px; font-weight: 500;">${item["Customer Name"] || "N/A"}</td>
       <td style="padding: 10px 15px; font-weight: bold; color: #0284c7;">${String(item["Loan Type"] || "N/A").trim().toLowerCase() === "rd loan" ? "RD" : (item["Loan Type"] || "N/A")}</td>
-      <td style="padding: 10px 15px; white-space: nowrap;">${loanSchedule.startDate}</td>
-      <td style="padding: 10px 15px; white-space: nowrap;">${loanSchedule.endDate}</td>
+      ${showLoanDates ? `<td style="padding: 10px 15px; white-space: nowrap;">${loanSchedule.startDate}</td><td style="padding: 10px 15px; white-space: nowrap;">${loanSchedule.endDate}</td>` : ''}
       <td style="padding: 10px 15px;">${formatDate(item["Collection Date"])}</td>
+      ${showPaymentDateRange ? `<td style="padding: 10px 15px; white-space: nowrap;">${item["Payment Date Range"] || item["Payment Dates"] || formatDate(item["Collection Date"])}</td>` : ''}
       <td style="padding: 10px 15px; font-weight: bold; color: #10b981;">₹ ${item["Amount"] || "0"}</td>
       ${status === "Closed" ? `<td style="padding: 10px 15px;">${formatDate(item["Archive Date"])}</td>` : ''}
       <td class="no-print" style="padding: 10px 15px; text-align: center; white-space: nowrap;">${actionHtml}</td>

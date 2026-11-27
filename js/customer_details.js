@@ -12,6 +12,7 @@ let lastCollectionReceipt = null;
 let selectedCustomerDuration = 0;
 const closingCustomerIds = new Set();
 const isGroupDetailsPage = window.location.pathname.toLowerCase().endsWith("groupdetails.html");
+const isRdCollectPage = new URLSearchParams(window.location.search).get("mode") === "collect";
 
 document.addEventListener("DOMContentLoaded", async function () {
   const urlParams = new URLSearchParams(window.location.search);
@@ -20,11 +21,17 @@ document.addEventListener("DOMContentLoaded", async function () {
   const pageTitle = document.getElementById("page-title");
   if (isGroupDetailsPage && pageTitle) {
     pageTitle.innerHTML = '<i class="fa-solid fa-people-group"></i> Group Details';
+  } else if (isRdCollectPage && pageTitle) {
+    pageTitle.innerHTML = '<i class="fa-solid fa-hand-holding-dollar"></i> RD Collect';
   } else if (currentLoanFilter && pageTitle) {
     const displayLoanName = String(currentLoanFilter).trim().toLowerCase() === "rd loan" ? "RD" : currentLoanFilter;
     pageTitle.innerHTML = `<i class="fa-solid fa-users"></i> ${displayLoanName} Customers`;
   } else if (pageTitle) {
     pageTitle.innerHTML = `<i class="fa-solid fa-users"></i> All Customers`;
+  }
+  if (isRdCollectPage) {
+    document.querySelectorAll('.submenu a[href*="CustomerDetails.html"]').forEach(link => { link.style.color = ""; });
+    document.querySelectorAll('.submenu a[href*="mode=collect"]').forEach(link => { link.style.color = "#fff"; });
   }
 
   // 🟢 সার্চ এবং ইয়ার ফিল্টারকে অটোমেটিক কানেক্ট করার লজিক
@@ -190,7 +197,9 @@ function renderTable(data) {
         </button>
       `;
     } else if (loanStatus === "closed") {
-      actionButtonsHtml = `
+      actionButtonsHtml = isRdCollectPage ? `
+        <span style="color:#64748b;font-weight:bold;font-size:12px;background:#f1f5f9;padding:6px 10px;border-radius:4px;display:inline-block;"><i class="fa-solid fa-lock"></i> Closed</span>
+      ` : `
         <span style="color: #64748b; font-weight: bold; font-size: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 4px; margin-right: 5px; display: inline-block;">
           <i class="fa-solid fa-lock"></i> Closed
         </span>
@@ -200,7 +209,9 @@ function renderTable(data) {
       `;
     } else if (isRdLoanPage) {
       let collectBtn = "";
-      if (dates.dueDay === 0 || (durationDays > 0 && payDays >= durationDays)) {
+      if (!isRdCollectPage) {
+        collectBtn = "";
+      } else if (dates.dueDay === 0 || (durationDays > 0 && payDays >= durationDays)) {
         collectBtn = `
           <button onclick="closeCustomerLoan('${custId}')" style="background: #dc2626; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Close RD">
             <i class="fa-solid fa-lock"></i> RD Close
@@ -220,8 +231,7 @@ function renderTable(data) {
         `;
       }
 
-      actionButtonsHtml = `
-        ${collectBtn}
+      actionButtonsHtml = isRdCollectPage ? collectBtn : `
         <button onclick="editCustomer('${custId}')" style="background: #eab308; color: white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Edit">
           <i class="fa-solid fa-pen-to-square"></i>
         </button>
@@ -574,6 +584,32 @@ function formatDisplayDate(date) {
 
 // RD collection: accept a date range, save one installment for each selected day,
 // then keep the modal open so the saved payment can be printed as a receipt.
+function handleCollectionDateChange(field) {
+  const input = document.getElementById(`collection-${field}-date`);
+  const paidDates = new Set(allCollectionsData
+    .filter(item => String(item["Customer ID"]).trim() === String(selectedCustomerId).trim())
+    .map(item => normalizeCollectionDate(item["Collection Date"])));
+  if (input.value && paidDates.has(input.value)) {
+    input.value = "";
+    alert("This date has already been paid. Please choose an unpaid date.");
+  }
+  const lastPayment = getLastCustomerPaymentDate();
+  if (lastPayment && input.value && input.value <= lastPayment) {
+    input.value = "";
+    alert("Please choose a date after the last payment date.");
+  }
+  updateCollectionRangeSummary();
+}
+
+function getLastCustomerPaymentDate() {
+  const dates = allCollectionsData
+    .filter(item => String(item["Customer ID"]).trim() === String(selectedCustomerId).trim())
+    .map(item => normalizeCollectionDate(item["Collection Date"]))
+    .filter(date => /^\d{4}-\d{2}-\d{2}$/.test(date))
+    .sort();
+  return dates.at(-1) || "";
+}
+
 function openCollectionModal(id) {
   const cust = customersData.find(c => String(c["ID"]) === String(id));
   if (!cust) return;
@@ -587,6 +623,24 @@ function openCollectionModal(id) {
   const today = formatDateInput(new Date());
   document.getElementById("collection-start-date").value = today;
   document.getElementById("collection-end-date").value = today;
+  document.getElementById("collection-start-date").max = today;
+  document.getElementById("collection-end-date").max = today;
+  const paidDates = allCollectionsData.filter(item => String(item["Customer ID"]).trim() === String(selectedCustomerId).trim()).map(item => normalizeCollectionDate(item["Collection Date"])).filter(Boolean).sort();
+  document.getElementById("last-payment-date").textContent = paidDates.length ? new Date(`${paidDates[paidDates.length - 1]}T00:00:00`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "No payments yet";
+  const minDate = paidDates.at(-1) || "";
+  const minSelectableDate = minDate ? new Date(`${minDate}T00:00:00`) : null;
+  if (minSelectableDate) minSelectableDate.setDate(minSelectableDate.getDate() + 1);
+  ["collection-start-date", "collection-end-date"].forEach(id => {
+    const dateInput = document.getElementById(id);
+    dateInput.min = minSelectableDate ? formatDateInput(minSelectableDate) : "";
+  });
+  if (minDate && today <= minDate) {
+    const nextDate = new Date(`${minDate}T00:00:00`);
+    nextDate.setDate(nextDate.getDate() + 1);
+    const nextValue = formatDateInput(nextDate);
+    document.getElementById("collection-start-date").value = nextValue;
+    document.getElementById("collection-end-date").value = nextValue;
+  }
   document.getElementById("collect-cust-name").innerText = selectedCustomerName;
   document.getElementById("collect-cust-id").innerText = "ID: " + selectedCustomerId;
   document.getElementById("print-receipt-btn").classList.add("hidden");
@@ -618,6 +672,10 @@ function formatMoney(amount) {
   return "₹ " + Number(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function syncCollectionDate() {
+  document.getElementById("collection-end-date").value = document.getElementById("collection-start-date").value;
+}
+
 function normalizeCollectionDate(value) {
   const date = String(value || "").trim();
   if (date.includes("T")) return date.split("T")[0];
@@ -631,14 +689,17 @@ function updateCollectionRangeSummary() {
   const daysEl = document.getElementById("collection-days");
   const amountEl = document.getElementById("collect-amount");
   if (!startDate || !endDate) {
-    daysEl.innerText = "Select a date range";
+    daysEl.innerText = "Select a payment date";
     amountEl.innerText = "";
   } else if (startDate > endDate) {
     daysEl.innerText = "End date must be on or after the start date";
     amountEl.innerText = "";
   } else {
-    const days = getDateRange(startDate, endDate).length;
-    daysEl.innerText = `${days} day${days === 1 ? "" : "s"} payment (${startDate} to ${endDate})`;
+    const customerCollections = allCollectionsData.filter(item => String(item["Customer ID"]).trim() === String(selectedCustomerId).trim());
+    const paidDates = new Set(customerCollections.map(item => normalizeCollectionDate(item["Collection Date"])).filter(Boolean));
+    const unpaidDates = getDateRange(startDate, endDate).filter(date => !paidDates.has(date));
+    const days = unpaidDates.length;
+    daysEl.innerText = `${days} unpaid day${days === 1 ? "" : "s"} · ${startDate} to ${endDate}`;
     amountEl.innerText = formatMoney(Number(selectedAmount) * days);
   }
 }
@@ -648,6 +709,15 @@ async function submitCollection() {
   const endDate = document.getElementById("collection-end-date").value;
   if (!startDate || !endDate || startDate > endDate) {
     alert("Please select a valid date range.");
+    return;
+  }
+  if (endDate > formatDateInput(new Date())) {
+    alert("Future dates cannot be collected.");
+    return;
+  }
+  const lastPaymentDate = getLastCustomerPaymentDate();
+  if (lastPaymentDate && (startDate <= lastPaymentDate || endDate <= lastPaymentDate)) {
+    alert("Choose a date range after the last payment date.");
     return;
   }
 

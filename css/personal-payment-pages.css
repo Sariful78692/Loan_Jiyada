@@ -119,6 +119,7 @@
 .payment-progress-labels span:first-child strong { color: #15803d; }
 .payment-progress-labels span:last-child strong { color: #c2410c; }
 .personal-payment-details dd.payment-date-range { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.personal-payment-details dd.payment-date-range[hidden] { display: none !important; }
 .payment-date-range input { min-width: 0; width: 43%; padding: 6px; border: 1px solid #7dd3fc; border-radius: 7px; color: #075985; background: #fff; font: 600 12px Arial,sans-serif; }
 .payment-date-range input:focus { outline: 2px solid #38bdf8; outline-offset: 1px; }
 .payment-date-range input:disabled { color: #94a3b8; background: #f1f5f9; }
