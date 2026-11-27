@@ -130,19 +130,13 @@
             <!-- 🟢 Date Range Filters -->
             <div style="display: flex; align-items: center; gap: 5px; border-left: 2px solid #cbd5e1; padding-left: 15px;">
               <label style="font-weight: bold; color: #555; font-size: 14px;">From:</label>
-              <input type="date" id="startDate" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; outline: none;">
+              <input type="date" id="startDate" onchange="filterTableAndCalculateTotal()" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; outline: none;">
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
               <label style="font-weight: bold; color: #555; font-size: 14px;">To:</label>
-              <input type="date" id="endDate" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; outline: none;">
+              <input type="date" id="endDate" onchange="filterTableAndCalculateTotal()" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; outline: none;">
             </div>
 
-            <button type="button" onclick="filterTableAndCalculateTotal()" style="background: #3b82f6; color: white; border: none; padding: 9px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">
-              <i class="fa-solid fa-filter"></i> Filter
-            </button>
-            <button type="button" onclick="clearFilters()" style="background: #9ca3af; color: white; border: none; padding: 9px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">
-              Clear
-            </button>
           </div>
           
           <!-- Export Buttons & Total Box -->
